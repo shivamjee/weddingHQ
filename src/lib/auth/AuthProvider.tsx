@@ -25,6 +25,7 @@ import {
 import {
   getRedirectResult,
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
   type User as FirebaseUser,
@@ -49,6 +50,15 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/** Errors where a popup can't work and we should fall back to full-page redirect
+ *  (iOS Safari, installed PWAs, popup blockers). */
+const POPUP_FALLBACK_CODES = new Set([
+  "auth/popup-blocked",
+  "auth/popup-closed-by-user",
+  "auth/cancelled-popup-request",
+  "auth/operation-not-supported-in-this-environment",
+]);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -148,13 +158,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     setNotInvited(false);
     setAuthError(null);
-    // Full-page redirect, NOT a popup. Popups fail on our production setup because
-    // the app (…vercel.app) and Firebase's auth handler (…firebaseapp.com) are
-    // different origins, so the browser blocks the popup from returning the result
-    // — the popup just flashes and closes. Redirect also works in installed PWAs,
-    // where popups don't work at all. Completion is handled by getRedirectResult +
-    // onAuthStateChanged after the page navigates back.
-    await signInWithRedirect(auth, googleProvider);
+    try {
+      // Popup first (PHASE1 spec) — a same-origin authDomain (see firebase.ts +
+      // next.config.ts) means the popup's postMessage handshake now works. Fall
+      // back to full-page redirect for iOS Safari / installed PWAs / blocked
+      // popups, where popups don't work at all.
+      await signInWithPopup(auth, googleProvider);
+    } catch (err) {
+      const code = (err as { code?: string }).code ?? "";
+      if (POPUP_FALLBACK_CODES.has(code)) {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+      console.error("[auth] Google sign-in failed:", err);
+      throw err;
+    }
   }, []);
 
   const signOutUser = useCallback(async () => {

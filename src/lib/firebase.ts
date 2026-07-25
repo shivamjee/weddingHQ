@@ -16,7 +16,19 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  // Same-origin auth domain (see next.config.ts). Firebase's sign-in state sync
+  // (popup postMessage AND redirect result) goes through a hidden iframe/handler
+  // hosted at `authDomain`. If that's a different site than this app — the
+  // default project.firebaseapp.com value — Chrome/Safari third-party storage
+  // partitioning blocks the sync and sign-in silently reverts to signed-out,
+  // even though the Google OAuth exchange itself succeeded. Pointing this at
+  // window.location.host (proxied by the next.config.ts rewrite) keeps it
+  // same-origin in both `next dev` (localhost) and on Vercel. Falls back to the
+  // env value during any server-side evaluation, where it's unused.
+  authDomain:
+    typeof window !== "undefined"
+      ? window.location.host
+      : process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
