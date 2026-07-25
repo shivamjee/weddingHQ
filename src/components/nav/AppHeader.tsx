@@ -19,6 +19,12 @@ export function AppHeader() {
 
   const canSwitch = memberships.length > 1 || isAdmin;
 
+  // Initial of the wedding name once it's loaded; a ring emoji (not a bare "?")
+  // while it's still loading or genuinely unnamed — "?" reads as broken, this
+  // reads as "no crest yet". There's no per-wedding photo concept until Storage
+  // is enabled (Phase 6), so this is the shared default for every wedding.
+  const initial = tenant?.name?.trim().charAt(0).toUpperCase();
+
   // The wedding is the headline; who you are is the subtitle, alongside your
   // side. Both matter — "am I in the right wedding" and "am I signed in as me".
   const firstName = (profile?.displayName ?? "").trim().split(" ")[0];
@@ -33,7 +39,7 @@ export function AppHeader() {
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-rose-100 text-sm font-semibold text-rose-700">
-          {(tenant?.name ?? "?").trim().charAt(0).toUpperCase() || "?"}
+          {initial || "💍"}
         </div>
         <div className="min-w-0 leading-tight">
           <p className="truncate text-sm font-semibold text-stone-800">

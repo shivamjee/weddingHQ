@@ -90,8 +90,12 @@ export function TenantProvider({ tenantId, children }: { tenantId: string; child
       role: membership?.role ?? null,
       // A global admin has full write access to every wedding, matching the rules.
       canWrite: membership?.role === "couple" || isAdmin,
+      // Fully optional-chained: a hand-typed bootstrap document (the couple's
+      // first wedding is created by hand in the Firestore console, not through
+      // the app's own form) can plausibly have sideA/sideB missing entirely
+      // rather than just missing `.label` — this must never throw.
       sideLabel: (side: Side) =>
-        side === "a" ? (tenant?.sideA.label ?? "Side A") : (tenant?.sideB.label ?? "Side B"),
+        side === "a" ? (tenant?.sideA?.label ?? "Side A") : (tenant?.sideB?.label ?? "Side B"),
       loading: !ready || (mayRead && current === null),
       // Either the rules would refuse us, or the wedding doesn't exist (a stale
       // link, or a hand-typed URL).
