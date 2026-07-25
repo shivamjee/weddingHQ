@@ -83,11 +83,68 @@ Division of authority:
 `FEATURES.md` §0 records decisions that were worked through deliberately. Do not re-derive or
 quietly change them.
 
+## Deployment & hosting (as-built, from the Phase 1 session)
+
+Concrete infrastructure state. Identifiers and the manual console wiring that isn't captured in
+code — read this before changing anything host-related.
+
+### Identifiers
+- **Firebase project:** `weddinghq-d125b` — Spark (free) plan. **Never enable Blaze.**
+- **Firestore location:** `nam5` (US multi-region). **Permanent — cannot be changed** without a
+  new project + data migration. Chosen because the primary user is in Phoenix.
+- **Auth:** Google provider only. **Storage is NOT enabled** (receipts are Phase 6).
+- **GitHub repo:** `shivamjee/weddingHQ` (note: local folder is `wedding_app`).
+- **Vercel:** auto-deploys `main`. **Production URL: `wedding-hq-ten.vercel.app`.**
+- **Config:** the six `NEXT_PUBLIC_FIREBASE_*` values live in `.env.local` (local) **and** the
+  Vercel dashboard (production, build-time inlined). They are public web config, not secrets.
+- **Couple/admin account:** `shivamjee@rocketmail.com` (allowlist `role: "couple"`, `side: "shivam"`).
+
+### How Google sign-in is wired to the host (important)
+Sign-in uses a **same-origin `authDomain`** to dodge browser third-party-storage blocking
+(which otherwise silently reverts sign-in to signed-out, on Vercel *and* localhost). Two code
+pieces make the app serve Firebase's auth handler from its own domain:
+- `next.config.ts` rewrites `/__/auth/:path*` → `https://<NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN>/__/auth/:path*`
+- `src/lib/firebase.ts` sets `authDomain` to `window.location.host` on the client.
+
+Because `authDomain` follows `window.location.host`, **the code needs no change for a new
+domain** — but two console registrations do (both are per-domain, and sign-in fails without
+them: `redirect_uri_mismatch` or a silent bounce back to the landing screen).
+
+### ⚙️ Changing the hostname / adding a domain — checklist
+Do all of these for the new domain (e.g. a custom domain like `weddinghq.com`):
+1. **Vercel** → add the domain to the project (Settings → Domains). Env vars carry over.
+2. **Firebase Console** → Authentication → Settings → **Authorised domains** → **Add domain** →
+   the new host (e.g. `weddinghq.com`).
+3. **Google Cloud Console** (`console.cloud.google.com/apis/credentials`, project
+   `weddinghq-d125b`) → the **OAuth 2.0 Web client** ("Web client (auto created by Google
+   Service)") → **Authorised redirect URIs** → add `https://<newhost>/__/auth/handler`.
+4. No code change needed. Test sign-in on the new host.
+
+Currently registered redirect URIs: `https://wedding-hq-ten.vercel.app/__/auth/handler` and
+`http://localhost:3000/__/auth/handler`. Currently authorised domains include
+`wedding-hq-ten.vercel.app` (plus Firebase's defaults + `localhost`).
+
+### Toolchain / ops notes
+- **`firebase-tools` is pinned to v13** in devDependencies because this Mac has **Java 14**;
+  v14+ needs Java 21 for the Firestore emulator. Unpin only after upgrading Java to 21+.
+- **Deploy security rules:** `npx firebase deploy --only firestore:rules --project weddinghq-d125b`
+  (needs `npx firebase login` first).
+- **Test security rules locally:** `npm run test:rules` (spins up the Firestore emulator).
+- **Bootstrap:** the first `allowlist/{email}` doc is created by hand in the Firestore console
+  (nobody can sign in to create it). New invitees are added by a `role: "couple"` user.
+- **Money:** stored as integer **paise**, never floats. Format via `src/lib/money.ts` only.
+- **Service worker** (`public/sw.js`) is **hand-written** (not Serwist) — Next 16 is bleeding-edge
+  and the offline-shell requirement is minimal. Bump `CACHE` in it when shell assets change.
+
 ## Current phase
 
-**Phase 1 — Foundation.** The active brief is in `PHASE1.md`. Read it before starting work.
+**Phase 2 — Decision support.** The active brief is in `PHASE2.md`. Read it before starting work.
 
-Do not build features from later phases, and do not read past §1 of `FEATURES.md` while phase 1
-is active — the rest is out of scope and reading it invites drift.
+Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
+allowlist-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,
+manifest + service worker, five-tab nav.
 
-When phase 1 is complete, I will update this section to point at the next phase brief.
+Phase 2 builds categories/events setup, per-side budget allocations, comparison tables, open
+questions, and contacts — **planning only, no expense entry**. Scope draws on `FEATURES.md` §2–§5;
+`PHASE2.md` is authoritative on what's in/out for this phase. Do not build later-phase features
+(expenses, guests, tasks, receipts) — see `PHASE2.md` "Out of scope".
