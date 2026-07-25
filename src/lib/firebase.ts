@@ -31,7 +31,6 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     "Firebase config is missing. Copy .env.local.example to .env.local and fill in the " +
     "NEXT_PUBLIC_FIREBASE_* values from the Firebase console (Project settings → Your apps).";
   if (process.env.NODE_ENV !== "production") {
-    // eslint-disable-next-line no-console
     console.error(`\n[firebase] ${message}\n`);
   }
 }
