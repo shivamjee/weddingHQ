@@ -30,11 +30,25 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — secrets never committed; the example template IS committed
 .env*
+!.env.local.example
 
 # vercel
 .vercel
+
+# firebase (emulator + local artifacts; never commit service-account keys)
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*-debug.log
+serviceAccountKey.json
+
+# serwist / generated service worker
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker*.js
 
 # typescript
 *.tsbuildinfo
