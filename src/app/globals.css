@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * weddingHQ is intentionally a single warm, light theme (rose / stone / white)
+ * for legibility across ages and devices. We deliberately do NOT invert for the
+ * OS dark-mode preference — doing so with only a bg/fg swap produced a broken
+ * mix (white chrome, black content, unreadable dark-on-dark text). If a proper
+ * dark palette is ever wanted, design it deliberately rather than auto-inverting.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,13 +17,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
