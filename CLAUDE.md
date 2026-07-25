@@ -201,7 +201,11 @@ Alternatively, just test against the deployed Vercel URL.
   `role: "couple"`, and `isAdmin: true` on that person's `users/{uid}`. After that, admins create
   weddings from `/tenants` and the couple invites people from the More tab.
 - **Granting admin** is console-only, by design: the rules refuse every client write to `isAdmin`,
-  including from another admin.
+  including from another admin. Steps: the person must **sign in at least once first** —
+  `users/{uid}` is only created on sign-in, even if they land on "not invited." Then, in the
+  `users` collection, filter on `email == their@address` to find their doc (the doc id is their
+  Firebase Auth **uid**, not their email — unlike `memberships`, which is email-keyed). Add
+  `isAdmin` (boolean) = `true`. No redeploy needed.
 - **Money:** stored as integer **paise**, never floats. Format via `src/lib/money.ts` only.
 - **Service worker** (`public/sw.js`) is **hand-written** (not Serwist) — Next 16 is bleeding-edge
   and the offline-shell requirement is minimal. Bump `CACHE` in it when shell assets change.
