@@ -45,11 +45,6 @@ ui-debug.log
 *-debug.log
 serviceAccountKey.json
 
-# serwist / generated service worker
-/public/sw.js
-/public/sw.js.map
-/public/swe-worker*.js
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts

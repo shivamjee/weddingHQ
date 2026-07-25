@@ -10,24 +10,26 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 export function SignInButton() {
   const { signInWithGoogle, authError } = useAuth();
   const [pending, setPending] = useState(false);
-  const [clickError, setClickError] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   async function handleClick() {
-    setClickError(null);
+    setFailed(false);
     setPending(true);
     try {
       await signInWithGoogle();
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      const message = (err as { message?: string }).message;
-      setClickError(code ?? message ?? "Sign-in failed");
+      // Details are logged to the console in the provider; users get a friendly
+      // retry prompt rather than a raw auth/* code.
+      console.error("[auth] sign-in failed:", err);
+      setFailed(true);
       setPending(false);
     }
-    // On success the page redirects to Google, so we leave `pending` set.
+    // On popup success the auth state change unmounts this screen; on the
+    // redirect fallback the page navigates away — either way we keep `pending`.
   }
 
-  // authError comes back from the redirect return leg; clickError from the tap.
-  const shownError = clickError ?? authError;
+  // authError surfaces a failed redirect-return; `failed` a failed tap.
+  const showRetry = failed || Boolean(authError);
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
@@ -46,9 +48,9 @@ export function SignInButton() {
         )}
         <span>{pending ? "Signing in…" : "Sign in with Google"}</span>
       </button>
-      {shownError ? (
-        <p className="max-w-xs rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-700">
-          Sign-in error: <span className="font-mono">{shownError}</span>
+      {showRetry ? (
+        <p className="max-w-xs text-center text-sm text-stone-500">
+          Sign-in didn&apos;t go through. Please try again.
         </p>
       ) : null}
     </div>
