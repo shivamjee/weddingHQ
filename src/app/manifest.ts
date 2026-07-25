@@ -6,9 +6,11 @@ import type { MetadataRoute } from "next";
 // Icons are placeholders — replace via scripts/generate-icons.mjs.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "WeddingHQ — Shivam & Swara",
-    short_name: "WeddingHQ",
-    description: "Private wedding planning for Shivam & Swara.",
+    // Generic: one installed app can hold several weddings, and the home-screen
+    // icon is shared across them.
+    name: "weddingHQ",
+    short_name: "weddingHQ",
+    description: "Private wedding planning, for invited family only.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

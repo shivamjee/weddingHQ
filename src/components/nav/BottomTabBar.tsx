@@ -3,23 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
+import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 
 // Mobile-first bottom navigation (PHASE1 Step 7). Five tabs, each a ≥44px tap
 // target with a legible label under the icon. The same bar is used on desktop
 // inside the centered, max-width app column — no separate desktop navigation.
+//
+// Every href is scoped to the active wedding, so switching weddings keeps you on
+// the same tab rather than dumping you back at Home.
 
 type TabIcon = ComponentType<{ className?: string }>;
 
-const TABS: { href: string; label: string; Icon: TabIcon }[] = [
-  { href: "/home", label: "Home", Icon: HomeIcon },
-  { href: "/budget", label: "Budget", Icon: BudgetIcon },
-  { href: "/guests", label: "Guests", Icon: GuestsIcon },
-  { href: "/plan", label: "Plan", Icon: PlanIcon },
-  { href: "/more", label: "More", Icon: MoreIcon },
+const TABS: { path: string; label: string; Icon: TabIcon }[] = [
+  { path: "/home", label: "Home", Icon: HomeIcon },
+  { path: "/budget", label: "Budget", Icon: BudgetIcon },
+  { path: "/guests", label: "Guests", Icon: GuestsIcon },
+  { path: "/plan", label: "Plan", Icon: PlanIcon },
+  { path: "/more", label: "More", Icon: MoreIcon },
 ];
 
 export function BottomTabBar() {
   const pathname = usePathname();
+  const { tenantId } = useTenant();
 
   return (
     <nav
@@ -27,7 +32,8 @@ export function BottomTabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Primary"
     >
-      {TABS.map(({ href, label, Icon }) => {
+      {TABS.map(({ path, label, Icon }) => {
+        const href = tenantHref(tenantId, path);
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link

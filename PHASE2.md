@@ -1,8 +1,14 @@
 # PHASE2.md — Decision support
 
-Scope for Phase 2. Read `CLAUDE.md` (stack, hosting, security model, constraints) and
-`FEATURES.md` **§0–§5** before starting. Phase 1 is complete; its brief is in `PHASE1.md` (kept
-as a record — the foundation it describes is what you build on here).
+Scope for Phase 2. Read `CLAUDE.md` (stack, hosting, **§ Multi-tenancy**, constraints) and
+`FEATURES.md` **§0–§5** before starting. Phases 1 and 1.5 are complete; their briefs are in
+`PHASE1.md` and `PHASE1.5.md` (kept as records — the foundation they describe is what you build
+on here).
+
+> **Everything in this phase is per-wedding.** Every collection named below lives under
+> `tenants/{tenantId}/…`, and sides are `"a"` / `"b"` with labels from the tenant document — never
+> `"shivam"` / `"swara"`. Build paths with `src/lib/paths.ts`; read `canWrite` and `sideLabel()`
+> from `useTenant()` rather than checking a role or naming a person in the UI.
 
 **Goal:** turn the empty shell into a working *planning and decision-support* tool a year out —
 the couple can set up their categories/events and per-side budget allocations, and the family can
@@ -15,20 +21,29 @@ allocations (allocation health + side-by-side comparison) — **planning only, n
 
 ---
 
-## What Phase 1 already gives you (build on this, don't rebuild)
+## What Phases 1 and 1.5 already give you (build on this, don't rebuild)
 
-- **Auth + allowlist gate** — `src/lib/auth/AuthProvider.tsx` exposes `{ user, profile, loading }`.
-  `profile.role` (`"couple"` | `"family"`) and `profile.side` (`"shivam"` | `"swara"`) are set and
-  trustworthy. Route protection is in `src/app/(app)/layout.tsx`.
-- **Types for §1 collections** — `src/types/` already has `User`, `AllowlistEntry`, `Event`,
+- **Identity** — `src/lib/auth/AuthProvider.tsx` exposes `{ user, profile, isAdmin, loading }`.
+  Global only: no role or side lives here.
+- **Wedding context** — `src/lib/tenants/TenantProvider.tsx` exposes `{ tenantId, tenant,
+  membership, role, side, canWrite, sideLabel(side) }` to everything under `/t/[tenantId]/…`.
+  **This is the one place Phase 2 screens should get write permission and side labels from.**
+  `src/lib/tenants/MembershipsProvider.tsx` holds the caller's weddings. Route protection is in
+  `src/app/t/[tenantId]/layout.tsx`.
+- **Paths** — `src/lib/paths.ts` builds every Firestore reference (`categoriesCol(tenantId)`, …).
+  Add new per-wedding collections there rather than concatenating paths in a component.
+- **Types for §1 collections** — `src/types/` has `User`, `Tenant`, `Membership`, `Event`,
   `Category`, `CurrencySettings`. Add new collection types here in the same style.
 - **Money** — `src/lib/money.ts`: `Paise` branded type, `formatINR`, `formatCompact`, `convert`.
   All money is integer paise. Use these everywhere; never format money ad-hoc.
-- **Security rules** — `firestore.rules` uses `isMember()` / `isCouple()` helpers, default-deny,
-  and already allows member-read + couple-write on `categories`, `events`, `settings`. Extend it
-  per the same pattern. Tests live in `tests/rules/` (`npm run test:rules`, Firestore emulator).
-- **Nav shell** — bottom tabs Home / Budget / Guests / Plan / More, each currently an
-  `EmptyState`. Phase 2 fills **Budget**, **Plan**, and **More**; **Guests** stays empty (Phase 3).
+- **Security rules** — `firestore.rules` uses `isTenantMember(tid)` / `isTenantCouple(tid)` /
+  `isAdmin()`, default-deny, and already allows member-read + couple-write on the tenant's
+  `categories`, `events`, `settings`. Extend it inside the `match /tenants/{tenantId}` block, per
+  the same pattern. Tests live in `tests/rules/` (`npm run test:rules`, Firestore emulator) and
+  already run against two tenants — **add cross-tenant denial cases for each new collection.**
+- **Nav shell** — bottom tabs Home / Budget / Guests / Plan / More, tenant-scoped hrefs. Home,
+  Budget, Guests and Plan are still `EmptyState`; More is a real People screen. Phase 2 fills
+  **Budget**, **Plan**, and adds Setup to **More**; **Guests** stays empty (Phase 3).
 - **PWA + deploy** — installable, auto-deploys on push to `main`. Nothing to redo.
 
 ---
@@ -53,13 +68,16 @@ Everything else references these, so build them first. Both are couple-writable,
 
 ### Step 2 — Per-side budget allocations + allocation health (Budget tab)
 Planning only — allocations, not expenses. See `FEATURES.md` §2.1 and the planning parts of §2.6.
-- `budgets/{side}_{categoryId}`: `side`, `categoryId`, `allocatedPaise`, `notes`, `updatedAt`.
-- `budgets/_totals/{side}`: `totalBudgetPaise` (e.g. ₹20L for Shivam's side, ₹30L for Swara's).
+- `tenants/{tenantId}/budgets/{side}_{categoryId}` (side is `a` or `b`, so ids look like
+  `a_venue`): `side`, `categoryId`, `allocatedPaise`, `notes`, `updatedAt`.
+- `tenants/{tenantId}/budgets/_totals_{side}`: `totalBudgetPaise` (e.g. ₹20L for one side, ₹30L
+  for the other). Flat, not a subcollection — `budgets/_totals/{side}` would be a subcollection of
+  a document and needs its own rules block for no benefit.
 - **Allocation health, per side** (§2.6): total budget vs the sum of that side's category
   allocations, as one bar with an explicit **unallocated remainder**. If allocations exceed the
   total, show over-allocation. The unallocated remainder is the number that quietly gets eaten —
   show it, don't make it inferred.
-- **Side-by-side allocation comparison** (§2.6): Shivam's categories against Swara's, same chart,
+- **Side-by-side allocation comparison** (§2.6): side A's categories against side B's, same chart,
   same category colours. This is the actual planning conversation right now.
 - Charts via **Recharts** (new dependency — client-only, free). **Horizontal** bars for anything
   with category names (labels are unreadable on a phone otherwise).
@@ -68,7 +86,7 @@ Planning only — allocations, not expenses. See `FEATURES.md` §2.1 and the pla
 
 ### Step 3 — Contacts (Plan tab)
 Simple, high-value, and referenced by questions/comparisons. See `FEATURES.md` §5.
-- `contacts/{contactId}`: name, organisation, role, type, phone(s), email, address, categoryId,
+- `tenants/{tenantId}/contacts/{contactId}`: name, organisation, role, type, phone(s), email, address, categoryId,
   eventIds, notes, isBooked.
 - **Tap-to-act** links are most of the point on a phone: `tel:`, `mailto:`, and a WhatsApp
   `https://wa.me/91XXXXXXXXXX` link.
@@ -77,7 +95,7 @@ Simple, high-value, and referenced by questions/comparisons. See `FEATURES.md` �
 
 ### Step 4 — Comparison tables (Plan tab)
 Generic by design — the same component serves venues, caterers, photographers. See §3.2.
-- `comparisons/{id}`: name, `criteria[]` (`{id,label,type,weight}`; type = text|number|money|
+- `tenants/{tenantId}/comparisons/{id}`: name, `criteria[]` (`{id,label,type,weight}`; type = text|number|money|
   rating|boolean). `comparisons/{id}/options/{optionId}`: name, contactId, `values{}`, notes,
   status (considering|shortlisted|rejected|booked).
 - **Two views, this is the hard part on mobile:** Cards (default on mobile — one option per card,
@@ -93,7 +111,7 @@ Generic by design — the same component serves venues, caterers, photographers.
 
 ### Step 5 — Open questions (Plan tab)
 See `FEATURES.md` §3.1.
-- `questions/{id}`: text, askWho (free text), contactId, categoryId, eventId, status
+- `tenants/{tenantId}/questions/{id}`: text, askWho (free text), contactId, categoryId, eventId, status
   (open|asked|answered|moot), answer, timestamps.
 - **Default view groups by `askWho`** — "here are the 6 things to raise with the caterer on
   Thursday" is the entire point; a flat list is not useful. Filters: status, category, event.
@@ -114,9 +132,13 @@ Add TypeScript interfaces in `src/types/` (same style as existing ones; money fi
 
 ## Security rules (the boundary — update `firestore.rules` + tests per collection)
 
-Follow the Phase 1 pattern (default-deny; open per collection). Recommended model:
+Every block below goes **inside `match /tenants/{tenantId}`**, alongside the existing
+`categories` / `events` / `settings` blocks, using the same
+`isTenantMember(tenantId)` / `isTenantCouple(tenantId)` / `isAdmin()` helpers. Default-deny still
+covers anything without a block. "member" and "couple" below mean *of this tenant*; a global admin
+can always write.
 
-| Collection | Read | Write |
+| Collection (under `tenants/{tenantId}/`) | Read | Write |
 |---|---|---|
 | `categories`, `events`, `settings/*` | member | couple *(already in rules)* |
 | `budgets/*` | member | **couple** (financial decisions; everyone sees everything per §0) |
@@ -124,8 +146,9 @@ Follow the Phase 1 pattern (default-deny; open per collection). Recommended mode
 | `comparisons/*` + `.../options/*` | member | **member** (collaborative) |
 | `questions/*` | member | **member** (collaborative) |
 
-Add an emulator test in `tests/rules/` for each new collection (member allowed, non-member denied,
-and couple-only enforced on `budgets`). **[MANUAL]** redeploy rules after changing them:
+Add emulator tests in `tests/rules/` for each new collection: member allowed, non-member denied,
+couple-only enforced on `budgets`, **and a member of the other tenant denied** — the fixtures
+already set up two weddings for exactly this. **[MANUAL]** redeploy rules after changing them:
 `npx firebase deploy --only firestore:rules --project weddinghq-d125b`.
 
 ## Read-cost & indexes (CLAUDE.md §3 / FEATURES §1.5)

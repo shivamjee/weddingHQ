@@ -1,8 +1,10 @@
-// Barrel export for the Phase 1 (§1) Firestore collection types.
-// Later phases add their own (expenses, households, etc.) — not here.
+// Barrel export for the foundation collection types (FEATURES.md §1).
+// Later phases add their own (budgets, contacts, expenses, households, …).
 export type { Side, Role } from "./common";
+export { SIDES } from "./common";
 export type { User } from "./user";
-export type { AllowlistEntry } from "./allowlist";
+export type { Tenant, TenantWithId, SideInfo } from "./tenant";
+export type { Membership, MembershipWithId } from "./membership";
 export type { Event } from "./event";
 export type { Category } from "./category";
 export type { CurrencySettings } from "./settings";

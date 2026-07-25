@@ -1,7 +1,9 @@
 // weddingHQ service worker — offline SHELL cache only (PHASE1 Step 6).
 // Deliberately minimal: no runtime caching of Firestore/app data this phase.
 // Bump CACHE when the shell assets change to force an update.
-const CACHE = "weddinghq-shell-v1";
+// v2: multi-tenancy — app routes moved to /t/{tenantId}/… and the shell was
+// rebranded, so every cached chunk from v1 is stale.
+const CACHE = "weddinghq-shell-v2";
 
 // A tiny shell so the app opens (not a blank error) when offline. Hashed Next
 // static assets are cached lazily on first use by the fetch handler below.

@@ -1,27 +1,51 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   assertFails,
   assertSucceeds,
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from "firebase/firestore";
+import { membershipId } from "@/lib/tenantIds";
 
-// Emulator-backed proof that firestore.rules keeps non-invited accounts out.
-// Run via `npm run test:rules` (starts the Firestore emulator around Vitest).
+// Emulator-backed proof that firestore.rules holds. Run via `npm run test:rules`
+// (starts the Firestore emulator around Vitest).
 //
-// This is Definition-of-Done #6: a non-allowlisted account cannot read any data
-// even via direct SDK calls — verified against the rules, not the UI.
+// Two things are on trial here:
+//   1. Non-invited accounts cannot read anything (the Phase 1 boundary).
+//   2. A member of one wedding cannot reach another wedding's data — the whole
+//      point of multi-tenancy, and the failure mode that would be invisible in
+//      the UI because no screen ever tries it.
 
 const PROJECT_ID = "weddinghq-rules-test";
 
-// Identities used across tests.
-const COUPLE = { uid: "uid_couple", email: "shivamjee@rocketmail.com" };
-const FAMILY = { uid: "uid_family", email: "mom@example.com" };
-const NEWFAMILY = { uid: "uid_newfam", email: "dad@example.com" }; // allowlisted, no user doc yet
-const STRANGER = { uid: "uid_stranger", email: "stranger@example.com" }; // not invited
+// Two tenants. T2 exists solely so cross-tenant access has something to fail at.
+const T1 = "shivam-swara";
+const T2 = "other-wedding";
+
+const ADMIN = { uid: "uid_admin", email: "admin@example.com" };
+const T1_COUPLE = { uid: "uid_t1_couple", email: "shivamjee@rocketmail.com" };
+const T1_FAMILY = { uid: "uid_t1_family", email: "mom@example.com" };
+const T2_COUPLE = { uid: "uid_t2_couple", email: "someone@example.com" };
+const INVITEE = { uid: "uid_invitee", email: "dad@example.com" }; // invited to T1, never signed in
+const STRANGER = { uid: "uid_stranger", email: "stranger@example.com" }; // no memberships at all
+
+// Deliberately the APP's id builder, not a copy of it. The membership id scheme
+// is duplicated in firestore.rules (which concatenates tenantId + "__" + email);
+// using the real function here means these tests fail loudly if the two ever
+// drift apart, which would otherwise be a silent, total access failure.
+const mid = membershipId;
 
 let testEnv: RulesTestEnvironment;
 
@@ -43,22 +67,55 @@ beforeEach(async () => {
   await testEnv.clearFirestore();
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
-    await setDoc(doc(db, "allowlist", COUPLE.email), { side: "shivam", role: "couple" });
-    await setDoc(doc(db, "allowlist", FAMILY.email), { side: "shivam", role: "family" });
-    await setDoc(doc(db, "allowlist", NEWFAMILY.email), { side: "swara", role: "family" });
-    await setDoc(doc(db, "users", COUPLE.uid), {
-      email: COUPLE.email,
-      role: "couple",
-      side: "shivam",
-    });
-    await setDoc(doc(db, "users", FAMILY.uid), {
-      email: FAMILY.email,
-      role: "family",
-      side: "shivam",
-    });
-    await setDoc(doc(db, "categories", "decor"), { name: "Decor", colour: "#f00", order: 1 });
-    await setDoc(doc(db, "events", "sangeet"), { name: "Sangeet", order: 1, colour: "#0f0" });
-    await setDoc(doc(db, "settings", "currency"), { rates: { USD: 0.012 } });
+
+    await setDoc(doc(db, "users", ADMIN.uid), { email: ADMIN.email, isAdmin: true });
+    for (const u of [T1_COUPLE, T1_FAMILY, T2_COUPLE, STRANGER]) {
+      await setDoc(doc(db, "users", u.uid), { email: u.email, isAdmin: false });
+    }
+
+    for (const [tenantId, name] of [
+      [T1, "Shivam & Swara"],
+      [T2, "Someone & Someone"],
+    ]) {
+      await setDoc(doc(db, "tenants", tenantId), {
+        name,
+        sideA: { label: "A" },
+        sideB: { label: "B" },
+        weddingDate: null,
+        archived: false,
+        createdBy: ADMIN.uid,
+      });
+      await setDoc(doc(db, "tenants", tenantId, "categories", "decor"), {
+        name: "Decor",
+        colour: "#f00",
+        order: 1,
+      });
+      await setDoc(doc(db, "tenants", tenantId, "events", "sangeet"), {
+        name: "Sangeet",
+        order: 1,
+        colour: "#0f0",
+      });
+      await setDoc(doc(db, "tenants", tenantId, "settings", "currency"), {
+        rates: { USD: 0.012 },
+      });
+    }
+
+    const membership = (tenantId: string, email: string, role: string, side: string) =>
+      setDoc(doc(db, "memberships", mid(tenantId, email)), {
+        tenantId,
+        email,
+        role,
+        side,
+        displayName: null,
+        invitedBy: ADMIN.uid,
+        uid: null,
+        lastSeenAt: null,
+      });
+
+    await membership(T1, T1_COUPLE.email, "couple", "a");
+    await membership(T1, T1_FAMILY.email, "family", "a");
+    await membership(T1, INVITEE.email, "family", "b");
+    await membership(T2, T2_COUPLE.email, "couple", "a");
   });
 });
 
@@ -66,109 +123,371 @@ function authed(user: { uid: string; email: string }) {
   return testEnv.authenticatedContext(user.uid, { email: user.email }).firestore();
 }
 
-describe("non-invited / unauthenticated — the security boundary (DoD #6)", () => {
-  it("unauthenticated cannot read any collection", async () => {
+// ---------------------------------------------------------------------------
+
+describe("tenant isolation — a member of one wedding cannot reach another", () => {
+  it("T1's couple cannot read T2's tenant doc, categories, events or settings", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(getDoc(doc(db, "tenants", T2)));
+    await assertFails(getDoc(doc(db, "tenants", T2, "categories", "decor")));
+    await assertFails(getDoc(doc(db, "tenants", T2, "events", "sangeet")));
+    await assertFails(getDoc(doc(db, "tenants", T2, "settings", "currency")));
+  });
+
+  it("T1's couple cannot WRITE into T2", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "tenants", T2, "categories", "food"), {
+        name: "Food",
+        colour: "#00f",
+        order: 2,
+      }),
+    );
+    await assertFails(updateDoc(doc(db, "tenants", T2), { name: "hijacked" }));
+  });
+
+  it("T1's couple cannot read T2's memberships", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(getDoc(doc(db, "memberships", mid(T2, T2_COUPLE.email))));
+    await assertFails(
+      getDocs(query(collection(db, "memberships"), where("tenantId", "==", T2))),
+    );
+  });
+
+  it("T1's couple cannot invite anyone into T2", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "memberships", mid(T2, "gatecrash@example.com")), {
+        tenantId: T2,
+        email: "gatecrash@example.com",
+        role: "couple",
+        side: "a",
+        invitedBy: T1_COUPLE.uid,
+      }),
+    );
+  });
+
+  it("T1's couple cannot grant THEMSELVES a membership in T2", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "memberships", mid(T2, T1_COUPLE.email)), {
+        tenantId: T2,
+        email: T1_COUPLE.email,
+        role: "couple",
+        side: "a",
+        invitedBy: T1_COUPLE.uid,
+      }),
+    );
+  });
+});
+
+describe("non-invited / unauthenticated — the security boundary", () => {
+  it("unauthenticated cannot read anything", async () => {
     const db = testEnv.unauthenticatedContext().firestore();
-    await assertFails(getDoc(doc(db, "users", COUPLE.uid)));
-    await assertFails(getDoc(doc(db, "categories", "decor")));
-    await assertFails(getDoc(doc(db, "events", "sangeet")));
-    await assertFails(getDoc(doc(db, "settings", "currency")));
-    await assertFails(getDoc(doc(db, "allowlist", COUPLE.email)));
+    await assertFails(getDoc(doc(db, "tenants", T1)));
+    await assertFails(getDoc(doc(db, "tenants", T1, "categories", "decor")));
+    await assertFails(getDoc(doc(db, "users", T1_COUPLE.uid)));
+    await assertFails(getDoc(doc(db, "memberships", mid(T1, T1_COUPLE.email))));
   });
 
-  it("a signed-in non-allowlisted stranger cannot read real data", async () => {
+  it("a signed-in stranger with no membership cannot read real data", async () => {
     const db = authed(STRANGER);
-    await assertFails(getDoc(doc(db, "categories", "decor")));
-    await assertFails(getDoc(doc(db, "events", "sangeet")));
-    await assertFails(getDoc(doc(db, "settings", "currency")));
-    await assertFails(getDoc(doc(db, "users", COUPLE.uid)));
+    await assertFails(getDoc(doc(db, "tenants", T1)));
+    await assertFails(getDoc(doc(db, "tenants", T1, "categories", "decor")));
+    await assertFails(getDoc(doc(db, "tenants", T1, "events", "sangeet")));
+    await assertFails(getDoc(doc(db, "tenants", T1, "settings", "currency")));
+    await assertFails(getDoc(doc(db, "users", T1_COUPLE.uid)));
   });
 
-  it("a stranger cannot fabricate their own membership (users doc without an allowlist entry)", async () => {
+  it("a stranger cannot fabricate their own membership", async () => {
     const db = authed(STRANGER);
     await assertFails(
-      setDoc(doc(db, "users", STRANGER.uid), {
+      setDoc(doc(db, "memberships", mid(T1, STRANGER.email)), {
+        tenantId: T1,
         email: STRANGER.email,
         role: "family",
-        side: "shivam",
-      }),
-    );
-  });
-});
-
-describe("sign-in bootstrap", () => {
-  it("a signed-in user may read only their OWN allowlist entry before membership", async () => {
-    const db = authed(NEWFAMILY);
-    await assertSucceeds(getDoc(doc(db, "allowlist", NEWFAMILY.email))); // own entry
-    await assertFails(getDoc(doc(db, "allowlist", COUPLE.email))); // someone else's
-  });
-
-  it("an allowlisted user may create their user doc with role/side matching the allowlist", async () => {
-    const db = authed(NEWFAMILY);
-    await assertSucceeds(
-      setDoc(doc(db, "users", NEWFAMILY.uid), {
-        email: NEWFAMILY.email,
-        role: "family",
-        side: "swara",
+        side: "a",
+        invitedBy: STRANGER.uid,
       }),
     );
   });
 
-  it("cannot self-elevate: creating a user doc with a role that differs from the allowlist fails", async () => {
-    const db = authed(NEWFAMILY);
+  it("a stranger cannot create a tenant of their own", async () => {
+    const db = authed(STRANGER);
     await assertFails(
-      setDoc(doc(db, "users", NEWFAMILY.uid), {
-        email: NEWFAMILY.email,
-        role: "couple", // allowlist says "family"
-        side: "swara",
+      setDoc(doc(db, "tenants", "stranger-wedding"), {
+        name: "Mine",
+        sideA: { label: "A" },
+        sideB: { label: "B" },
+        createdBy: STRANGER.uid,
+      }),
+    );
+  });
+
+  it("nobody can list the whole memberships collection unfiltered", async () => {
+    // Would leak every invitee's email across every wedding.
+    await assertFails(getDocs(collection(authed(T1_FAMILY), "memberships")));
+    await assertFails(getDocs(collection(authed(STRANGER), "memberships")));
+  });
+});
+
+describe("sign-in discovery", () => {
+  it("anyone signed in may query THEIR OWN memberships by email", async () => {
+    const db = authed(INVITEE); // invited, but has never signed in before
+    await assertSucceeds(
+      getDocs(query(collection(db, "memberships"), where("email", "==", INVITEE.email))),
+    );
+  });
+
+  it("a stranger's own-email query simply returns nothing (it is not denied)", async () => {
+    const db = authed(STRANGER);
+    await assertSucceeds(
+      getDocs(query(collection(db, "memberships"), where("email", "==", STRANGER.email))),
+    );
+  });
+
+  it("querying SOMEONE ELSE'S memberships by email is denied", async () => {
+    const db = authed(STRANGER);
+    await assertFails(
+      getDocs(query(collection(db, "memberships"), where("email", "==", T1_COUPLE.email))),
+    );
+  });
+
+  it("a member may stamp uid/lastSeenAt on their own membership", async () => {
+    const db = authed(INVITEE);
+    await assertSucceeds(
+      updateDoc(doc(db, "memberships", mid(T1, INVITEE.email)), {
+        uid: INVITEE.uid,
+        lastSeenAt: new Date(),
       }),
     );
   });
 });
 
-describe("members can read shared data", () => {
-  it("a family member reads users, categories, events, settings, allowlist", async () => {
-    const db = authed(FAMILY);
-    await assertSucceeds(getDoc(doc(db, "users", COUPLE.uid)));
-    await assertSucceeds(getDoc(doc(db, "categories", "decor")));
-    await assertSucceeds(getDoc(doc(db, "events", "sangeet")));
-    await assertSucceeds(getDoc(doc(db, "settings", "currency")));
-    await assertSucceeds(getDoc(doc(db, "allowlist", COUPLE.email)));
+describe("within a tenant: members read, couple writes", () => {
+  it("a family member reads their own tenant's config and the member list", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(getDoc(doc(db, "tenants", T1)));
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "categories", "decor")));
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "events", "sangeet")));
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "settings", "currency")));
+    await assertSucceeds(
+      getDocs(query(collection(db, "memberships"), where("tenantId", "==", T1))),
+    );
+  });
+
+  it("a family member cannot write config or invite anyone", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "categories", "food"), {
+        name: "Food",
+        colour: "#00f",
+        order: 2,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "events", "mehendi"), {
+        name: "Mehendi",
+        order: 2,
+        colour: "#ff0",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "settings", "currency"), { rates: { USD: 0.9 } }),
+    );
+    await assertFails(
+      setDoc(doc(db, "memberships", mid(T1, "new@example.com")), {
+        tenantId: T1,
+        email: "new@example.com",
+        role: "family",
+        side: "a",
+        invitedBy: T1_FAMILY.uid,
+      }),
+    );
+  });
+
+  it("the couple can write config and invite into their own tenant", async () => {
+    const db = authed(T1_COUPLE);
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "categories", "food"), {
+        name: "Food",
+        colour: "#00f",
+        order: 2,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "events", "mehendi"), {
+        name: "Mehendi",
+        order: 2,
+        colour: "#ff0",
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "settings", "currency"), { rates: { USD: 0.9 } }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, "memberships", mid(T1, "new@example.com")), {
+        tenantId: T1,
+        email: "new@example.com",
+        role: "family",
+        side: "b",
+        invitedBy: T1_COUPLE.uid,
+      }),
+    );
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1), { name: "Shivam & Swara 💍" }));
+  });
+
+  it("the couple cannot create a tenant (admin-only)", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "tenants", "brand-new"), {
+        name: "New",
+        sideA: { label: "A" },
+        sideB: { label: "B" },
+        createdBy: T1_COUPLE.uid,
+      }),
+    );
+  });
+
+  it("a membership document id must agree with its tenantId and email fields", async () => {
+    // Otherwise the id-based membership lookup in the rules could be pointed at
+    // a tenant the document doesn't actually belong to.
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "memberships", mid(T1, "mismatch@example.com")), {
+        tenantId: T1,
+        email: "someone.else@example.com",
+        role: "family",
+        side: "a",
+        invitedBy: T1_COUPLE.uid,
+      }),
+    );
   });
 });
 
-describe("couple-only writes to shared config", () => {
-  it("a family member cannot write allowlist / categories / events / settings", async () => {
-    const db = authed(FAMILY);
-    await assertFails(setDoc(doc(db, "allowlist", "new@example.com"), { side: "shivam", role: "family" }));
-    await assertFails(setDoc(doc(db, "categories", "food"), { name: "Food", colour: "#00f", order: 2 }));
-    await assertFails(setDoc(doc(db, "events", "mehendi"), { name: "Mehendi", order: 2, colour: "#ff0" }));
-    await assertFails(setDoc(doc(db, "settings", "currency"), { rates: { USD: 0.9 } }));
+describe("privilege escalation is closed", () => {
+  it("a family member cannot promote themselves to couple", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      updateDoc(doc(db, "memberships", mid(T1, T1_FAMILY.email)), { role: "couple" }),
+    );
   });
 
-  it("the couple can write allowlist / categories / events / settings", async () => {
-    const db = authed(COUPLE);
-    await assertSucceeds(setDoc(doc(db, "allowlist", "new@example.com"), { side: "shivam", role: "family" }));
-    await assertSucceeds(setDoc(doc(db, "categories", "food"), { name: "Food", colour: "#00f", order: 2 }));
-    await assertSucceeds(setDoc(doc(db, "events", "mehendi"), { name: "Mehendi", order: 2, colour: "#ff0" }));
-    await assertSucceeds(setDoc(doc(db, "settings", "currency"), { rates: { USD: 0.9 } }));
+  it("a family member cannot change their own side", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      updateDoc(doc(db, "memberships", mid(T1, T1_FAMILY.email)), { side: "b" }),
+    );
+  });
+
+  it("a member cannot delete their way out of an invitation they dislike", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      updateDoc(doc(db, "memberships", mid(T1, T1_COUPLE.email)), { role: "family" }),
+    );
+  });
+
+  it("nobody can make themselves a global admin", async () => {
+    await assertFails(updateDoc(doc(authed(T1_COUPLE), "users", T1_COUPLE.uid), { isAdmin: true }));
+    await assertFails(updateDoc(doc(authed(T1_FAMILY), "users", T1_FAMILY.uid), { isAdmin: true }));
+  });
+
+  it("a new user doc cannot be created pre-set as admin", async () => {
+    const db = authed(INVITEE);
+    await assertFails(
+      setDoc(doc(db, "users", INVITEE.uid), { email: INVITEE.email, isAdmin: true }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, "users", INVITEE.uid), { email: INVITEE.email, isAdmin: false }),
+    );
+  });
+
+  it("a member cannot write another user's profile", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(updateDoc(doc(db, "users", T1_COUPLE.uid), { displayName: "hacked" }));
+  });
+
+  it("a member can still update their own profile fields", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(updateDoc(doc(db, "users", T1_FAMILY.uid), { displayName: "Mom" }));
+  });
+
+  it("an admin's own sign-in upsert does not trip the frozen-isAdmin rule", async () => {
+    // AuthProvider merge-writes the profile on every sign-in WITHOUT isAdmin in
+    // the payload. If the rule read that as "isAdmin removed", the only admin
+    // would be locked out of the whole app on their next sign-in.
+    const db = authed(ADMIN);
+    await assertSucceeds(
+      setDoc(
+        doc(db, "users", ADMIN.uid),
+        { email: ADMIN.email, displayName: "Shivam", photoURL: null },
+        { merge: true },
+      ),
+    );
+    // ...and it is still true afterwards.
+    const after = await getDoc(doc(db, "users", ADMIN.uid));
+    expect(after.data()?.isAdmin).toBe(true);
+  });
+
+  it("an admin cannot strip or grant isAdmin through the client, even their own", async () => {
+    const db = authed(ADMIN);
+    await assertFails(updateDoc(doc(db, "users", ADMIN.uid), { isAdmin: false }));
+    await assertFails(updateDoc(doc(db, "users", T1_FAMILY.uid), { isAdmin: true }));
   });
 });
 
-describe("role/side are not self-editable", () => {
-  it("a member cannot change their own role or side", async () => {
-    const db = authed(FAMILY);
-    await assertFails(updateDoc(doc(db, "users", FAMILY.uid), { role: "couple" }));
-    await assertFails(updateDoc(doc(db, "users", FAMILY.uid), { side: "swara" }));
+describe("the global admin reaches every tenant", () => {
+  it("admin reads and writes both weddings", async () => {
+    const db = authed(ADMIN);
+    await assertSucceeds(getDoc(doc(db, "tenants", T1)));
+    await assertSucceeds(getDoc(doc(db, "tenants", T2)));
+    await assertSucceeds(getDoc(doc(db, "tenants", T2, "categories", "decor")));
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T2, "categories", "food"), {
+        name: "Food",
+        colour: "#00f",
+        order: 2,
+      }),
+    );
   });
 
-  it("a member can update their own non-privileged fields", async () => {
-    const db = authed(FAMILY);
-    await assertSucceeds(updateDoc(doc(db, "users", FAMILY.uid), { displayName: "Mom" }));
+  it("admin can list all tenants; a member cannot", async () => {
+    await assertSucceeds(getDocs(collection(authed(ADMIN), "tenants")));
+    await assertFails(getDocs(collection(authed(T1_COUPLE), "tenants")));
   });
 
-  it("a member cannot write another user's doc", async () => {
-    const db = authed(FAMILY);
-    await assertFails(updateDoc(doc(db, "users", COUPLE.uid), { displayName: "hacked" }));
+  it("admin can create a tenant and invite into any tenant", async () => {
+    const db = authed(ADMIN);
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", "third-wedding"), {
+        name: "Third",
+        sideA: { label: "A" },
+        sideB: { label: "B" },
+        weddingDate: null,
+        archived: false,
+        createdBy: ADMIN.uid,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, "memberships", mid(T2, "guest@example.com")), {
+        tenantId: T2,
+        email: "guest@example.com",
+        role: "family",
+        side: "a",
+        invitedBy: ADMIN.uid,
+      }),
+    );
+  });
+
+  it("admin cannot forge createdBy when creating a tenant", async () => {
+    const db = authed(ADMIN);
+    await assertFails(
+      setDoc(doc(db, "tenants", "forged"), {
+        name: "Forged",
+        sideA: { label: "A" },
+        sideB: { label: "B" },
+        createdBy: T1_COUPLE.uid,
+      }),
+    );
   });
 });

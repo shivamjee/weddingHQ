@@ -14,6 +14,8 @@ These were worked through deliberately. Do not re-derive or quietly change them.
 
 | Decision | Choice |
 |---|---|
+| Tenancy | **weddingHQ holds many weddings.** One wedding = one tenant; all its data lives under `tenants/{tenantId}/…`. Added in Phase 1.5 — see `PHASE1.5.md` and `CLAUDE.md` § Multi-tenancy. |
+| Sides | Identified as **`"a"` / `"b"`**, with display labels ("Shivam", "Swara") on the tenant doc. Never hardcode a person's name as a value. |
 | Expense splits | Between **individuals**. People transfer money, not families. |
 | Budgets | Per **side**. Shivam's family ~₹20L, Swara's ~₹30L, separate allocations. |
 | Budget consumption | Driven by **shares**, never by who paid. See §2.2 — this is the one that's easy to get wrong. |
@@ -29,34 +31,58 @@ These were worked through deliberately. Do not re-derive or quietly change them.
 
 Build these first. Everything depends on them.
 
-### 1.1 Users and allowlist
+### 1.1 Tenants, users and memberships
+
+> Rewritten in Phase 1.5. The previous single-wedding `allowlist` model is gone.
+> `CLAUDE.md` § Multi-tenancy is authoritative; this is the same model in feature terms.
 
 ```
-users/{uid}
+tenants/{tenantId}                       // one wedding
+  name           string                  // "Shivam & Swara"
+  sideA          { label: string }       // "Shivam"
+  sideB          { label: string }       // "Swara"
+  weddingDate    timestamp | null
+  archived       boolean
+  createdBy      uid
+  createdAt      timestamp
+
+users/{uid}                              // GLOBAL identity — no wedding data
   email          string
   displayName    string
   photoURL       string | null
-  role           "couple" | "family"
-  side           "shivam" | "swara"
+  isAdmin        boolean                 // reaches every tenant; console-set only
   createdAt      timestamp
   lastSeenAt     timestamp
 
-allowlist/{emailLowercased}
-  side           "shivam" | "swara"
-  role           "couple" | "family"
-  addedBy        uid
-  addedAt        timestamp
+memberships/{tenantId}__{emailLowercased}   // invitation AND membership, in one doc
+  tenantId       string
+  email          string                  // lowercased; must match the doc id
+  role           "couple" | "family"     // scoped to THIS wedding
+  side           "a" | "b"
+  displayName    string | null           // shown before their first sign-in
+  invitedBy      uid
+  invitedAt      timestamp
+  uid            string | null           // stamped on first sign-in
+  lastSeenAt     timestamp | null
 ```
 
-Sign-in: Google → check `allowlist/{email}` exists → if yes, create/update `users/{uid}` → if no,
-show a "not invited" screen and sign out.
+Sign-in: Google → upsert `users/{uid}` → query `memberships where email == mine` → no results and
+not an admin, show a "not invited" screen; one result, go straight into that wedding; more than
+one (or an admin), show the wedding picker.
 
-**Enforce in Firestore security rules, not just the UI.** Rules check membership by reading the
-caller's `users/{uid}`. Only `role == "couple"` may write `allowlist`, `categories`, `events` or
-`settings`.
+The couple writes a membership fully formed, so **nobody ever creates their own access**. An
+invitee may update only `uid` and `lastSeenAt` on their own membership.
 
-Bootstrap problem: the first allowlist entry must be created by hand in the Firestore console,
-since nobody can sign in to create it. Covered in §11.
+**Enforce in Firestore security rules, not just the UI.** Rules check membership by the existence
+of `memberships/{tenantId}__{callerEmail}`. Only `role == "couple"` *of that tenant* — or a global
+admin — may write that wedding's `categories`, `events`, `settings` and memberships.
+
+Bootstrap problem: the first tenant, its first `couple` membership, and the first `isAdmin` flag
+are created by hand in the Firestore console, since nobody can sign in to create them. Covered in
+§11 and in `CLAUDE.md`.
+
+All per-wedding collections defined below (`categories`, `events`, `settings`, and everything in
+§2–§9) live under `tenants/{tenantId}/…`, even where a section shows a bare collection name.
 
 ### 1.2 The two shared dimensions
 
@@ -140,8 +166,8 @@ owing ₹4L, or over budget while being owed money. Never merge them into one nu
 ### 2.1 Budget allocations
 
 ```
-budgets/{side}_{categoryId}
-  side              "shivam" | "swara"
+tenants/{tenantId}/budgets/{side}_{categoryId}
+  side              "a" | "b"
   categoryId        string
   allocatedPaise    number
   notes             string
@@ -243,9 +269,9 @@ correct enough at this scale. Render as plain sentences:
 
 ```
 aggregates/budgetTotals
-  bySideCategory   { ["shivam_decor"]: { estimatedPaise, committedPaise, paidPaise } }
+  bySideCategory   { ["a_decor"]: { estimatedPaise, committedPaise, paidPaise } }
   byEvent          { [eventId]: { estimatedPaise, committedPaise, paidPaise } }
-  bySide           { shivam: {...}, swara: {...} }
+  bySide           { a: {...}, b: {...} }
   updatedAt        timestamp
 
 aggregates/balances
@@ -402,7 +428,7 @@ conversation arithmetic instead of an argument.
 ```
 households/{householdId}
   name                string        // "The Agarwals"
-  side                "shivam" | "swara"
+  side                "a" | "b"
   invitedBy           uid           // whose guest they actually are
   tier                "must" | "should" | "if_space"
   status              "proposed" | "confirmed"
@@ -505,7 +531,7 @@ number early and it's a large budget line — feed it into the cost projection.
 ```
 aggregates/guestTotals
   byTier         { must: {households, adults, children, projectedPaise}, ... }
-  bySide         { shivam: {...}, swara: {...} }
+  bySide         { a: {...}, b: {...} }
   byEvent        { [eventId]: {adults, children, projectedPaise} }
   roomsNeeded    number
   updatedAt      timestamp
@@ -679,6 +705,11 @@ Next.js App Router scaffold, Firebase init, Google sign-in, allowlist gate, secu
 manifest and service worker, bottom tab navigation, money formatting helpers.
 *Deployable and installable at the end of this phase, even with empty screens.*
 
+**Phase 1.5 — Multi-tenancy** *(inserted after Phase 1 shipped; see `PHASE1.5.md`)*
+weddingHQ became a container for many weddings. The allowlist gate above was replaced by
+`memberships`, all wedding data moved under `tenants/{tenantId}/…`, sides became `"a"`/`"b"` with
+tenant-supplied labels, and a global admin role was added.
+
 **Phase 2 — Decision support**
 Categories and events setup. Comparison tables (cards + table). Open questions grouped by who to
 ask. Contacts. Budget allocations per side, with allocation health and side-by-side comparison —
@@ -714,6 +745,6 @@ relevant rather than dumping the list up front.**
 4. Add the Vercel production domain to Firebase Auth's **authorised domains**. Sign-in fails
    silently in production without this and the error is unhelpful.
 5. Connect the GitHub repo to Vercel.
-6. Seed the first allowlist entry by hand in the Firestore console (bootstrap — nobody can sign
-   in to create it via the app).
+6. Seed the first tenant, its first `couple` membership, and the `isAdmin` flag by hand in the
+   Firestore console (bootstrap — nobody can sign in to create them via the app).
 7. Deploy security rules and composite indexes via the Firebase CLI.

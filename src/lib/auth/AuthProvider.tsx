@@ -1,16 +1,15 @@
 "use client";
 
-// Auth + allowlist gate (PHASE1 Step 4 / FEATURES.md §1.1).
+// Global identity. Deliberately knows nothing about weddings.
 //
-// Flow on sign-in:
-//   Google sign-in → read allowlist/{email.toLowerCase()}
-//     • exists  → create/update users/{uid} (side+role copied from the allowlist
-//                 entry, never chosen by the user) → into the app.
-//     • missing → sign out immediately and show the "not invited" screen.
+// Sign-in here proves *who you are*, not *what you may see*. Which weddings you
+// belong to comes from MembershipsProvider, and what you may do inside one comes
+// from TenantProvider. Splitting them is what lets one account belong to several
+// weddings with a different role in each.
 //
-// SECURITY: this is UX only. The real boundary is firestore.rules (Step 5).
-// role/side are written from the allowlist entry here so the write satisfies the
-// rule that a user may not self-assign their own role/side.
+// SECURITY: this is UX only. The real boundary is firestore.rules. In particular
+// `isAdmin` is never written from here — the rules freeze it and it is set by
+// hand in the Firestore console (see CLAUDE.md).
 
 import {
   createContext,
@@ -30,19 +29,20 @@ import {
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { auth, db, googleProvider } from "@/lib/firebase";
-import type { AllowlistEntry, User } from "@/types";
+import { getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth, googleProvider } from "@/lib/firebase";
+import { userDoc } from "@/lib/paths";
+import type { User } from "@/types";
 
 interface AuthContextValue {
   /** The raw Firebase auth user, or null when signed out. */
   user: FirebaseUser | null;
-  /** The app profile from users/{uid}, or null until confirmed allowlisted. */
+  /** The global profile from users/{uid}, or null when signed out. */
   profile: User | null;
-  /** True while auth state / allowlist check is still resolving. */
+  /** True while auth state / profile upsert is still resolving. */
   loading: boolean;
-  /** True when a signed-in Google account is NOT on the allowlist. */
-  notInvited: boolean;
+  /** Global admin — reaches every tenant. Comes from users/{uid}.isAdmin. */
+  isAdmin: boolean;
   /** Last sign-in error code/message (e.g. from the redirect return leg), for display. */
   authError: string | null;
   signInWithGoogle: () => Promise<void>;
@@ -64,11 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notInvited, setNotInvited] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Guards against a stale async allowlist check resolving after a newer one.
-  const checkSeq = useRef(0);
+  // Guards against a stale async profile upsert resolving after a newer one.
+  const seqRef = useRef(0);
 
   useEffect(() => {
     // Complete any redirect-based sign-in and surface its errors. The user it
@@ -81,12 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      const seq = ++checkSeq.current;
+      const seq = ++seqRef.current;
       setUser(fbUser);
 
       if (!fbUser || !fbUser.email) {
         setProfile(null);
-        setNotInvited(false);
         setLoading(false);
         return;
       }
@@ -94,24 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       try {
         const email = fbUser.email.toLowerCase();
-        const allowSnap = await getDoc(doc(db, "allowlist", email));
-
-        if (seq !== checkSeq.current) return; // superseded by a newer auth change
-
-        if (!allowSnap.exists()) {
-          // Not on the allowlist → sign out and show the distinct screen.
-          await signOut(auth);
-          if (seq !== checkSeq.current) return;
-          setProfile(null);
-          setNotInvited(true);
-          setLoading(false);
-          return;
-        }
-
-        const entry = allowSnap.data() as AllowlistEntry;
-        const userRef = doc(db, "users", fbUser.uid);
-        const existing = await getDoc(userRef);
-        if (seq !== checkSeq.current) return;
+        const ref = userDoc(fbUser.uid);
+        const existing = await getDoc(ref);
+        if (seq !== seqRef.current) return; // superseded by a newer auth change
 
         const common = {
           email,
@@ -119,36 +102,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           photoURL: fbUser.photoURL ?? null,
           lastSeenAt: serverTimestamp(),
         };
-        if (existing.exists()) {
-          // role/side are set once at creation and locked by firestore.rules —
-          // never rewrite them, or a returning user's update would be denied.
-          await setDoc(userRef, common, { merge: true });
-        } else {
-          // On first sign-in, side + role come from the allowlist entry, never
-          // from the user. The rules verify these match the allowlist on create.
-          await setDoc(userRef, {
-            ...common,
-            role: entry.role,
-            side: entry.side,
-            createdAt: serverTimestamp(),
-          });
-        }
-        if (seq !== checkSeq.current) return;
 
-        const fresh = await getDoc(userRef);
-        if (seq !== checkSeq.current) return;
-        setProfile(fresh.data() as User);
-        setNotInvited(false);
+        // READ COST: one read + one write per sign-in. We build the profile from
+        // what we already hold rather than reading the document back a third time.
+        if (existing.exists()) {
+          // `isAdmin` is intentionally absent from the payload — the rules require
+          // it to be unchanged, and a merge write leaves the stored value alone.
+          await setDoc(ref, common, { merge: true });
+        } else {
+          await setDoc(ref, { ...common, isAdmin: false, createdAt: serverTimestamp() });
+        }
+        if (seq !== seqRef.current) return;
+
+        const prior = existing.data() as Partial<User> | undefined;
+        setProfile({
+          ...common,
+          isAdmin: prior?.isAdmin === true,
+          createdAt: prior?.createdAt,
+        } as User);
       } catch (err) {
-        // Until Step 5 rules are deployed + the bootstrap allowlist doc exists,
-        // these reads are permission-denied — treated as "not invited" for now.
-        console.error("[auth] allowlist/profile check failed:", err);
-        await signOut(auth).catch(() => {});
-        if (seq !== checkSeq.current) return;
+        // A failure here is a config/rules problem, not an access decision —
+        // access is decided by memberships. Surface it rather than silently
+        // presenting the user as signed out.
+        console.error("[auth] profile upsert failed:", err);
+        if (seq !== seqRef.current) return;
         setProfile(null);
-        setNotInvited(true);
+        setAuthError((err as { code?: string }).code ?? "profile-upsert-failed");
       } finally {
-        if (seq === checkSeq.current) setLoading(false);
+        if (seq === seqRef.current) setLoading(false);
       }
     });
 
@@ -156,13 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    setNotInvited(false);
     setAuthError(null);
     try {
-      // Popup first (PHASE1 spec) — a same-origin authDomain (see firebase.ts +
-      // next.config.ts) means the popup's postMessage handshake now works. Fall
-      // back to full-page redirect for iOS Safari / installed PWAs / blocked
-      // popups, where popups don't work at all.
+      // Popup first — a same-origin authDomain (see firebase.ts + next.config.ts)
+      // means the popup's postMessage handshake works. Fall back to full-page
+      // redirect for iOS Safari / installed PWAs / blocked popups.
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       const code = (err as { code?: string }).code ?? "";
@@ -178,12 +157,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOutUser = useCallback(async () => {
     await signOut(auth);
     setProfile(null);
-    setNotInvited(false);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, profile, loading, notInvited, authError, signInWithGoogle, signOutUser }),
-    [user, profile, loading, notInvited, authError, signInWithGoogle, signOutUser],
+    () => ({
+      user,
+      profile,
+      loading,
+      isAdmin: profile?.isAdmin === true,
+      authError,
+      signInWithGoogle,
+      signOutUser,
+    }),
+    [user, profile, loading, authError, signInWithGoogle, signOutUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

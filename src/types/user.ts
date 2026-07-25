@@ -1,17 +1,18 @@
 import type { Timestamp } from "firebase/firestore";
-import type { Role, Side } from "./common";
 
 /**
- * users/{uid} — created/updated on first successful sign-in from the matching
- * allowlist entry (FEATURES.md §1.1). `role` and `side` are copied from the
- * allowlist and MUST NOT be self-editable (enforced in firestore.rules).
+ * users/{uid} — GLOBAL identity, created/updated on every sign-in. It holds no
+ * wedding data: role and side are per-tenant and live on `memberships` instead.
+ *
+ * SECURITY: `isAdmin` grants read/write across *every* tenant and must not be
+ * self-editable — firestore.rules freezes it, and the first admin is set by hand
+ * in the Firestore console (see the bootstrap steps in CLAUDE.md).
  */
 export interface User {
   email: string;
   displayName: string;
   photoURL: string | null;
-  role: Role;
-  side: Side;
+  isAdmin: boolean;
   createdAt: Timestamp;
   lastSeenAt: Timestamp;
 }

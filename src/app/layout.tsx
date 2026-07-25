@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
+import { MembershipsProvider } from "@/lib/tenants/MembershipsProvider";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 
 const geistSans = Geist({
@@ -15,14 +16,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  applicationName: "WeddingHQ",
-  title: "Shivam & Swara",
-  description: "Private wedding planning for Shivam & Swara.",
+  applicationName: "weddingHQ",
+  // Generic on purpose: one install of this app can hold several weddings, and
+  // the signed-out shell doesn't know which one you're heading for.
+  title: "weddingHQ",
+  description: "Private wedding planning, for invited family only.",
   // iOS: allow standalone launch + set the home-screen name and touch icon.
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "WeddingHQ",
+    title: "weddingHQ",
   },
   icons: {
     icon: "/icon-192.png",
@@ -52,7 +55,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        {/* Identity, then wedding membership. Both sit above every route so the
+            entry router at "/" and the wedding switcher share one query. */}
+        <AuthProvider>
+          <MembershipsProvider>{children}</MembershipsProvider>
+        </AuthProvider>
         <ServiceWorkerRegistrar />
       </body>
     </html>

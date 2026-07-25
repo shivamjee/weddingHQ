@@ -66,9 +66,56 @@ Do not suggest or drift toward these — they were considered and ruled out:
 
 ## Project context
 
-Wedding for Shivam and Swara. The wedding is **more than a year away** and we are at an early
-planning stage — the app's job right now is decision support (comparing venues, negotiating
-headcount, sketching budgets), not day-of execution. Build order reflects that.
+**weddingHQ** is the product; **"Shivam & Swara"** is one wedding inside it. The app is
+multi-tenant: it can hold several weddings, each with its own data and its own invited people,
+and a global admin who can reach all of them. See § Multi-tenancy below — it is authoritative.
+
+The Shivam & Swara wedding is **more than a year away** and we are at an early planning stage —
+the app's job right now is decision support (comparing venues, negotiating headcount, sketching
+budgets), not day-of execution. Build order reflects that.
+
+## Multi-tenancy (authoritative — read before touching data access)
+
+Added between Phase 1 and Phase 2. See `PHASE1.5.md` for the full brief.
+
+**One wedding = one tenant.** All of a wedding's data lives in subcollections under
+`tenants/{tenantId}/…`, so isolation is a *path prefix* rather than a `tenantId ==` filter that a
+query could forget. Never add a top-level collection for wedding data.
+
+```
+tenants/{tenantId}                     name, sideA{label}, sideB{label},
+                                       weddingDate|null, archived, createdBy, createdAt
+tenants/{tenantId}/categories/{id}     ┐
+tenants/{tenantId}/events/{id}         ├─ everything per-wedding goes here,
+tenants/{tenantId}/settings/{docId}    ┘  including all Phase 2+ collections
+
+users/{uid}                            GLOBAL identity only: email, displayName, photoURL,
+                                       isAdmin, createdAt, lastSeenAt. No wedding data.
+memberships/{tenantId}__{email}        tenantId, email, role, side, displayName,
+                                       invitedBy, invitedAt, uid|null, lastSeenAt|null
+```
+
+Rules of the road:
+
+- **Sides are `"a"` and `"b"`**, never `"shivam"`/`"swara"`. Display labels come from the tenant
+  doc. Render `sideLabel(side)` from `useTenant()`; never hardcode a person's name in the UI.
+- **`memberships` is the invitation *and* the membership**, keyed by lowercased email so someone
+  can be invited before they have ever signed in. The couple/admin writes it fully formed; the
+  invitee may only ever stamp their own `uid`/`lastSeenAt`. There is no self-created membership
+  and therefore no self-elevation hole.
+- **`users/{uid}.isAdmin` is a global admin** across every tenant. Frozen in `firestore.rules` —
+  it cannot be granted through the client by anyone, including another admin. Set it by hand in
+  the Firestore console.
+- **Only an admin creates a tenant.** Only an admin may *list* `tenants`; members `get` theirs by
+  id. That split is load-bearing: a member check inside a `list` rule runs one `exists()` per
+  document scanned and would hit Firestore's 20-document-access-per-query limit.
+- **Never build a Firestore path by hand.** Use `src/lib/paths.ts`. The membership id scheme is
+  duplicated inside `firestore.rules`; `src/lib/tenantIds.ts` holds the one implementation and
+  the rules tests import it, so drift fails the build.
+- Routes are `/t/{tenantId}/…`. `/` routes you in (one wedding → straight there; several or an
+  admin → the `/tenants` picker). Screens read `canWrite` from `useTenant()`, not a raw role.
+- Rule `get()`/`exists()` calls are **billed as document reads** (cached per request, per path).
+  Negligible at this scale, but it is where tenancy costs anything at all.
 
 ## Feature spec
 
@@ -97,7 +144,9 @@ code — read this before changing anything host-related.
 - **Vercel:** auto-deploys `main`. **Production URL: `wedding-hq-ten.vercel.app`.**
 - **Config:** the six `NEXT_PUBLIC_FIREBASE_*` values live in `.env.local` (local) **and** the
   Vercel dashboard (production, build-time inlined). They are public web config, not secrets.
-- **Couple/admin account:** `shivamjee@rocketmail.com` (allowlist `role: "couple"`, `side: "shivam"`).
+- **Owner account:** `shivamjee@rocketmail.com` — global admin (`users/{uid}.isAdmin = true`) and
+  `role: "couple"`, `side: "a"` in the `shivam-swara` tenant.
+- **First tenant:** `tenants/shivam-swara` — `sideA.label` "Shivam", `sideB.label` "Swara".
 
 ### How Google sign-in is wired to the host (important)
 Sign-in uses a **same-origin `authDomain`** to dodge browser third-party-storage blocking
@@ -124,14 +173,35 @@ Currently registered redirect URIs: `https://wedding-hq-ten.vercel.app/__/auth/h
 `http://localhost:3000/__/auth/handler`. Currently authorised domains include
 `wedding-hq-ten.vercel.app` (plus Firebase's defaults + `localhost`).
 
+### Google sign-in on plain `npm run dev` (localhost, HTTP) does not work
+Confirmed in the installed SDK (`@firebase/auth` 1.13.3, `getHandlerBase()`): the popup/redirect
+auth widget URL is *always* built as `https://${authDomain}/__/auth/handler` — there is no
+exception for `localhost`, and no fallback to the page's own protocol. Since `authDomain` is
+`window.location.host` (see `src/lib/firebase.ts`), on plain `next dev` that resolves to
+`https://localhost:3000/__/auth/handler` — but `next dev` only speaks HTTP on that port, so the
+browser gets `ERR_SSL_PROTOCOL_ERROR` before Google is ever reached. This affects **both** popup
+and redirect sign-in, and is unrelated to the tenant/rules code — it's a hard SDK constraint.
+Production is unaffected: Vercel serves the whole app over HTTPS, so the same logic produces a
+URL that actually resolves.
+
+**To test sign-in locally**, run `npm run dev:https` instead of `npm run dev` (adds
+`--experimental-https`, a self-signed cert Next generates automatically) and open
+`https://localhost:3000` — accept the one-time browser certificate warning. No code change is
+needed; `authDomain` already follows `window.location.host` and picks up `https` automatically.
+Alternatively, just test against the deployed Vercel URL.
+
 ### Toolchain / ops notes
 - **`firebase-tools` is pinned to v13** in devDependencies because this Mac has **Java 14**;
   v14+ needs Java 21 for the Firestore emulator. Unpin only after upgrading Java to 21+.
 - **Deploy security rules:** `npx firebase deploy --only firestore:rules --project weddinghq-d125b`
   (needs `npx firebase login` first).
 - **Test security rules locally:** `npm run test:rules` (spins up the Firestore emulator).
-- **Bootstrap:** the first `allowlist/{email}` doc is created by hand in the Firestore console
-  (nobody can sign in to create it). New invitees are added by a `role: "couple"` user.
+- **Bootstrap:** three documents are created by hand in the Firestore console, because nobody can
+  sign in to create them — `tenants/{tenantId}`, `memberships/{tenantId}__{email}` with
+  `role: "couple"`, and `isAdmin: true` on that person's `users/{uid}`. After that, admins create
+  weddings from `/tenants` and the couple invites people from the More tab.
+- **Granting admin** is console-only, by design: the rules refuse every client write to `isAdmin`,
+  including from another admin.
 - **Money:** stored as integer **paise**, never floats. Format via `src/lib/money.ts` only.
 - **Service worker** (`public/sw.js`) is **hand-written** (not Serwist) — Next 16 is bleeding-edge
   and the offline-shell requirement is minimal. Bump `CACHE` in it when shell assets change.
@@ -141,8 +211,13 @@ Currently registered redirect URIs: `https://wedding-hq-ten.vercel.app/__/auth/h
 **Phase 2 — Decision support.** The active brief is in `PHASE2.md`. Read it before starting work.
 
 Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
-allowlist-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,
+access-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,
 manifest + service worker, five-tab nav.
+
+Phase 1.5 — Multi-tenancy is **COMPLETE** (`PHASE1.5.md`): weddingHQ became a container for many
+weddings. It replaced the `allowlist` collection with `memberships`, moved all wedding data under
+`tenants/{tenantId}/…`, changed sides from `"shivam"/"swara"` to `"a"/"b"` with tenant labels, and
+added the global admin role. **Phase 2 builds on that shape** — see § Multi-tenancy above.
 
 Phase 2 builds categories/events setup, per-side budget allocations, comparison tables, open
 questions, and contacts — **planning only, no expense entry**. Scope draws on `FEATURES.md` §2–§5;

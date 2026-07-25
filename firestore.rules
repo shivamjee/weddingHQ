@@ -1,16 +1,28 @@
 rules_version = '2';
 
 // ============================================================================
-// weddingHQ Firestore Security Rules — THE security boundary (PHASE1 Step 5).
+// weddingHQ Firestore Security Rules — THE security boundary.
 // Client-side checks in the app are UX only; this file is what actually keeps
-// non-invited people out. Default is deny; access is opened per collection, and
-// per phase as new collections arrive.
+// non-invited people out, and what keeps one wedding's data out of another
+// wedding's screens. Default is deny; access is opened per collection.
 //
-// Access model (FEATURES.md §1.1):
-//   • A "member" is a signed-in user who has a users/{uid} document.
-//   • The couple (role == "couple") may write shared config: allowlist,
-//     categories, events, settings. Everyone else is read-only on those.
-//   • role/side come from the allowlist and are NOT self-editable.
+// Access model (multi-tenant):
+//   • A "tenant" is one wedding. ALL of its data lives under tenants/{tenantId}/…
+//     so isolation is a path prefix, not a filter a query might forget.
+//   • Membership is a top-level doc: memberships/{tenantId}__{lowercasedEmail}.
+//     It is both the invitation and the membership — the couple (or an admin)
+//     writes it fully formed, and the invitee never writes their own role/side.
+//     There is therefore no "bootstrap create" hole to defend.
+//   • role == "couple" may write shared config *within their own tenant only*.
+//   • users/{uid}.isAdmin == true is a GLOBAL admin: every tenant, read+write.
+//     It is frozen here (nobody can grant it to themselves or anyone else) and
+//     is set by hand in the Firestore console. See CLAUDE.md.
+//
+// COST NOTE: get()/exists() calls below are billed as Firestore document reads.
+// Repeated accesses to the SAME path within one request are cached, so a
+// membership-list query costs one access, not one per row. This is the only
+// place multi-tenancy adds ongoing read cost, and at 5–15 users it is noise
+// against the Spark free tier.
 // ============================================================================
 
 service cloud.firestore {
@@ -22,74 +34,152 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // The caller's lowercased email — matches the allowlist document id scheme.
+    // The caller's lowercased email — matches the membership id scheme below.
     function myEmail() {
       return isSignedIn() && request.auth.token.email != null
         ? request.auth.token.email.lower()
         : "";
     }
 
-    function isMember() {
+    // Kept in sync BY HAND with membershipId() in src/lib/paths.ts. Change one,
+    // change the other.
+    function myMembershipPath(tenantId) {
+      return /databases/$(database)/documents/memberships/$(tenantId + "__" + myEmail());
+    }
+
+    function isTenantMember(tenantId) {
+      return isSignedIn() && exists(myMembershipPath(tenantId));
+    }
+
+    function isTenantCouple(tenantId) {
+      return isTenantMember(tenantId)
+        && get(myMembershipPath(tenantId)).data.role == "couple";
+    }
+
+    // Global admin. Uses .get(key, default) so a legacy user doc without the
+    // field reads as false rather than erroring the whole rule.
+    function isAdmin() {
       return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-    function isCouple() {
-      return isMember()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "couple";
-    }
-
-    // The allowlist entry for the caller's own email (used to validate create).
-    function myAllowlistEntry() {
-      return get(/databases/$(database)/documents/allowlist/$(myEmail())).data;
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+             .data.get("isAdmin", false) == true;
     }
 
     // ---- users/{uid} ------------------------------------------------------
-    // Readable by any member; a caller may also read their OWN doc even before
-    // membership exists (needed by the sign-in bootstrap). Writable only by the
-    // owner, and role/side are pinned to the allowlist on create and frozen after.
+    // Global identity only — no wedding data lives here. A user may read and
+    // write their own doc, but `isAdmin` is frozen: it cannot be set on create,
+    // changed on update, or granted by anyone else through the client. The
+    // first (and any further) admin is set by hand in the Firestore console.
     match /users/{uid} {
-      allow read: if request.auth.uid == uid || isMember();
+      allow get: if request.auth.uid == uid || isAdmin();
+      allow list: if isAdmin();
 
       allow create: if request.auth.uid == uid
-        && request.resource.data.role == myAllowlistEntry().role
-        && request.resource.data.side == myAllowlistEntry().side;
+        && request.resource.data.get("isAdmin", false) == false;
 
       allow update: if request.auth.uid == uid
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.side == resource.data.side;
+        && request.resource.data.get("isAdmin", false)
+             == resource.data.get("isAdmin", false);
 
       allow delete: if false;
     }
 
-    // ---- allowlist/{email} ------------------------------------------------
-    // Members may read all entries; a signed-in user may read their OWN entry to
-    // bootstrap sign-in. Only the couple may add/change/remove invitations.
-    match /allowlist/{email} {
-      allow read: if isMember() || (isSignedIn() && email == myEmail());
-      allow write: if isCouple();
+    // ---- memberships/{tenantId}__{email} ----------------------------------
+    // The access gate. Readable by: the person it names (this is how sign-in
+    // discovers which weddings you belong to), anyone else in the same tenant
+    // (the member list), and admins.
+    //
+    // Queries are checked per returned document, so both real queries pass:
+    //   where("email","==",me)          → every doc matches clause 1
+    //   where("tenantId","==",t)        → every doc matches clause 2
+    // while an unfiltered read of the whole collection is denied on the first
+    // document that belongs to someone else.
+    match /memberships/{membershipId} {
+
+      // Integrity, not privilege: the document id must agree with its fields,
+      // or the id-based lookups above could be pointed at the wrong tenant.
+      function validShape() {
+        let d = request.resource.data;
+        return d.tenantId is string
+          && d.tenantId.size() > 0
+          && d.email is string
+          && d.email == d.email.lower()
+          && membershipId == d.tenantId + "__" + d.email
+          && d.role in ["couple", "family"]
+          && d.side in ["a", "b"];
+      }
+
+      // A member may stamp their own uid / last-seen on first sign-in, and
+      // nothing else — role and side stay where the inviter put them.
+      function isSelfStamp() {
+        return resource.data.email == myEmail()
+          && request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(["uid", "lastSeenAt"]);
+      }
+
+      allow read: if isSignedIn() && (
+           resource.data.email == myEmail()
+        || isTenantMember(resource.data.tenantId)
+        || isAdmin()
+      );
+
+      allow create: if validShape()
+        && (isAdmin() || isTenantCouple(request.resource.data.tenantId));
+
+      allow update: if isSelfStamp()
+        || (
+          validShape()
+          && (isAdmin() || isTenantCouple(resource.data.tenantId))
+          // An invitation can never be moved to a different wedding or person.
+          && request.resource.data.tenantId == resource.data.tenantId
+          && request.resource.data.email == resource.data.email
+        );
+
+      allow delete: if isAdmin() || isTenantCouple(resource.data.tenantId);
     }
 
-    // ---- shared config: categories, events, settings ----------------------
-    // Any member reads; only the couple writes (FEATURES.md §1.1).
-    match /categories/{categoryId} {
-      allow read: if isMember();
-      allow write: if isCouple();
-    }
+    // ---- tenants/{tenantId} -----------------------------------------------
+    // One wedding. `get` is open to its members; `list` is admin-ONLY and that
+    // is deliberate: with a member check in a list rule, Firestore would run one
+    // exists() per tenant document scanned and hit the 20-document-access limit
+    // per query as weddings accumulate. Members never list — they read their
+    // memberships, then fetch each tenant by id.
+    match /tenants/{tenantId} {
+      allow get: if isTenantMember(tenantId) || isAdmin();
+      allow list: if isAdmin();
 
-    match /events/{eventId} {
-      allow read: if isMember();
-      allow write: if isCouple();
-    }
+      allow create: if isAdmin()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isTenantCouple(tenantId) || isAdmin();
+      allow delete: if isAdmin();
 
-    match /settings/{docId} {
-      allow read: if isMember();
-      allow write: if isCouple();
+      // ---- shared config, per wedding -------------------------------------
+      // Any member of THIS tenant reads; only its couple (or an admin) writes.
+      match /categories/{categoryId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantCouple(tenantId) || isAdmin();
+      }
+
+      match /events/{eventId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantCouple(tenantId) || isAdmin();
+      }
+
+      match /settings/{docId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantCouple(tenantId) || isAdmin();
+      }
+
+      // Phase 2 adds budgets (couple-write) and contacts / comparisons /
+      // questions (member-write) here, following the same pattern. Until a
+      // match block exists for a subcollection, the default-deny below applies
+      // to it — new collections are inaccessible, not accidentally public.
     }
 
     // ---- everything else --------------------------------------------------
-    // Explicit default-deny. Later phases (expenses, households, aggregates, …)
-    // add their own match blocks; until then those collections are inaccessible.
+    // Explicit default-deny, including any tenant subcollection not listed
+    // above and the Phase 1 top-level collections (allowlist, categories,
+    // events, settings) which no longer exist.
     match /{document=**} {
       allow read, write: if false;
     }

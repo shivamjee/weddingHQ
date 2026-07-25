@@ -2,11 +2,20 @@
 
 import { useAuth } from "@/lib/auth/AuthProvider";
 
-// A DISTINCT screen for a signed-in Google account that isn't on the allowlist
-// (PHASE1 Step 4). Deliberately not the landing screen and with no app chrome —
-// and no retry loop. Just a clear message and a way to sign out / switch account.
+// A DISTINCT screen for a signed-in Google account with no wedding membership.
+// Deliberately not the landing screen, no app chrome, and no retry loop — just a
+// clear message and a way to sign out or switch account.
+//
+// `title`/`body` are overridable so the same screen also covers "you're signed
+// in, but this particular wedding isn't yours" (see NoTenantAccess usage).
 
-export function NotInvited() {
+export function NotInvited({
+  title = "This app is private",
+  body,
+}: {
+  title?: string;
+  body?: string;
+}) {
   const { user, signOutUser } = useAuth();
 
   return (
@@ -15,19 +24,21 @@ export function NotInvited() {
         🔒
       </div>
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-stone-800">This app is private</h1>
+        <h1 className="text-2xl font-semibold text-stone-800">{title}</h1>
         <p className="max-w-sm text-base text-stone-500">
-          {user?.email ? (
+          {body ? (
+            body
+          ) : user?.email ? (
             <>
-              <span className="font-medium text-stone-600">{user.email}</span> isn&apos;t on the
-              guest list for this planning app.
+              <span className="font-medium text-stone-600">{user.email}</span> hasn&apos;t been
+              invited to a wedding here yet.
             </>
           ) : (
-            <>This account isn&apos;t on the guest list for this planning app.</>
+            <>This account hasn&apos;t been invited to a wedding here yet.</>
           )}
         </p>
         <p className="max-w-sm text-sm text-stone-400">
-          If you think this is a mistake, ask Shivam or Swara to add you.
+          If you think this is a mistake, ask the couple to add this email address.
         </p>
       </div>
       <button
