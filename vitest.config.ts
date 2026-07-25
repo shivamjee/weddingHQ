@@ -3,10 +3,11 @@ import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   test: {
-    // Node environment — these are pure logic + Firestore-emulator tests (Step 5),
-    // neither needs a DOM.
+    // Fast, pure-logic unit tests — no DOM, no emulator. The emulator-backed
+    // rules tests live in tests/rules and run via `npm run test:rules`
+    // (vitest.rules.config.ts) so `npm test` never needs a running emulator.
     environment: "node",
-    include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    include: ["src/**/*.test.ts"],
   },
   resolve: {
     // Mirror the tsconfig "@/*" -> "src/*" path alias so tests can use it too.

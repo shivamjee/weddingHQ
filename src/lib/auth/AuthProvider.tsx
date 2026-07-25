@@ -107,19 +107,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const existing = await getDoc(userRef);
         if (seq !== checkSeq.current) return;
 
-        // side + role always come from the allowlist entry, never from the user.
-        const base = {
+        const common = {
           email,
           displayName: fbUser.displayName ?? email,
           photoURL: fbUser.photoURL ?? null,
-          role: entry.role,
-          side: entry.side,
           lastSeenAt: serverTimestamp(),
         };
         if (existing.exists()) {
-          await setDoc(userRef, base, { merge: true });
+          // role/side are set once at creation and locked by firestore.rules —
+          // never rewrite them, or a returning user's update would be denied.
+          await setDoc(userRef, common, { merge: true });
         } else {
-          await setDoc(userRef, { ...base, createdAt: serverTimestamp() });
+          // On first sign-in, side + role come from the allowlist entry, never
+          // from the user. The rules verify these match the allowlist on create.
+          await setDoc(userRef, {
+            ...common,
+            role: entry.role,
+            side: entry.side,
+            createdAt: serverTimestamp(),
+          });
         }
         if (seq !== checkSeq.current) return;
 

@@ -1,0 +1,97 @@
+rules_version = '2';
+
+// ============================================================================
+// weddingHQ Firestore Security Rules — THE security boundary (PHASE1 Step 5).
+// Client-side checks in the app are UX only; this file is what actually keeps
+// non-invited people out. Default is deny; access is opened per collection, and
+// per phase as new collections arrive.
+//
+// Access model (FEATURES.md §1.1):
+//   • A "member" is a signed-in user who has a users/{uid} document.
+//   • The couple (role == "couple") may write shared config: allowlist,
+//     categories, events, settings. Everyone else is read-only on those.
+//   • role/side come from the allowlist and are NOT self-editable.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // The caller's lowercased email — matches the allowlist document id scheme.
+    function myEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : "";
+    }
+
+    function isMember() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isCouple() {
+      return isMember()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "couple";
+    }
+
+    // The allowlist entry for the caller's own email (used to validate create).
+    function myAllowlistEntry() {
+      return get(/databases/$(database)/documents/allowlist/$(myEmail())).data;
+    }
+
+    // ---- users/{uid} ------------------------------------------------------
+    // Readable by any member; a caller may also read their OWN doc even before
+    // membership exists (needed by the sign-in bootstrap). Writable only by the
+    // owner, and role/side are pinned to the allowlist on create and frozen after.
+    match /users/{uid} {
+      allow read: if request.auth.uid == uid || isMember();
+
+      allow create: if request.auth.uid == uid
+        && request.resource.data.role == myAllowlistEntry().role
+        && request.resource.data.side == myAllowlistEntry().side;
+
+      allow update: if request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.side == resource.data.side;
+
+      allow delete: if false;
+    }
+
+    // ---- allowlist/{email} ------------------------------------------------
+    // Members may read all entries; a signed-in user may read their OWN entry to
+    // bootstrap sign-in. Only the couple may add/change/remove invitations.
+    match /allowlist/{email} {
+      allow read: if isMember() || (isSignedIn() && email == myEmail());
+      allow write: if isCouple();
+    }
+
+    // ---- shared config: categories, events, settings ----------------------
+    // Any member reads; only the couple writes (FEATURES.md §1.1).
+    match /categories/{categoryId} {
+      allow read: if isMember();
+      allow write: if isCouple();
+    }
+
+    match /events/{eventId} {
+      allow read: if isMember();
+      allow write: if isCouple();
+    }
+
+    match /settings/{docId} {
+      allow read: if isMember();
+      allow write: if isCouple();
+    }
+
+    // ---- everything else --------------------------------------------------
+    // Explicit default-deny. Later phases (expenses, households, aggregates, …)
+    // add their own match blocks; until then those collections are inaccessible.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
