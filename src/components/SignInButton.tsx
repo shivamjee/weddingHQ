@@ -8,37 +8,50 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 // the 44px minimum. Shows an in-progress state so a slow popup doesn't look dead.
 
 export function SignInButton() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, authError } = useAuth();
   const [pending, setPending] = useState(false);
+  const [clickError, setClickError] = useState<string | null>(null);
 
   async function handleClick() {
+    setClickError(null);
     setPending(true);
     try {
       await signInWithGoogle();
-    } catch {
-      // Real errors are logged in the provider; re-enable so the user can retry.
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      const message = (err as { message?: string }).message;
+      setClickError(code ?? message ?? "Sign-in failed");
       setPending(false);
     }
-    // On success the auth state change unmounts this screen, so we leave `pending`
-    // set to avoid a flicker back to the idle label.
+    // On success the page redirects to Google, so we leave `pending` set.
   }
 
+  // authError comes back from the redirect return leg; clickError from the tap.
+  const shownError = clickError ?? authError;
+
   return (
-    <button
-      onClick={handleClick}
-      disabled={pending}
-      className="flex min-h-14 w-full max-w-xs items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 text-lg font-medium text-stone-700 shadow-sm transition active:scale-[0.98] disabled:opacity-70"
-    >
-      {pending ? (
-        <span
-          className="h-5 w-5 animate-spin rounded-full border-2 border-stone-300 border-t-stone-600"
-          aria-hidden
-        />
-      ) : (
-        <GoogleGlyph />
-      )}
-      <span>{pending ? "Signing in…" : "Sign in with Google"}</span>
-    </button>
+    <div className="flex w-full flex-col items-center gap-3">
+      <button
+        onClick={handleClick}
+        disabled={pending}
+        className="flex min-h-14 w-full max-w-xs items-center justify-center gap-3 rounded-full border border-stone-300 bg-white px-6 text-lg font-medium text-stone-700 shadow-sm transition active:scale-[0.98] disabled:opacity-70"
+      >
+        {pending ? (
+          <span
+            className="h-5 w-5 animate-spin rounded-full border-2 border-stone-300 border-t-stone-600"
+            aria-hidden
+          />
+        ) : (
+          <GoogleGlyph />
+        )}
+        <span>{pending ? "Signing in…" : "Sign in with Google"}</span>
+      </button>
+      {shownError ? (
+        <p className="max-w-xs rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-700">
+          Sign-in error: <span className="font-mono">{shownError}</span>
+        </p>
+      ) : null}
+    </div>
   );
 }
 

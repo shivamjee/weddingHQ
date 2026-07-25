@@ -42,6 +42,8 @@ interface AuthContextValue {
   loading: boolean;
   /** True when a signed-in Google account is NOT on the allowlist. */
   notInvited: boolean;
+  /** Last sign-in error code/message (e.g. from the redirect return leg), for display. */
+  authError: string | null;
   signInWithGoogle: () => Promise<void>;
   signOutUser: () => Promise<void>;
 }
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [notInvited, setNotInvited] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Guards against a stale async allowlist check resolving after a newer one.
   const checkSeq = useRef(0);
@@ -60,8 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Complete any redirect-based sign-in and surface its errors. The user it
     // returns is also delivered via onAuthStateChanged below, so we ignore it here.
-    getRedirectResult(auth).catch((err) => {
+    getRedirectResult(auth).catch((err: unknown) => {
+      const code = (err as { code?: string }).code;
+      const message = (err as { message?: string }).message;
       console.error("[auth] redirect sign-in failed:", err);
+      setAuthError(code ?? message ?? "redirect-failed");
     });
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
@@ -141,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     setNotInvited(false);
+    setAuthError(null);
     // Full-page redirect, NOT a popup. Popups fail on our production setup because
     // the app (…vercel.app) and Firebase's auth handler (…firebaseapp.com) are
     // different origins, so the browser blocks the popup from returning the result
@@ -157,8 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, profile, loading, notInvited, signInWithGoogle, signOutUser }),
-    [user, profile, loading, notInvited, signInWithGoogle, signOutUser],
+    () => ({ user, profile, loading, notInvited, authError, signInWithGoogle, signOutUser }),
+    [user, profile, loading, notInvited, authError, signInWithGoogle, signOutUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
