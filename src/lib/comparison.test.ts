@@ -8,6 +8,12 @@ import {
   weightedScores,
 } from "./comparison";
 import type { Criterion } from "@/types";
+import type { CriterionValue } from "./comparison";
+
+/** Annotated explicitly: without it TypeScript infers a UNION of object shapes
+ *  from array literals whose options have different keys, and `{ values: {} }`
+ *  stops matching the index signature. */
+type Row = { id: string; values: Record<string, CriterionValue> };
 
 const c = (over: Partial<Criterion> & Pick<Criterion, "id" | "type">): Criterion => ({
   label: over.id,
@@ -79,7 +85,7 @@ describe("bestOptionIds", () => {
   });
 
   it("options with no value simply don't compete", () => {
-    const partial = [
+    const partial: Row[] = [
       { id: "a", values: { cost: 500 } },
       { id: "b", values: {} },
       { id: "c", values: { cost: 900 } },
@@ -89,7 +95,7 @@ describe("bestOptionIds", () => {
 
   it("nothing is highlighted when only one option has a value", () => {
     // "Best of one" is not information.
-    const lonely = [
+    const lonely: Row[] = [
       { id: "a", values: { cost: 500 } },
       { id: "b", values: {} },
     ];
@@ -148,7 +154,7 @@ describe("weightedScores", () => {
   it("a missing value doesn't count against an option", () => {
     // Otherwise the half-filled-in option always looks worst, which says
     // something about the data entry, not the venue.
-    const options = [
+    const options: Row[] = [
       { id: "full", values: { cost: 500, capacity: 900 } },
       { id: "partial", values: { capacity: 900 } },
     ];

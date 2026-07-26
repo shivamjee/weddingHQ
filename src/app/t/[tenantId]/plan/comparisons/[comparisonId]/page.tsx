@@ -16,9 +16,10 @@
 // READ COST: one bounded read of this comparison's options, plus a bounded read
 // of contacts to link an option to one.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { use } from "react";
 import {
+  doc,
   getDoc,
   getDocs,
   limit,
@@ -26,13 +27,17 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
-import { comparisonDoc, contactsCol, optionsCol } from "@/lib/paths";
+import { db } from "@/lib/firebase";
+import { comparisonDoc, contactsCol, optionsCol, questionsCol } from "@/lib/paths";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { FormMessage, PrimaryButton, SecondaryButton } from "@/components/ui/form";
+import { AiAssistSheet } from "@/components/comparison/AiAssistSheet";
 import { CardsView, TableView } from "@/components/comparison/ComparisonViews";
 import { CriteriaEditor } from "@/components/comparison/CriteriaEditor";
 import { OptionForm } from "@/components/comparison/OptionForm";
@@ -41,7 +46,7 @@ import type { Comparison, ComparisonOptionWithId, Criterion } from "@/types";
 const MAX_OPTIONS = 50;
 const MAX_CONTACT_LINKS = 50;
 
-type Mode = "view" | "criteria" | "option";
+type Mode = "view" | "criteria" | "option" | "ai";
 
 export default function ComparisonDetailPage({
   params,
@@ -50,6 +55,7 @@ export default function ComparisonDetailPage({
 }) {
   const { comparisonId } = use(params);
   const { tenantId } = useTenant();
+  const { user } = useAuth();
 
   const [mode, setMode] = useState<Mode>("view");
   const [editingOption, setEditingOption] = useState<ComparisonOptionWithId | null>(null);
@@ -63,6 +69,25 @@ export default function ComparisonDetailPage({
   const wide = useMediaQuery("(min-width: 768px)");
   const [viewOverride, setViewOverride] = useState<"cards" | "table" | null>(null);
   const view = viewOverride ?? (wide ? "table" : "cards");
+
+  // Whether this deployment has a GEMINI_API_KEY at all. With no key the button
+  // is hidden entirely and everything else works unchanged — local dev and
+  // preview deploys often won't have one, and the app must never depend on it.
+  const [aiAvailable, setAiAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/ai/compare")
+      .then((r) => (r.ok ? r.json() : { configured: false }))
+      .then((d) => {
+        if (!cancelled) setAiAvailable(Boolean(d?.configured));
+      })
+      .catch(() => {
+        /* no key, no button — not worth surfacing */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     const [comparisonSnap, optionsSnap, contactsSnap] = await Promise.all([
@@ -134,6 +159,54 @@ export default function ComparisonDetailPage({
     );
   }
 
+  /** The `unknowns[]` hand-off: what the AI couldn't determine becomes open
+   *  questions, with `askWho` prefilled from the option's name. One batch, and
+   *  the person still had to tap the button. */
+  async function addUnknownsAsQuestions(questions: string[], askWho: string) {
+    if (!user || questions.length === 0) return;
+    try {
+      const batch = writeBatch(db);
+      for (const text of questions.slice(0, 12)) {
+        batch.set(doc(questionsCol(tenantId)), {
+          text,
+          askWho,
+          contactId: null,
+          categoryId: comparison?.categoryId ?? null,
+          eventId: null,
+          status: "open",
+          answer: "",
+          askedBy: null,
+          askedAt: null,
+          createdBy: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    } catch (err) {
+      console.error("[comparison] adding unknowns as questions failed:", err);
+    }
+  }
+
+  if (mode === "ai") {
+    return (
+      <div className="flex flex-1 flex-col px-5 py-6">
+        <AiAssistSheet
+          comparisonId={comparisonId}
+          criteria={criteria}
+          onAddQuestions={(questions, askWho) =>
+            void addUnknownsAsQuestions(questions, askWho || comparison.name)
+          }
+          onDone={() => {
+            setMode("view");
+            reload();
+          }}
+          onCancel={() => setMode("view")}
+        />
+      </div>
+    );
+  }
+
   if (mode === "option") {
     return (
       <div className="flex flex-1 flex-col px-5 py-6">
@@ -194,7 +267,10 @@ export default function ComparisonDetailPage({
             Nothing to compare yet. Add the first venue, caterer or photographer you&rsquo;re
             considering.
           </p>
-          <PrimaryButton onClick={() => setMode("option")}>Add an option</PrimaryButton>
+          <div className="flex flex-wrap gap-2">
+            <PrimaryButton onClick={() => setMode("option")}>Add an option</PrimaryButton>
+            {aiAvailable ? <AiButton onClick={() => setMode("ai")} /> : null}
+          </div>
         </div>
       ) : view === "cards" ? (
         <CardsView
@@ -221,11 +297,25 @@ export default function ComparisonDetailPage({
       )}
 
       {options.length > 0 ? (
-        <SecondaryButton onClick={() => setMode("option")} className="self-start">
-          + Add option
-        </SecondaryButton>
+        <div className="flex flex-wrap gap-2">
+          <SecondaryButton onClick={() => setMode("option")}>+ Add option</SecondaryButton>
+          {aiAvailable ? <AiButton onClick={() => setMode("ai")} /> : null}
+        </div>
       ) : null}
     </div>
+  );
+}
+
+/** Visually distinct from the plain actions — violet, matching the "AI" chip on
+ *  values — so it never reads as just another way to add a row. */
+function AiButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="min-h-[48px] rounded-full border border-violet-300 bg-violet-50 px-5 text-base font-medium text-violet-700 transition-colors hover:border-violet-400"
+    >
+      ✨ Add with AI
+    </button>
   );
 }
 
