@@ -9,3 +9,7 @@ export type { Event, EventWithId } from "./event";
 export type { Category, CategoryWithId } from "./category";
 export type { CurrencySettings } from "./settings";
 export type { BudgetAllocation, BudgetAllocationWithId, BudgetTotals } from "./budget";
+export type { Contact, ContactWithId, ContactType } from "./contact";
+export { CONTACT_TYPES, CONTACT_TYPE_LABELS } from "./contact";
+export type { Question, QuestionWithId, QuestionStatus } from "./question";
+export { QUESTION_STATUSES, QUESTION_STATUS_LABELS } from "./question";

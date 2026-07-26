@@ -515,6 +515,55 @@ describe("budgets — every member reads, only the couple writes", () => {
   });
 });
 
+describe("contacts & questions — collaborative, so every member writes", () => {
+  const contact = { name: "Taj Palace", organisation: "Taj", type: "vendor", phone: "9876543210" };
+  const question = { text: "Is there a DJ curfew?", askWho: "Venue manager", status: "open" };
+
+  it("a family member — not just the couple — can add and edit both", async () => {
+    // The contrast with `categories` and `budgets` above is the point: config
+    // and money are couple-only, planning notes are everybody's.
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "contacts", "c1"), contact));
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "questions", "q1"), question));
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1, "contacts", "c1"), { isBooked: true }));
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1, "questions", "q1"), { status: "asked" }));
+    await assertSucceeds(deleteDoc(doc(db, "tenants", T1, "contacts", "c1")));
+  });
+
+  it("members read each other's contacts and questions", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "contacts", "c1"), contact);
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "questions", "q1"), question);
+    });
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "contacts", "c1")));
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "questions")));
+  });
+
+  it("a member of the OTHER wedding is denied both", async () => {
+    const db = authed(T2_COUPLE);
+    await assertFails(getDocs(collection(db, "tenants", T1, "contacts")));
+    await assertFails(getDocs(collection(db, "tenants", T1, "questions")));
+    await assertFails(setDoc(doc(db, "tenants", T1, "contacts", "c2"), contact));
+    await assertFails(setDoc(doc(db, "tenants", T1, "questions", "q2"), question));
+  });
+
+  it("a stranger and an unauthenticated caller are denied both", async () => {
+    for (const db of [authed(STRANGER), testEnv.unauthenticatedContext().firestore()]) {
+      await assertFails(getDocs(collection(db, "tenants", T1, "contacts")));
+      await assertFails(getDocs(collection(db, "tenants", T1, "questions")));
+      await assertFails(setDoc(doc(db, "tenants", T1, "contacts", "c3"), contact));
+    }
+  });
+
+  it("an invitee who has never signed in still counts as a member", async () => {
+    // Membership is keyed by email, not uid — that is what makes an invitation
+    // work before the person's first sign-in.
+    const db = authed(INVITEE);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "questions", "q9"), question));
+  });
+});
+
 describe("privilege escalation is closed", () => {
   it("a family member cannot promote themselves to couple", async () => {
     const db = authed(T1_FAMILY);

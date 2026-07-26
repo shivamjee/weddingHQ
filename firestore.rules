@@ -216,10 +216,28 @@ service cloud.firestore {
         allow delete: if isTenantCouple(tenantId) || isAdmin();
       }
 
-      // Phase 2 adds contacts / comparisons / questions (member-write) here,
-      // following the same pattern. Until a match block exists for a
-      // subcollection, the default-deny below applies to it — new collections
-      // are inaccessible, not accidentally public.
+      // ---- contacts (Phase 2 Step 3) --------------------------------------
+      // MEMBER-writable, unlike the config above. Keeping the vendor list
+      // current is collaborative: an aunt who gets a decorator's number should
+      // be able to add it without waiting for the couple. Nothing here is a
+      // financial decision, so there is no reason to restrict it to them.
+      match /contacts/{contactId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
+      }
+
+      // ---- questions (Phase 2 Step 4) -------------------------------------
+      // Also member-writable — anyone who thinks of a question should be able
+      // to write it down before they forget it.
+      match /questions/{questionId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
+      }
+
+      // Phase 2 adds comparisons (member-write) here, following the same
+      // pattern. Until a match block exists for a subcollection, the
+      // default-deny below applies to it — new collections are inaccessible,
+      // not accidentally public.
     }
 
     // ---- everything else --------------------------------------------------

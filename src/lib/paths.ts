@@ -74,3 +74,19 @@ export const budgetDoc = (tenantId: string, side: Side, categoryId: string): Doc
 
 export const budgetTotalsDoc = (tenantId: string, side: Side): DocumentReference =>
   doc(db, "tenants", tenantId, "budgets", budgetTotalsId(side));
+
+// ---- contacts & questions (Phase 2 Steps 3-4) ------------------------------
+// Auto-ids, unlike categories/events: nothing keys off a contact's or
+// question's id, and two vendors can legitimately share a name.
+
+export const contactsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "contacts");
+
+export const contactDoc = (tenantId: string, contactId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "contacts", contactId);
+
+export const questionsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "questions");
+
+export const questionDoc = (tenantId: string, questionId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "questions", questionId);
