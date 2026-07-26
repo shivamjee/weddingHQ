@@ -11,21 +11,31 @@ is Shivam & Swara's.
 
 ## What it does (so far)
 
-Phases 1 (foundation) and 1.5 (multi-tenancy) are done: the plumbing every later phase builds on,
-plus the ability to host several weddings.
+Phases 1 (foundation), 1.5 (multi-tenancy) and 2 (decision support) are done — everything up to
+actually spending money.
 
 - Sign in with Google, one tap — no passwords, no forms.
 - Only invited people can get in, and only to the weddings they were invited to. Enforced by
   Firestore security rules, not just the app's UI.
 - If you belong to one wedding you land straight in it; if you belong to several you pick.
 - The couple can invite family from the **More** tab; an admin can create new weddings.
+- **Setup** (More tab): categories and events, reorderable, with a shared colour used by every
+  chart in the app.
+- **Budget** tab: each side's total budget, per-category allocations, an allocation health bar
+  with the unallocated remainder shown explicitly, and a side-by-side comparison chart. Planning
+  only — no expenses yet.
+- **Plan** tab: comparison tables (cards on mobile, a table on desktop, "highlight best"), open
+  questions grouped by who to ask, and contacts with one-tap call / WhatsApp / email links.
+- An optional **AI assist** on comparisons — paste rough notes, get suggested columns and filled-in
+  values in a review screen where nothing saves until you confirm it. Hidden unless the app has a
+  Gemini key configured; see [`CLAUDE.md`](CLAUDE.md) for how to turn it on.
+- A light **Home** summary — allocation health and how many questions are still open.
 - Installs to your phone's home screen and opens like a native app (see below).
-- A five-tab shell (Home, Budget, Guests, Plan, More) — Home, Budget, Guests and Plan currently
-  show "coming soon" placeholders. Real features land in Phase 2.
+- **Guests** is still a "coming soon" placeholder — that's Phase 3.
 
-The full feature roadmap lives in [`FEATURES.md`](FEATURES.md); the next phase's scope is in
-[`PHASE2.md`](PHASE2.md), and the completed phases are recorded in [`PHASE1.md`](PHASE1.md) and
-[`PHASE1.5.md`](PHASE1.5.md).
+The full feature roadmap lives in [`FEATURES.md`](FEATURES.md). Completed phases are recorded in
+[`PHASE1.md`](PHASE1.md), [`PHASE1.5.md`](PHASE1.5.md) and [`PHASE2.md`](PHASE2.md); the next
+phase's brief hasn't been written yet.
 
 ## How to install it on your phone
 
@@ -82,7 +92,15 @@ Chosen to stay entirely on free tiers and minimise manual infrastructure work (s
   experience, not the real gate.
 - **`src/lib/money.ts`** — money helpers. All amounts are stored as integer paise (never
   floating-point rupees) and formatted with correct Indian digit grouping (₹13,00,000, not
-  ₹1,300,000).
+  ₹1,300,000); also the only place typed rupee input is parsed.
+- **`src/lib/budget.ts` / `src/lib/comparison.ts` / `src/lib/phone.ts`** — pure, unit-tested logic
+  for allocation health, comparison-table scoring/highlighting, and turning a phone number typed
+  any which way into working `tel:` / `wa.me` links.
+- **`src/lib/ai/`** — the AI comparison assist: `provider.ts` is the one place that calls Gemini
+  (swap providers by editing this file alone), `verifyCaller.ts` verifies the caller's Firebase ID
+  token with no service-account secret, `compareSchema.ts` is the zod contract for what the model
+  is allowed to return. Called from `src/app/api/ai/compare/route.ts`, the app's only server code —
+  it never writes to Firestore, only returns a suggestion the client saves after confirmation.
 - **`src/components/nav/`** — the bottom tab bar and header that make up the app's navigation
   shell.
 - **`public/sw.js`** — the service worker that caches the app shell so it opens (rather than
@@ -99,7 +117,11 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). You'll need a `.env.local` with Firebase
-config — copy `.env.local.example` and fill in the values from the Firebase console.
+config — copy `.env.local.example` and fill in the values from the Firebase console. The AI assist
+is optional: leave `GEMINI_API_KEY` blank and its button simply doesn't appear.
+
+Google sign-in needs HTTPS locally — run `npm run dev:https` and open `https://localhost:3000`
+instead of plain `npm run dev` (see `CLAUDE.md` for why).
 
 ```bash
 npm test          # unit tests (money helpers, tenant id scheme)
