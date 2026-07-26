@@ -14,3 +14,8 @@ export interface Event {
   order: number;
   colour: string; // hex; keep chart colours consistent app-wide
 }
+
+/** An event document paired with its id, which the doc itself doesn't carry. */
+export interface EventWithId extends Event {
+  id: string;
+}

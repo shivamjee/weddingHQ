@@ -20,11 +20,19 @@ export function membershipId(tenantId: string, email: string): string {
   return `${tenantId}${MEMBERSHIP_SEP}${email.trim().toLowerCase()}`;
 }
 
-/** Slugify a wedding name into a readable, URL-safe tenant id ("Shivam & Swara"
- *  → "shivam-swara"). Ids appear in every app URL, so they should stay legible.
- *  Must not contain "/" or the membership id above could be pushed onto a
- *  different Firestore path. */
-export function slugifyTenantName(name: string): string {
+/**
+ * Turn a human name into a readable, URL- and path-safe id ("Shivam & Swara" →
+ * "shivam-swara", "Per-plate Food" → "per-plate-food").
+ *
+ * Must never contain "/" — a slash would push the resulting document onto a
+ * different Firestore path than the one intended, which for a tenant id would
+ * also mis-target the membership lookup in firestore.rules.
+ *
+ * Returns "" for a name with no ASCII-representable characters at all (a purely
+ * Devanagari category name, say); callers must handle that rather than writing
+ * a document with an empty id.
+ */
+export function slugify(name: string, maxLength = 40): string {
   return name
     .toLowerCase()
     .normalize("NFKD")
@@ -32,5 +40,29 @@ export function slugifyTenantName(name: string): string {
     .replace(/&/g, " ")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
+    .slice(0, maxLength);
+}
+
+/** Slugify a wedding name into a tenant id. Ids appear in every app URL, so
+ *  they should stay legible. */
+export function slugifyTenantName(name: string): string {
+  return slugify(name, 40);
+}
+
+/**
+ * A slug id that doesn't collide with ids already in use, by appending -2, -3…
+ *
+ * `existing` is the ids we already hold in memory (the ConfigProvider keeps the
+ * whole, limit()-bounded category and event lists), so uniqueness costs zero
+ * extra Firestore reads. Falls back to a random suffix when the name slugifies
+ * to nothing — an empty document id is not writable.
+ */
+export function uniqueSlugId(name: string, existing: readonly string[], maxLength = 40): string {
+  const base = slugify(name, maxLength) || `item-${Math.random().toString(36).slice(2, 8)}`;
+  if (!existing.includes(base)) return base;
+  for (let n = 2; n < 100; n += 1) {
+    const candidate = `${base}-${n}`;
+    if (!existing.includes(candidate)) return candidate;
+  }
+  return `${base}-${Math.random().toString(36).slice(2, 8)}`;
 }

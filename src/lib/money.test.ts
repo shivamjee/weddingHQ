@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { toPaise, rupeesToPaise, formatINR, formatCompact, convert } from "./money";
+import {
+  toPaise,
+  rupeesToPaise,
+  formatINR,
+  formatCompact,
+  convert,
+  parseRupeeInput,
+  paiseToRupeeInput,
+} from "./money";
 
 describe("toPaise", () => {
   it("brands an integer", () => {
@@ -74,6 +82,51 @@ describe("formatCompact — Cr / L / K", () => {
   });
   it("negative compact", () => {
     expect(formatCompact(toPaise(-130000000))).toBe("-13L");
+  });
+});
+
+describe("parseRupeeInput — the only place typed text becomes money", () => {
+  it("plain rupees", () => {
+    expect(parseRupeeInput("2000000")).toBe(200000000);
+  });
+  it("tolerates the symbol, Indian grouping and spaces", () => {
+    expect(parseRupeeInput("₹20,00,000")).toBe(200000000);
+    expect(parseRupeeInput(" 1,800 ")).toBe(180000);
+  });
+  it("accepts up to two decimal places", () => {
+    expect(parseRupeeInput("1800.50")).toBe(180050);
+    expect(parseRupeeInput("0.05")).toBe(5);
+  });
+  it("rejects a third decimal place rather than silently rounding it", () => {
+    expect(parseRupeeInput("10.005")).toBeNull();
+  });
+  it("rejects shorthand and junk instead of guessing", () => {
+    // The failure this guards: Number("₹1.8k") is NaN, and a naive parser that
+    // strips non-digits would read it as 18.
+    expect(parseRupeeInput("₹1.8k")).toBeNull();
+    expect(parseRupeeInput("about 2 lakh")).toBeNull();
+    expect(parseRupeeInput("1e6")).toBeNull();
+  });
+  it("rejects negatives — a negative budget is a typo", () => {
+    expect(parseRupeeInput("-500")).toBeNull();
+  });
+  it("empty input is 'not set', not zero", () => {
+    expect(parseRupeeInput("")).toBeNull();
+    expect(parseRupeeInput("   ")).toBeNull();
+  });
+});
+
+describe("paiseToRupeeInput — round-trips through an editable field", () => {
+  it("whole rupees carry no decimal part", () => {
+    expect(paiseToRupeeInput(toPaise(200000000))).toBe("2000000");
+  });
+  it("keeps a fractional rupee", () => {
+    expect(paiseToRupeeInput(toPaise(180050))).toBe("1800.50");
+  });
+  it("round-trips", () => {
+    for (const paise of [0, 5, 180050, 200000000]) {
+      expect(parseRupeeInput(paiseToRupeeInput(toPaise(paise)))).toBe(paise === 0 ? 0 : paise);
+    }
   });
 });
 

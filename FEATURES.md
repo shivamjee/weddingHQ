@@ -380,9 +380,11 @@ Building it specific to venues means building it three more times.
 ```
 comparisons/{comparisonId}
   name            string         // "Wedding venues", "Caterers"
-  criteria        [ { id, label, type, weight } ]
+  criteria        [ { id, label, type, weight, source } ]
                   // type: "text" | "number" | "money" | "rating" | "boolean"
                   // weight: 1-5, default 3, used for optional scoring
+                  // source: "seed" | "human" | "ai" — see §3.3; a criterion the AI
+                  //   proposed and a human accepted is tagged "ai" until edited
   createdBy       uid
   createdAt       timestamp
 
@@ -390,6 +392,12 @@ comparisons/{comparisonId}/options/{optionId}
   name            string         // "Taj Palace"
   contactId       string | null
   values          { [criterionId]: string | number | boolean }
+  valueMeta       { [criterionId]: { source: "human" | "ai", confidence?: number,
+                    aiAt?: timestamp } }
+                  // provenance only — kept out of `values` so every existing reader
+                  // (table, cards, highlight-best) stays untouched. Absent entry = human.
+  summary         string         // short prose description; human-written or AI-suggested
+                                  // and confirmed (§3.3). Useful with or without AI.
   notes           string
   photoURLs       [ string ]
   status          "considering" | "shortlisted" | "rejected" | "booked"
@@ -414,6 +422,76 @@ visually secondary to the raw numbers.
 
 Capacity here feeds the guest tier ladder (§4.4) — a booked venue's capacity becomes the target
 headcount.
+
+### 3.3 AI assist on comparisons
+
+The criteria you think of in advance are not the criteria that turn out to matter. You come back
+from a site visit with a paragraph of notes and the table has no column for generator backup, DJ
+curfew, or whether an outside caterer is allowed. This closes that gap: one free-text box in, a
+reviewed, editable set of table changes out.
+
+**Flow:**
+
+1. **"Add with AI"** on a comparison opens a single free-text box — paste or dictate visit notes,
+   a forwarded vendor message, a brochure blurb.
+2. That text, plus the comparison's existing `criteria[]` (labels + types only, no other options'
+   data), goes to a server route handler.
+3. The model returns structured JSON:
+   - `values{}` — proposed values for **existing** criteria, each with a confidence and the
+     source snippet;
+   - `newCriteria[]` — criteria the text implies but the table doesn't have yet
+     (`label`, `type`, `weight`, `why`). **This is the point of the feature** — covering what
+     nobody thought to add a column for;
+   - `summary` — 2–3 sentences on the option;
+   - `unknowns[]` — what it couldn't determine; offered as candidate **open questions** (§3.1)
+     with `askWho` prefilled from the option's contact.
+4. **Review screen, nothing auto-saves.** Every value, new criterion, and the summary has its own
+   checkbox (pre-checked only above a confidence threshold) and is editable inline. One **Apply**
+   writes the option and any accepted criteria in a single batch.
+5. A newly accepted criterion is blank on every other existing option. Optional "fill this for the
+   others too" re-runs extraction per option against that option's own stored notes/summary, and
+   leaves a field blank rather than inventing a value when the notes don't say.
+
+**Non-negotiables** (same standard as §9.1's expense categoriser):
+
+- **Never auto-save.** Every field is a suggestion in a review UI until a human confirms it.
+- **Provenance travels with the value.** `valueMeta[criterionId].source: "ai"` renders as a small
+  "AI" chip in both cards and table; it clears the moment a human edits the value. An unverified
+  guess must never look identical to something confirmed on a call.
+- **Money is never trusted pre-formatted.** The model returns a bare number plus a unit hint
+  (`1800`, `"per plate"`); the server converts to integer paise via `src/lib/money.ts` and rejects
+  anything that doesn't parse cleanly.
+- **Structured output, server-validated.** Request JSON output with a schema (Gemini's
+  `responseMimeType: "application/json"`), then validate the response against a **zod** schema in
+  the handler before it ever reaches the client. One retry on parse failure, then a plain-English
+  error — never a partial write.
+- Proposed criteria are restricted to the five existing `type` values; anything else is dropped
+  server-side.
+
+**Where it runs.** A **Next.js Route Handler on Vercel Hobby** (free) —
+`src/app/api/ai/compare/route.ts` — pulling forward the same free-path pattern §9.1 already
+specifies for the Phase 6 categoriser, rather than inventing a second one later. **Firebase stays
+on Spark; no Cloud Functions.** The handler never writes to Firestore — it returns a suggestion,
+and the client performs the write under the existing member-write rule on `comparisons`, so this
+adds no new collection and no new rules surface.
+
+- `GEMINI_API_KEY` is a **server-only** env var (no `NEXT_PUBLIC_` prefix) — unlike the public
+  Firebase config values, this one is a real secret.
+- The route **authenticates the caller**: verify the Firebase ID token the client sends, and check
+  tenant membership before calling the model, so the endpoint can't be used to spend someone
+  else's quota.
+- Degrades to "button hidden" with no key set — the rest of the app is unaffected.
+
+**Provider.** Google **Gemini**, free tier (`flash-lite`-class, no credit card) via
+`src/lib/ai/provider.ts` — one module wrapping `generateJSON(prompt, schema)`, so swapping
+providers later is a one-file change and nothing else imports an AI SDK directly. Two caveats:
+free-tier prompts may be used to improve Google's models (don't send `contacts` phone numbers or
+emails into a prompt), and free quotas are Google's to change — read current numbers in AI Studio
+rather than trusting a fixed figure here. Handle `429` with backoff and a plain retry message.
+
+**Out of scope:** no browsing/scraping vendor sites, no PDF or image ingestion (Storage is off
+until Phase 6), no chat interface, no AI on budgets/allocations, and nothing AI-driven near money
+movement. Text in, structured suggestion out, human confirms.
 
 ---
 
@@ -683,6 +761,12 @@ keeping Firebase on Spark. API key in a Vercel environment variable, **unprefixe
 Flow: description + amount → handler returns a suggested `categoryId` → UI pre-selects it with an
 "AI suggested" tag → user confirms. **Never auto-save without confirmation.**
 
+> This route-handler-on-Vercel-Hobby pattern (server-only key, human confirms every suggestion,
+> never auto-save) was pulled forward into **Phase 2 §3.3** for the comparison-table AI assist,
+> rather than waiting for Phase 6. §3.3's `src/lib/ai/provider.ts` should be reused here rather
+> than building a second AI integration from scratch — this categoriser becomes a second caller
+> of the same provider module, with its own route handler and prompt.
+
 ### 9.2 Task reminders
 
 **Vercel Cron** (Hobby allows scheduled invocations at daily granularity) hits a route handler
@@ -711,9 +795,10 @@ weddingHQ became a container for many weddings. The allowlist gate above was rep
 tenant-supplied labels, and a global admin role was added.
 
 **Phase 2 — Decision support**
-Categories and events setup. Comparison tables (cards + table). Open questions grouped by who to
-ask. Contacts. Budget allocations per side, with allocation health and side-by-side comparison —
-planning only, no expense entry yet.
+Categories and events setup. Comparison tables (cards + table), plus an AI assist (§3.3) that
+turns plain-English notes into suggested criteria and filled-in values, reviewed before saving.
+Open questions grouped by who to ask. Contacts. Budget allocations per side, with allocation
+health and side-by-side comparison — planning only, no expense entry yet.
 
 **Phase 3 — Guest list**
 Households, members, tiers, per-event invitation. Filters and the tier ladder. Cost projection
@@ -729,7 +814,8 @@ set in §2.6. Build when deposits and real payments start, roughly six months ou
 Run sheets, offline caching, today view. Useless until dates and vendors are locked.
 
 **Phase 6 — Deferred**
-AI categorisation, email reminders, receipts, RSVP tracking, seating.
+AI expense categorisation (§9.1 — reuses the provider module §3.3 introduced in Phase 2), email
+reminders, receipts, RSVP tracking, seating.
 
 ---
 
@@ -748,3 +834,6 @@ relevant rather than dumping the list up front.**
 6. Seed the first tenant, its first `couple` membership, and the `isAdmin` flag by hand in the
    Firestore console (bootstrap — nobody can sign in to create them via the app).
 7. Deploy security rules and composite indexes via the Firebase CLI.
+8. **(Phase 2, §3.3)** Create a free Gemini API key in Google AI Studio; add `GEMINI_API_KEY`
+   (unprefixed — no `NEXT_PUBLIC_`) to `.env.local` and to Vercel → Environment Variables for
+   Production and Preview, then redeploy. Reused as-is by the §9.1 categoriser in Phase 6.

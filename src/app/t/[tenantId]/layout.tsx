@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { TenantProvider, useTenant } from "@/lib/tenants/TenantProvider";
+import { ConfigProvider } from "@/lib/tenants/ConfigProvider";
 import { rememberLastTenant } from "@/lib/tenants/lastTenant";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { NotInvited } from "@/components/NotInvited";
@@ -60,11 +61,16 @@ function TenantShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Categories and events are loaded here, once, rather than by each tab — see
+  // ConfigProvider. Mounted inside the access gate above so it never fires a
+  // read the rules would reject.
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col border-stone-200 sm:border-x">
-      <AppHeader />
-      <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
-      <BottomTabBar />
-    </div>
+    <ConfigProvider tenantId={tenantId}>
+      <div className="mx-auto flex w-full max-w-md flex-1 flex-col border-stone-200 sm:border-x">
+        <AppHeader />
+        <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
+        <BottomTabBar />
+      </div>
+    </ConfigProvider>
   );
 }

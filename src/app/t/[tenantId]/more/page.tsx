@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   deleteDoc,
   getDocs,
@@ -11,8 +12,10 @@ import {
   where,
 } from "firebase/firestore";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { useTenant } from "@/lib/tenants/TenantProvider";
+import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
+import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { membershipDoc, membershipsCol } from "@/lib/paths";
+import { ChipRow, Field, FormMessage, PrimaryButton, TextInput } from "@/components/ui/form";
 import type { MembershipWithId, Role, Side } from "@/types";
 
 // "More" — for now, the people in this wedding. Phase 2 adds Setup (categories,
@@ -36,6 +39,7 @@ async function fetchMembers(tenantId: string): Promise<MembershipWithId[]> {
 export default function MorePage() {
   const { user } = useAuth();
   const { tenantId, tenant, canWrite, sideLabel } = useTenant();
+  const { categories, events } = useConfig();
   const [members, setMembers] = useState<MembershipWithId[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -109,11 +113,24 @@ export default function MorePage() {
         {canWrite ? <InviteForm onInvited={reload} /> : null}
       </section>
 
-      <section className="rounded-2xl bg-stone-100 px-4 py-4">
-        <h2 className="text-sm font-semibold text-stone-700">Coming next</h2>
-        <p className="mt-1 text-sm text-stone-500">
-          Categories and events setup, and currency display settings, will live here in Phase 2.
-        </p>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-stone-700">Settings</h2>
+        <Link
+          href={tenantHref(tenantId, "/more/setup")}
+          className="flex min-h-[60px] items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3"
+        >
+          <div className="min-w-0">
+            <p className="text-base font-medium text-stone-800">Setup</p>
+            <p className="truncate text-xs text-stone-400">
+              {categories.length || events.length
+                ? `${categories.length} categor${categories.length === 1 ? "y" : "ies"} · ${events.length} event${events.length === 1 ? "" : "s"}`
+                : "Categories and events — start here"}
+            </p>
+          </div>
+          <span className="shrink-0 text-stone-300" aria-hidden>
+            &rsaquo;
+          </span>
+        </Link>
       </section>
     </div>
   );
@@ -211,94 +228,46 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
         They sign in with this Google address — no password to share.
       </p>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-stone-500">Email</span>
-        <input
+      <Field label="Email">
+        <TextInput
           type="email"
           inputMode="email"
           autoCapitalize="none"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="mum@gmail.com"
-          className="min-h-[48px] rounded-xl border border-stone-300 px-3 text-base text-stone-800 outline-none focus:border-rose-400"
         />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-stone-500">Name (optional)</span>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Mum"
-          className="min-h-[48px] rounded-xl border border-stone-300 px-3 text-base text-stone-800 outline-none focus:border-rose-400"
-        />
-      </label>
+      <Field label="Name (optional)">
+        <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Mum" />
+      </Field>
 
       {/* Chip rows, not dropdowns — easier to hit and to read at a glance. */}
-      <ChipRow
+      <ChipRow<Side>
         label="Side"
         options={[
           { value: "a", label: sideLabel("a") },
           { value: "b", label: sideLabel("b") },
         ]}
         value={side}
-        onChange={(v) => setSide(v as Side)}
+        onChange={(v) => v && setSide(v)}
       />
-      <ChipRow
+      <ChipRow<Role>
         label="Role"
         options={[
           { value: "family", label: "Family" },
           { value: "couple", label: "Couple (can edit)" },
         ]}
         value={role}
-        onChange={(v) => setRole(v as Role)}
+        onChange={(v) => v && setRole(v)}
       />
 
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-      {done ? <p className="text-sm text-emerald-700">{done}</p> : null}
+      <FormMessage error={error} success={done} />
 
-      <button
-        type="submit"
-        disabled={!valid || busy}
-        className="min-h-[48px] rounded-full bg-rose-500 px-4 text-base font-semibold text-white disabled:opacity-40"
-      >
+      <PrimaryButton type="submit" disabled={!valid || busy}>
         {busy ? "Inviting…" : "Invite"}
-      </button>
+      </PrimaryButton>
     </form>
-  );
-}
-
-function ChipRow({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-stone-500">{label}</span>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            aria-pressed={value === o.value}
-            className={`min-h-[44px] rounded-full border px-4 text-sm font-medium transition-colors ${
-              value === o.value
-                ? "border-rose-400 bg-rose-50 text-rose-700"
-                : "border-stone-300 text-stone-600"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }

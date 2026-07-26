@@ -19,7 +19,7 @@ import {
 import { db } from "@/lib/firebase";
 import { membershipId } from "@/lib/tenantIds";
 
-export { membershipId, slugifyTenantName } from "@/lib/tenantIds";
+export { membershipId, slugify, slugifyTenantName, uniqueSlugId } from "@/lib/tenantIds";
 
 export const membershipsCol = (): CollectionReference => collection(db, "memberships");
 

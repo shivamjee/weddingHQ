@@ -66,7 +66,8 @@ export function TenantProvider({ tenantId, children }: { tenantId: string; child
     void (async () => {
       try {
         const snap = await getDoc(tenantDoc(tenantId));
-        if (!cancelled) setLoaded({ id: tenantId, tenant: snap.exists() ? (snap.data() as Tenant) : null });
+        if (!cancelled)
+          setLoaded({ id: tenantId, tenant: snap.exists() ? (snap.data() as Tenant) : null });
       } catch (err) {
         console.error("[tenant] load failed:", err);
         if (!cancelled) setLoaded({ id: tenantId, tenant: null });

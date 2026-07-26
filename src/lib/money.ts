@@ -70,6 +70,42 @@ export function formatCompact(paise: Paise): string {
   return `${sign}₹${Math.round(rupees)}`;
 }
 
+/**
+ * Parse what a person typed into a rupee field into branded paise.
+ *
+ * The inverse of `formatINR` at the input edge, and the ONLY place a
+ * user-entered amount becomes money — so "₹20,00,000", "2000000" and "1800.50"
+ * all land as integer paise instead of each screen writing its own `Number()`
+ * call (which turns "₹1.8k" into NaN, or worse, silently into 1.8).
+ *
+ * Returns null for anything it cannot parse cleanly, including negatives:
+ * a negative budget or per-plate cost is a typo, not an intention. An empty
+ * string is a legitimate "not set" and also returns null — callers decide
+ * whether that means zero or unset.
+ */
+export function parseRupeeInput(text: string): Paise | null {
+  const cleaned = text.replace(/[₹,\s]/g, "");
+  if (cleaned === "") return null;
+  // At most two decimal places: a third would be a fraction of a paisa, which
+  // is not a thing, and rounding it silently hides the typo.
+  if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+  const rupees = Number(cleaned);
+  if (!Number.isFinite(rupees)) return null;
+  return rupeesToPaise(rupees);
+}
+
+/** Paise back into a plain, unformatted rupee string for an editable input
+ *  ("130000000" → "1300000"). Grouping separators belong in display, not in a
+ *  field the user is about to retype. */
+export function paiseToRupeeInput(paise: Paise): string {
+  const whole = Math.trunc(Math.abs(paise) / 100);
+  const fraction = Math.abs(paise) % 100;
+  const sign = paise < 0 ? "-" : "";
+  return fraction === 0
+    ? `${sign}${whole}`
+    : `${sign}${whole}.${String(fraction).padStart(2, "0")}`;
+}
+
 /** Currencies the app can display INR amounts in (FEATURES.md §1.4). */
 export type DisplayCurrency = "INR" | "USD" | "EUR" | "GBP" | "AED";
 

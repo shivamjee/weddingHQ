@@ -6,6 +6,12 @@
  */
 export interface Category {
   name: string;
-  colour: string; // hex
+  colour: string; // hex; one of the PALETTE swatches in src/lib/colours.ts
   order: number;
+}
+
+/** A category document paired with its id, which the doc itself doesn't carry.
+ *  Budget allocation ids are built from this id (`{side}_{categoryId}`). */
+export interface CategoryWithId extends Category {
+  id: string;
 }
