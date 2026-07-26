@@ -90,3 +90,24 @@ export const questionsCol = (tenantId: string): CollectionReference =>
 
 export const questionDoc = (tenantId: string, questionId: string): DocumentReference =>
   doc(db, "tenants", tenantId, "questions", questionId);
+
+// ---- comparisons (Phase 2 Step 5) ------------------------------------------
+// Options are a SUBCOLLECTION of their comparison, not a field on it: a table
+// with a dozen venues would otherwise be one document that every edit rewrites
+// in full, and two people editing different venues would clobber each other.
+
+export const comparisonsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "comparisons");
+
+export const comparisonDoc = (tenantId: string, comparisonId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "comparisons", comparisonId);
+
+export const optionsCol = (tenantId: string, comparisonId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "comparisons", comparisonId, "options");
+
+export const optionDoc = (
+  tenantId: string,
+  comparisonId: string,
+  optionId: string,
+): DocumentReference =>
+  doc(db, "tenants", tenantId, "comparisons", comparisonId, "options", optionId);

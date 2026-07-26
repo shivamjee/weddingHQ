@@ -564,6 +564,58 @@ describe("contacts & questions — collaborative, so every member writes", () =>
   });
 });
 
+describe("comparisons — including the options subcollection", () => {
+  const comparison = { name: "Wedding venues", criteria: [], categoryId: null };
+  const option = { name: "Taj Palace", values: {}, status: "considering" };
+
+  it("a family member can create a comparison and its options", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "comparisons", "venues"), comparison));
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "comparisons", "venues", "options", "taj"), option),
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, "tenants", T1, "comparisons", "venues", "options", "taj"), {
+        status: "shortlisted",
+      }),
+    );
+    await assertSucceeds(
+      deleteDoc(doc(db, "tenants", T1, "comparisons", "venues", "options", "taj")),
+    );
+  });
+
+  it("options are readable — a parent rule does NOT cascade to a subcollection", async () => {
+    // Without its own match block the options would be invisible under
+    // default-deny, with the comparison itself loading fine. That failure looks
+    // like "the table is empty", not like a permissions problem.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "comparisons", "venues"), comparison);
+      await setDoc(
+        doc(ctx.firestore(), "tenants", T1, "comparisons", "venues", "options", "taj"),
+        option,
+      );
+    });
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "comparisons", "venues")));
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "comparisons", "venues", "options")));
+  });
+
+  it("the other wedding's member is denied the comparison AND its options", async () => {
+    const db = authed(T2_COUPLE);
+    await assertFails(getDocs(collection(db, "tenants", T1, "comparisons")));
+    await assertFails(getDocs(collection(db, "tenants", T1, "comparisons", "venues", "options")));
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "comparisons", "venues", "options", "sneak"), option),
+    );
+  });
+
+  it("a stranger is denied both levels", async () => {
+    const db = authed(STRANGER);
+    await assertFails(getDocs(collection(db, "tenants", T1, "comparisons")));
+    await assertFails(getDocs(collection(db, "tenants", T1, "comparisons", "venues", "options")));
+  });
+});
+
 describe("privilege escalation is closed", () => {
   it("a family member cannot promote themselves to couple", async () => {
     const db = authed(T1_FAMILY);

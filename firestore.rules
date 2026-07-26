@@ -234,10 +234,28 @@ service cloud.firestore {
         allow write: if isTenantMember(tenantId) || isAdmin();
       }
 
-      // Phase 2 adds comparisons (member-write) here, following the same
-      // pattern. Until a match block exists for a subcollection, the
-      // default-deny below applies to it — new collections are inaccessible,
-      // not accidentally public.
+      // ---- comparisons (Phase 2 Step 5) -----------------------------------
+      // Also collaborative, so member-read and member-write.
+      //
+      // The `options` subcollection needs its OWN match block: a rule on the
+      // parent does not cascade to a subcollection, so without this block the
+      // default-deny at the bottom would apply and every option would be
+      // invisible. The {optionId=**} recursive form is deliberately NOT used —
+      // this grants exactly one known level, not anything a future nested
+      // collection might add.
+      //
+      // Step 5b's AI route handler adds nothing here: it returns a suggestion
+      // and the CLIENT writes the confirmed result under this same member-write
+      // rule, so the security boundary stays exactly where it is.
+      match /comparisons/{comparisonId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
+
+        match /options/{optionId} {
+          allow read: if isTenantMember(tenantId) || isAdmin();
+          allow write: if isTenantMember(tenantId) || isAdmin();
+        }
+      }
     }
 
     // ---- everything else --------------------------------------------------

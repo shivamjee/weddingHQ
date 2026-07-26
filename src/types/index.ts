@@ -13,3 +13,20 @@ export type { Contact, ContactWithId, ContactType } from "./contact";
 export { CONTACT_TYPES, CONTACT_TYPE_LABELS } from "./contact";
 export type { Question, QuestionWithId, QuestionStatus } from "./question";
 export { QUESTION_STATUSES, QUESTION_STATUS_LABELS } from "./question";
+export type {
+  Comparison,
+  ComparisonWithId,
+  ComparisonOption,
+  ComparisonOptionWithId,
+  Criterion,
+  CriterionType,
+  OptionStatus,
+  ValueMeta,
+  ValueSource,
+} from "./comparison";
+export {
+  CRITERION_TYPES,
+  CRITERION_TYPE_LABELS,
+  OPTION_STATUSES,
+  OPTION_STATUS_LABELS,
+} from "./comparison";
