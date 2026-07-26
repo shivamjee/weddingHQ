@@ -144,6 +144,14 @@ code — read this before changing anything host-related.
 - **Vercel:** auto-deploys `main`. **Production URL: `wedding-hq-ten.vercel.app`.**
 - **Config:** the six `NEXT_PUBLIC_FIREBASE_*` values live in `.env.local` (local) **and** the
   Vercel dashboard (production, build-time inlined). They are public web config, not secrets.
+- **`GEMINI_API_KEY`** (Phase 2 §5b, optional): the project's **only real secret**. Deliberately
+  **unprefixed** so Next.js never inlines it into the browser bundle. Free tier from
+  [AI Studio](https://aistudio.google.com/apikey) — no card, no billing account, and **not** a
+  Google Cloud/Blaze thing. Unset ⇒ the "Add with AI" button is hidden and everything else works
+  identically. `GEMINI_MODEL` optionally overrides the model id when Google retires one.
+- **Server code:** exactly one route handler, `src/app/api/ai/compare/route.ts`, on Vercel Hobby.
+  It reads and writes **nothing** in Firestore — it returns a suggestion and the client performs
+  the write — so it adds no rules surface. Everything else is still pure client + Firestore rules.
 - **Owner account:** `shivamjee@rocketmail.com` — global admin (`users/{uid}.isAdmin = true`) and
   `role: "couple"`, `side: "a"` in the `shivam-swara` tenant.
 - **First tenant:** `tenants/shivam-swara` — `sideA.label` "Shivam", `sideB.label` "Swara".
@@ -206,13 +214,39 @@ Alternatively, just test against the deployed Vercel URL.
   `users` collection, filter on `email == their@address` to find their doc (the doc id is their
   Firebase Auth **uid**, not their email — unlike `memberships`, which is email-keyed). Add
   `isAdmin` (boolean) = `true`. No redeploy needed.
-- **Money:** stored as integer **paise**, never floats. Format via `src/lib/money.ts` only.
+- **Money:** stored as integer **paise**, never floats. Format via `src/lib/money.ts` only, and
+  parse user input only via its `parseRupeeInput` — which rejects "₹1.8k" rather than guessing.
+- **Turning the AI assist on** (Phase 2 §5b, optional): AI Studio → *Get API key* → *Create API
+  key* → copy. Then Vercel → the project → **Settings → Environment Variables** → add
+  `GEMINI_API_KEY` (name exactly that, **no** `NEXT_PUBLIC_` prefix) for **Production and
+  Preview** → Save → **Deployments → ⋯ → Redeploy** (env vars are read at build time, so an
+  existing deployment will not pick it up). Same line in `.env.local` for local dev. To confirm it
+  never reached the browser: `grep -r GEMINI .next/static` must return nothing.
+- **`server-only`** is aliased to its no-op entry in `vitest.config.ts`. Without that, importing
+  any `src/lib/ai/*` module in a test throws "cannot be imported from a Client Component module",
+  because the marker package needs React's `react-server` resolve condition, which Next supplies
+  and Vitest does not.
 - **Service worker** (`public/sw.js`) is **hand-written** (not Serwist) — Next 16 is bleeding-edge
   and the offline-shell requirement is minimal. Bump `CACHE` in it when shell assets change.
 
 ## Current phase
 
-**Phase 2 — Decision support.** The active brief is in `PHASE2.md`. Read it before starting work.
+**Phase 2 — Decision support is COMPLETE** (`PHASE2.md`, kept as a record). Shipped: categories
+and events setup under More, per-side budget allocations with allocation health and a side-by-side
+comparison, contacts with tap-to-call/WhatsApp, open questions grouped by who to ask, generic
+comparison tables (cards on mobile, table on desktop, highlight-best), the AI comparison assist,
+and a light Home summary. **Planning only — no expense entry**, by design.
+
+Two additions beyond the brief's letter, both deliberate and commented at the code:
+- `Criterion.betterIs` (optional) — deriving the winner from `type` alone marks the *farthest*
+  venue as best on "Distance (km)". Existing criteria keep the type-based default.
+- The comparison table renders inside the standard max-w-md app column and scrolls sideways with a
+  sticky first column, rather than breaking the shell's single layout on desktop. Change the shell
+  deliberately if the full window is ever wanted.
+
+The next brief has not been written yet. **Phase 3 is the guest list** (`FEATURES.md` §4):
+households, members, tiers, per-event invitation, and the cost projection that consumes the
+`perPlateEstPaise` captured on events in Phase 2.
 
 Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
 access-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,
@@ -223,7 +257,7 @@ weddings. It replaced the `allowlist` collection with `memberships`, moved all w
 `tenants/{tenantId}/…`, changed sides from `"shivam"/"swara"` to `"a"/"b"` with tenant labels, and
 added the global admin role. **Phase 2 builds on that shape** — see § Multi-tenancy above.
 
-Phase 2 builds categories/events setup, per-side budget allocations, comparison tables, open
-questions, and contacts — **planning only, no expense entry**. Scope draws on `FEATURES.md` §2–§5;
-`PHASE2.md` is authoritative on what's in/out for this phase. Do not build later-phase features
-(expenses, guests, tasks, receipts) — see `PHASE2.md` "Out of scope".
+Still out of scope until their own phase: expenses and the three states, splits, settlements and
+balances (Phase 4); tasks and run sheets (Phase 5+); receipts, Firebase Storage, RSVP and AI
+expense categorisation (Phase 6). The categoriser will reuse `src/lib/ai/provider.ts` and the
+route-handler pattern Phase 2 established rather than building a second AI integration.
