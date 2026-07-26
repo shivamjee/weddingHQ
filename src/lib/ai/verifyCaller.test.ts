@@ -92,15 +92,16 @@ describe("assertTenantMember — a non-member is refused", () => {
   it("looks the membership up by the caller's OWN verified email", async () => {
     // The email comes from the signed token, never from the request body —
     // otherwise anyone could claim to be anyone by typing a different address.
-    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    // Typed as fetch itself, so `mock.calls` carries (input, init) rather than
+    // being inferred as an empty tuple.
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     await mod.assertTenantMember(caller, "shivam-swara", "token");
 
-    const url = String(fetchMock.mock.calls[0][0]);
-    expect(url).toContain(encodeURIComponent("shivam-swara__someone@example.com"));
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain(encodeURIComponent("shivam-swara__someone@example.com"));
     // And it asks AS the caller, so the security rules do the deciding.
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer token");
+    expect((init?.headers as Record<string, string>)?.Authorization).toBe("Bearer token");
   });
 
   it("an unexpected status is a 500, not a silent pass", async () => {
