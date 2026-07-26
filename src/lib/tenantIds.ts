@@ -1,7 +1,14 @@
-// Pure id logic for tenants and memberships. NO Firebase imports — this module
-// is deliberately dependency-free so firestore.rules tests can import the real
-// membershipId() and prove the app and the rules agree on the scheme, without
-// dragging the client SDK into an emulator test.
+// Pure id logic for every document whose id carries meaning. NO Firebase
+// imports — this module is deliberately dependency-free so firestore.rules
+// tests can import the real id builders and prove the app and the rules agree
+// on the scheme, without dragging the client SDK into an emulator test.
+//
+// Every scheme here is DUPLICATED inside firestore.rules, which rebuilds the
+// same strings to check that a document id agrees with its own fields. Change
+// one, change the other — the rules tests import from here so drift fails the
+// build rather than silently mis-targeting a lookup.
+
+import type { Side } from "@/types/common";
 
 /** Separator in a membership document id. Two underscores, because an email
  *  local-part may legally contain a single one. */
@@ -18,6 +25,22 @@ const MEMBERSHIP_SEP = "__";
  */
 export function membershipId(tenantId: string, email: string): string {
   return `${tenantId}${MEMBERSHIP_SEP}${email.trim().toLowerCase()}`;
+}
+
+/** Marks a `budgets` document as a side's overall ceiling rather than one of
+ *  its per-category allocations. The two shapes share a collection (see
+ *  src/types/budget.ts for why) and this prefix is what tells them apart, in the
+ *  app and in firestore.rules alike. */
+export const BUDGET_TOTALS_PREFIX = "_totals_";
+
+/** budgets/{side}_{categoryId} — e.g. "a_venue". */
+export function budgetAllocationId(side: Side, categoryId: string): string {
+  return `${side}_${categoryId}`;
+}
+
+/** budgets/_totals_{side} — e.g. "_totals_a". */
+export function budgetTotalsId(side: Side): string {
+  return `${BUDGET_TOTALS_PREFIX}${side}`;
 }
 
 /**

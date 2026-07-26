@@ -170,10 +170,56 @@ service cloud.firestore {
         allow write: if isTenantCouple(tenantId) || isAdmin();
       }
 
-      // Phase 2 adds budgets (couple-write) and contacts / comparisons /
-      // questions (member-write) here, following the same pattern. Until a
-      // match block exists for a subcollection, the default-deny below applies
-      // to it — new collections are inaccessible, not accidentally public.
+      // ---- budgets (Phase 2 Step 2) ---------------------------------------
+      // Per-side allocations and each side's overall ceiling. Every member
+      // READS them — FEATURES.md §0 settled that everyone sees everything, so
+      // there is no per-side hiding to enforce — but only the couple WRITES:
+      // these are the financial decisions of the wedding.
+      //
+      // Two shapes share this collection, told apart by the document id:
+      //   {side}_{categoryId}   one category's allocation for one side
+      //   _totals_{side}        that side's overall budget
+      // Both id schemes come from src/lib/tenantIds.ts, which the rules tests
+      // import — so if the app's builders and these strings ever drift, the
+      // tests fail rather than every budget write silently being rejected.
+      //
+      // The id/field agreement below is integrity, not privilege (same reason
+      // as memberships): a document whose id disagrees with its own `side` or
+      // `categoryId` would be summed into the wrong side's allocation health.
+      // `.get(field, default)` is used throughout so a malformed write is a
+      // clean denial rather than an evaluation error.
+      match /budgets/{budgetId} {
+        function validAllocation() {
+          let d = request.resource.data;
+          return d.get("side", "") in ["a", "b"]
+            && d.get("categoryId", "") is string
+            && d.get("categoryId", "").size() > 0
+            && budgetId == d.get("side", "") + "_" + d.get("categoryId", "")
+            // Money is integer paise, always (FEATURES.md §1.3). A float here
+            // means someone wrote rupees; a negative means a typo.
+            && d.get("allocatedPaise", -1) is int
+            && d.get("allocatedPaise", -1) >= 0;
+        }
+
+        function validTotals() {
+          let d = request.resource.data;
+          return d.get("side", "") in ["a", "b"]
+            && budgetId == "_totals_" + d.get("side", "")
+            && d.get("totalBudgetPaise", -1) is int
+            && d.get("totalBudgetPaise", -1) >= 0;
+        }
+
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow create, update: if (isTenantCouple(tenantId) || isAdmin())
+          && (validAllocation() || validTotals());
+        // Deleting a category removes its two allocation documents alongside it.
+        allow delete: if isTenantCouple(tenantId) || isAdmin();
+      }
+
+      // Phase 2 adds contacts / comparisons / questions (member-write) here,
+      // following the same pattern. Until a match block exists for a
+      // subcollection, the default-deny below applies to it — new collections
+      // are inaccessible, not accidentally public.
     }
 
     // ---- everything else --------------------------------------------------

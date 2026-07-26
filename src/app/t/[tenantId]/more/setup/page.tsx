@@ -20,7 +20,7 @@ import {
   type DocumentReference,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { categoryDoc, eventDoc, uniqueSlugId } from "@/lib/paths";
+import { budgetDoc, categoryDoc, eventDoc, uniqueSlugId } from "@/lib/paths";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { DEFAULT_CATEGORIES, DEFAULT_EVENTS, FALLBACK_COLOUR, nextColour } from "@/lib/colours";
@@ -35,7 +35,7 @@ import {
   TextInput,
 } from "@/components/ui/form";
 import { dateInputValue, formatDate, toTimestamp } from "@/lib/dates";
-import type { CategoryWithId, EventWithId } from "@/types";
+import { SIDES, type CategoryWithId, type EventWithId } from "@/types";
 
 export default function SetupPage() {
   const { tenantId, canWrite } = useTenant();
@@ -265,7 +265,16 @@ function CategoryForm({
       return;
     setBusy(true);
     try {
-      await deleteDoc(categoryDoc(tenantId, existing.id));
+      // Delete the category AND both sides' allocations for it, in one batch.
+      // An orphaned `budgets/a_venue` after "Venue" is gone would still be
+      // summed into that side's allocated total, so the health bar would report
+      // money committed to a category that no longer exists — invisible, and
+      // impossible to correct from the UI. Deleting a document that was never
+      // created is a harmless no-op, so this needs no existence check.
+      const batch = writeBatch(db);
+      batch.delete(categoryDoc(tenantId, existing.id));
+      for (const side of SIDES) batch.delete(budgetDoc(tenantId, side, existing.id));
+      await batch.commit();
       onDone();
     } catch (err) {
       console.error("[setup] category delete failed:", err);

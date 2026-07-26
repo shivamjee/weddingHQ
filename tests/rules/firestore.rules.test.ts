@@ -9,6 +9,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -17,7 +18,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { membershipId } from "@/lib/tenantIds";
+import { budgetAllocationId, budgetTotalsId, membershipId } from "@/lib/tenantIds";
 
 // Emulator-backed proof that firestore.rules holds. Run via `npm run test:rules`
 // (starts the Firestore emulator around Vitest).
@@ -97,6 +98,16 @@ beforeEach(async () => {
       });
       await setDoc(doc(db, "tenants", tenantId, "settings", "currency"), {
         rates: { USD: 0.012 },
+      });
+      await setDoc(doc(db, "tenants", tenantId, "budgets", budgetTotalsId("a")), {
+        side: "a",
+        totalBudgetPaise: 200000000, // ₹20L
+      });
+      await setDoc(doc(db, "tenants", tenantId, "budgets", budgetAllocationId("a", "decor")), {
+        side: "a",
+        categoryId: "decor",
+        allocatedPaise: 30000000, // ₹3L
+        notes: "",
       });
     }
 
@@ -361,6 +372,145 @@ describe("within a tenant: members read, couple writes", () => {
         side: "a",
         invitedBy: T1_COUPLE.uid,
       }),
+    );
+  });
+});
+
+describe("budgets — every member reads, only the couple writes", () => {
+  const alloc = (categoryId: string, side = "a", allocatedPaise = 50000000) => ({
+    side,
+    categoryId,
+    allocatedPaise,
+    notes: "",
+  });
+
+  it("a family member reads both allocations and totals", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(
+      getDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor"))),
+    );
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "budgets", budgetTotalsId("a"))));
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "budgets")));
+  });
+
+  it("a family member cannot set a budget or an allocation", async () => {
+    // Budgets are the wedding's financial decisions — read-only for family.
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "food")), alloc("food")),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetTotalsId("b")), {
+        side: "b",
+        totalBudgetPaise: 300000000,
+      }),
+    );
+    await assertFails(
+      deleteDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor"))),
+    );
+  });
+
+  it("the couple sets totals and allocations for BOTH sides", async () => {
+    // Not just their own: the two sides plan together, and FEATURES.md §0 puts
+    // everything in the open.
+    const db = authed(T1_COUPLE);
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetTotalsId("b")), {
+        side: "b",
+        totalBudgetPaise: 300000000,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("b", "food")), alloc("food", "b")),
+    );
+    await assertSucceeds(
+      deleteDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor"))),
+    );
+  });
+
+  it("a document id that disagrees with its own fields is rejected", async () => {
+    // Otherwise `b_venue` could hold `side: "a"` and be summed into the wrong
+    // side's allocation health — wrong numbers, no error anywhere.
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "venue")), alloc("venue", "b")),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", "a_venue"), alloc("something-else")),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetTotalsId("a")), {
+        side: "b",
+        totalBudgetPaise: 100,
+      }),
+    );
+    await assertFails(setDoc(doc(db, "tenants", T1, "budgets", "nonsense"), alloc("venue")));
+  });
+
+  it("money must be a non-negative integer — no floats, no negatives", async () => {
+    const db = authed(T1_COUPLE);
+    // A float here means someone wrote rupees where paise were expected.
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "venue")), {
+        ...alloc("venue"),
+        allocatedPaise: 1234.56,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "venue")), {
+        ...alloc("venue"),
+        allocatedPaise: -1,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "venue")), {
+        ...alloc("venue"),
+        allocatedPaise: "3 lakh",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetTotalsId("a")), {
+        side: "a",
+        totalBudgetPaise: 200000.5,
+      }),
+    );
+  });
+
+  it("only sides 'a' and 'b' exist", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", "shivam_venue"), alloc("venue", "shivam")),
+    );
+  });
+
+  it("T1's couple cannot read or write T2's budgets", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(
+      getDoc(doc(db, "tenants", T2, "budgets", budgetAllocationId("a", "decor"))),
+    );
+    await assertFails(getDocs(collection(db, "tenants", T2, "budgets")));
+    await assertFails(
+      setDoc(doc(db, "tenants", T2, "budgets", budgetTotalsId("a")), {
+        side: "a",
+        totalBudgetPaise: 1,
+      }),
+    );
+  });
+
+  it("a stranger cannot read budgets at all", async () => {
+    const db = authed(STRANGER);
+    await assertFails(
+      getDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor"))),
+    );
+    await assertFails(
+      getDoc(doc(testEnv.unauthenticatedContext().firestore(), "tenants", T1, "budgets", budgetTotalsId("a"))),
+    );
+  });
+
+  it("an admin writes budgets in a wedding they are not a member of", async () => {
+    const db = authed(ADMIN);
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T2, "budgets", budgetAllocationId("b", "decor")), alloc("decor", "b")),
     );
   });
 });

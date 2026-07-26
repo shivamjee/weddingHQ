@@ -17,9 +17,18 @@ import {
   type DocumentReference,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { membershipId } from "@/lib/tenantIds";
+import { budgetAllocationId, budgetTotalsId, membershipId } from "@/lib/tenantIds";
+import type { Side } from "@/types/common";
 
-export { membershipId, slugify, slugifyTenantName, uniqueSlugId } from "@/lib/tenantIds";
+export {
+  BUDGET_TOTALS_PREFIX,
+  budgetAllocationId,
+  budgetTotalsId,
+  membershipId,
+  slugify,
+  slugifyTenantName,
+  uniqueSlugId,
+} from "@/lib/tenantIds";
 
 export const membershipsCol = (): CollectionReference => collection(db, "memberships");
 
@@ -52,3 +61,16 @@ export const eventDoc = (tenantId: string, eventId: string): DocumentReference =
 
 export const settingsDoc = (tenantId: string, docId: string): DocumentReference =>
   doc(db, "tenants", tenantId, "settings", docId);
+
+// ---- budgets (Phase 2 Step 2) ----------------------------------------------
+// One collection holds both shapes: per-category allocations (`a_venue`) and
+// each side's overall ceiling (`_totals_a`). See src/types/budget.ts.
+
+export const budgetsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "budgets");
+
+export const budgetDoc = (tenantId: string, side: Side, categoryId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "budgets", budgetAllocationId(side, categoryId));
+
+export const budgetTotalsDoc = (tenantId: string, side: Side): DocumentReference =>
+  doc(db, "tenants", tenantId, "budgets", budgetTotalsId(side));

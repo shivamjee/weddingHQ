@@ -8,3 +8,4 @@ export type { Membership, MembershipWithId } from "./membership";
 export type { Event, EventWithId } from "./event";
 export type { Category, CategoryWithId } from "./category";
 export type { CurrencySettings } from "./settings";
+export type { BudgetAllocation, BudgetAllocationWithId, BudgetTotals } from "./budget";
