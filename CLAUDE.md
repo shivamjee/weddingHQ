@@ -244,9 +244,19 @@ Two additions beyond the brief's letter, both deliberate and commented at the co
   sticky first column, rather than breaking the shell's single layout on desktop. Change the shell
   deliberately if the full window is ever wanted.
 
-The next brief has not been written yet. **Phase 3 is the guest list** (`FEATURES.md` §4):
-households, members, tiers, per-event invitation, and the cost projection that consumes the
+**Phase 3 — Guest list** is the active brief: `PHASE3.md`. Read it before starting work. Households
+as the invitation unit, tiers with a cumulative ladder, and the cost projection that consumes the
 `perPlateEstPaise` captured on events in Phase 2.
+
+`FEATURES.md` §4.1 was revised before that brief was written. Two decisions there are load-bearing
+and were made deliberately — don't quietly undo them:
+- **Named guests are a top-level `tenants/{tenantId}/guests` collection, not a subcollection of
+  the household.** Nesting them would force `collectionGroup` queries for RSVP, dietary and
+  seating in Phase 6 — and a collectionGroup query spans *every* tenant, which would put tenant
+  isolation back on a `tenantId ==` filter a query could forget. See § Multi-tenancy above.
+- **Head counts live on the household and are never derived from guest documents.** "Dad's
+  colleagues, 12 people" must be enterable with zero names attached; that is what people actually
+  type, and demanding twelve blank rows is how the feature goes unused.
 
 Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
 access-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,

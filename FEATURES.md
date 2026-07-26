@@ -23,7 +23,7 @@ These were worked through deliberately. Do not re-derive or quietly change them.
 | Budget visibility | **Everyone sees everything.** No per-side hiding. Simplifies rules and UI. |
 | Currency | Stored **always in INR**. Other currencies are a display-time conversion only. |
 | Expense lifecycle | Three states: **estimated / committed / paid**. See §2.3. |
-| Guest management | **Households** are the unit, with **tiers** (must / should / if_space). No quotas. |
+| Guest management | **Households** are the invitation unit, with **tiers** (must / should / if_space). No quotas. Named guests are separate top-level documents; head **counts** live on the household and are never derived from them (§4.1). |
 
 ---
 
@@ -512,9 +512,8 @@ households/{householdId}
   status              "proposed" | "confirmed"
   relationship        string        // "Paternal cousins", "Dad's colleagues"
   eventIds            [ string ]    // which events they're invited to
-  memberCount         number        // denormalised; maintained on member writes
-  adultCount          number        // denormalised
-  childCount          number        // denormalised
+  adultCount          number        // PLANNED headcount — hand-entered, authoritative
+  childCount          number        // PLANNED headcount — hand-entered, authoritative
   travelNeeded        boolean
   accommodationNeeded boolean
   roomsNeeded         number | null
@@ -526,24 +525,55 @@ households/{householdId}
   createdAt           timestamp
   updatedAt           timestamp
 
-households/{householdId}/members/{memberId}
+guests/{guestId}                    // TOP-LEVEL, not nested under the household
+  householdId     string            // → households
   name            string
   ageGroup        "adult" | "child" | "infant"
-  dietary         string           // optional until the caterer asks
+  dietary         string            // optional until the caterer asks
   notes           string
+  createdBy       uid
+  createdAt       timestamp
+  updatedAt       timestamp
+  // Phase 6 adds per-person fields here without restructuring anything:
+  //   rsvp  { [eventId]: "pending" | "yes" | "no" }
+  //   seat  string | null
 ```
 
-Counts are denormalised onto the household so the tier ladder never scans the members
-subcollection.
+**Households, not individuals, are the invitation unit.** One invitation to "Mr & Mrs Agarwal + 2
+children" is one card, one delivery, one follow-up call — but four plates. Both numbers are needed
+and they're different. Tiers, per-event invitation, travel and accommodation all attach to the
+household, never to a person.
 
-**Households, not individuals, are the unit.** One invitation to "Mr & Mrs Agarwal + 2 children"
-is one card, one delivery, one follow-up call — but four plates. Both numbers are needed and
-they're different.
+**Guests are top-level, not a subcollection of the household.** This is the one structural
+decision here worth being deliberate about, and it is driven by tenancy rather than by the guest
+list itself. Nesting them would make every cross-cutting question — *"all vegetarians attending
+the sangeet"*, *"everyone who hasn't replied"*, *"seating for the reception"* — a **collectionGroup**
+query, which in Firestore matches that collection name at **every path depth in the database**,
+including other weddings. Securing that means a `match /{path=**}/guests/{guestId}` rule plus a
+`tenantId ==` filter on every query — precisely the forgettable-filter model that `CLAUDE.md`
+§ Multi-tenancy exists to avoid. A top-level `tenants/{tenantId}/guests` collection gets an
+ordinary rules block and keeps isolation a path prefix.
+
+Moving a person between households also becomes a field update rather than a delete-and-recreate.
+
+**Counts are the planning number; names are optional detail. They are deliberately NOT derived
+from each other.**
+
+This is the rule that makes progressive entry work, so it is worth stating plainly. `adultCount`
+and `childCount` are hand-entered on the household and are what every projection reads. Named
+`guests` documents are a *subset* that may not exist at all. "Dad's colleagues, 12 people" is a
+complete, valid household with twelve planned heads and zero guest documents — which is exactly
+what parents will actually enter, and forcing twelve blank name rows to get a headcount of twelve
+is how this feature dies.
+
+The UI shows both (*"12 planned · 3 named"*) and offers to reconcile when they drift; it never
+silently rewrites one from the other. Phase 6 requires them to match before invitations go out.
+First you count, then you name, then you invite.
 
 **Per-event invitation.** A colleague invited only to the reception must not appear in the
 mehendi catering count.
 
-**Progressive detail.** Only name, side, tier and member count are required. Address, phone,
+**Progressive detail.** Only name, side, tier and the two counts are required. Address, phone,
 dietary and travel fields are optional and **kept out of the default entry form** behind a "more
 details" expander. A form demanding twelve fields per guest will not get filled in — parents will
 add three names and stop.
@@ -584,9 +614,10 @@ The running total is the point. Set a target headcount (from the booked venue's 
 available) and mark which tier breaks it, by how many people.
 
 **Cost projection.** For each household, sum `perPlateEstPaise` across the events they're
-invited to, times member count. Aggregate by tier. This is the bridge between guest list and
-budget and it's the analytic to build first — it turns "should we invite the extended office?"
-into "40 people across three events at ₹2,500 is ₹3L."
+invited to, times its **planned** head count (`adultCount + childCount` — never a count of `guests`
+documents, per §4.1). Aggregate by tier. This is the bridge between guest list and budget and it's
+the analytic to build first — it turns "should we invite the extended office?" into "40 people
+across three events at ₹2,500 is ₹3L."
 
 Feed the total into the projected-total figure in §2.6.
 
@@ -615,7 +646,9 @@ aggregates/guestTotals
   updatedAt      timestamp
 ```
 
-Updated transactionally on household create/update/delete and on member writes.
+Updated transactionally on household create / update / delete. **Not** on `guests` writes — naming
+someone changes no count (§4.1), so the aggregate has exactly one set of writers and cannot drift
+from the planning numbers.
 
 Filtered counts that aren't covered by these keys are computed over the loaded page client-side —
 acceptable given filtered views are exploratory, and far cheaper than a query per filter
@@ -633,9 +666,13 @@ Export: flat CSV for vendors, who will ask for one.
 ### 4.7 Not yet
 
 RSVP tracking, chase lists, dietary summaries, invitation delivery status, seating charts. All
-genuinely useful, all worthless more than a year out, all addable later without restructuring —
-the `members` doc already has space for per-event RSVP when the time comes. Building them now
-means maintaining dead screens for a year.
+genuinely useful, all worthless more than a year out, all addable later **without restructuring** —
+that is what the top-level `guests` collection buys (§4.1). Each of them is a field on the guest
+document plus an ordinary query: `rsvp` for replies and chase lists, `dietary` for the caterer's
+summary, `seat` for seating. Building them now means maintaining dead screens for a year.
+
+The one thing that *does* change at that point is §4.1's counts-vs-names rule: before invitations
+go out, every planned head must be a named guest. Enforce it there, not now.
 
 ---
 
@@ -801,10 +838,10 @@ Open questions grouped by who to ask. Contacts. Budget allocations per side, wit
 health and side-by-side comparison — planning only, no expense entry yet.
 
 **Phase 3 — Guest list**
-Households, members, tiers, per-event invitation. Filters and the tier ladder. Cost projection
+Households, named guests, tiers, per-event invitation. Filters and the tier ladder. Cost projection
 and marginal cost at entry. CSV import/export. Pulled ahead of expenses deliberately: headcount ×
 per-plate is usually the largest line in the whole wedding, so it's the input that tells you
-whether the budget is realistic at all.
+whether the budget is realistic at all. The brief is in `PHASE3.md`.
 
 **Phase 4 — Money in motion**
 Expense entry with the three states, splits, aggregates, balances, settle-up, the full analytics
