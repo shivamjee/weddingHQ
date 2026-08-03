@@ -100,7 +100,8 @@ The foundation; everything else reads it.
 ### Step 2 — Tiers + the tier ladder (the headline)
 Nearly free once Step 1 exists, and the highest-value part of the phase (§4.2).
 - Cumulative table, **not** per-tier: Must 260 → +Should 430 → +If space 550.
-- A **target headcount** setting (`settings/guestTarget`, couple-writable) and a clear marker of
+- A **target headcount** setting (`settings/guestTarget`, member-writable — see CLAUDE.md's roles
+  update, any member can now write `settings`) and a clear marker of
   **which tier breaks it and by how many people**. Default the target from a `booked` venue
   comparison option's capacity where one exists (Phase 2 `comparisons`), but keep it editable.
 - The running total is the point — "which of these are really B?" instead of "why did you delete
@@ -167,7 +168,7 @@ Inside `match /tenants/{tenantId}`, alongside the existing blocks:
 | `households/*` | member | **member** (four people contribute names) |
 | `guests/*` | member | **member** |
 | `aggregates/guestTotals` | member | **member** (written in the same transaction as a household) |
-| `settings/guestTarget` | member | couple *(existing `settings` block already covers this)* |
+| `settings/guestTarget` | member | **member** *(existing `settings` block already covers this — as of the Phase 2.1 QA round, `settings` is member-writable, not couple-only)* |
 
 Add emulator tests for each: member allowed, non-member denied, **and a member of the other
 tenant denied**. The fixtures already set up two weddings for exactly this.

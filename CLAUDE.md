@@ -253,6 +253,34 @@ Two additions beyond the brief's letter, both deliberate and commented at the co
   sticky first column, rather than breaking the shell's single layout on desktop. Change the shell
   deliberately if the full window is ever wanted.
 
+**Phase 2.1 — QA fixes, layered on top of Phase 2, is COMPLETE.** From real usage over two weeks:
+- **Bottom nav no longer scrolls away.** It was a plain flex sibling with no `sticky`/`fixed`; a
+  long page scrolled the *document*, taking the nav with it. Fixed with `sticky bottom-0` on
+  `BottomTabBar` — see the comment there for why `<body>` itself isn't clamped instead.
+- **Roles loosened.** Every member now writes a wedding's data — config, budgets, contacts,
+  questions, comparisons, the tenant doc's own labels. `role == "couple"` now gates exactly one
+  thing: inviting/removing people (`memberships`), which is also the privilege-escalation
+  boundary. `useTenant()` exposes `canWrite` (any member) and `canInvite` (couple/admin) — never
+  use `canWrite` for an invite control. `FEATURES.md` §1.1 and this file's § Multi-tenancy above
+  are both updated; `PHASE2.md` is left as-is since it's a record of what Phase 2 shipped at the
+  time.
+- **Filters collapsed into one drawer** (native `<details>`, see `FilterPanel` in
+  `src/components/ui/form.tsx`) on Questions and Contacts — three unlabelled stacked chip rows
+  were most of the screen on a phone. Contacts gained the event filter Questions already had.
+- **Contact `isBooked` removed** — written and shown as a pill but read by nothing;
+  `ComparisonOption.status` already had its own `"booked"`.
+- **Optional emoji icons** on categories and events, alongside colour (`WEDDING_ICONS` in
+  `src/lib/colours.ts`, `IconPicker`). Colour stays required — charts fill from it, not from an
+  emoji.
+- **Budget: optional per-event breakdown inside a category.** The category amount is the
+  *ceiling*; event amounts (`BudgetAllocation.eventId`) are children of it and must sum to no more
+  than it, surfaced as "unassigned" rather than enforced in rules (would need a get() per write).
+  `allocationHealth` / `comparisonRows` filter to `eventId == null` internally so itemising a
+  category can never inflate its total — see `src/lib/budget.ts`. A new `eventComparisonRows()`
+  plus a Category/Event toggle on the Budget charts shows the same event amounts aggregated across
+  every category. `FEATURES.md` §2.1 is updated to match, including a stale `_totals/{side}`
+  subcollection path that was actually always a flat `_totals_{side}` doc.
+
 **Phase 3 — Guest list** is the active brief: `PHASE3.md`. Read it before starting work. Households
 as the invitation unit, tiers with a cumulative ladder, and the cost projection that consumes the
 `perPlateEstPaise` captured on events in Phase 2.

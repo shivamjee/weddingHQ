@@ -435,14 +435,14 @@
     "semantic_hash": "9e09241799026ac05be315a2f0b50055"
   },
   "CLAUDE.md": {
-    "mtime": 1785786134.3364966,
-    "ast_hash": "81ced1004bddef1fae716bf32b1520d2",
+    "mtime": 1785789327.6262004,
+    "ast_hash": "7037039eb9f236cb7b72a6e1fa70b224",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1785050802.561165,
-    "ast_hash": "36a0e23c4a29cd59c823542919c6d588",
-    "semantic_hash": "36a0e23c4a29cd59c823542919c6d588"
+    "mtime": 1785789309.8657773,
+    "ast_hash": "c154d015b619073314174c33f27850ac",
+    "semantic_hash": ""
   },
   "PHASE1.5.md": {
     "mtime": 1785013809.7552252,
@@ -460,14 +460,14 @@
     "semantic_hash": "02357b9a3c5ec4404f0b8453444e0086"
   },
   "PHASE3.md": {
-    "mtime": 1785050871.483757,
-    "ast_hash": "df579976088950dcdc443b9e53d1caeb",
-    "semantic_hash": "df579976088950dcdc443b9e53d1caeb"
+    "mtime": 1785789274.4943712,
+    "ast_hash": "7c2f06384abcba432ccda1902a9a510e",
+    "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1785049884.2401087,
-    "ast_hash": "54cead537ea1f5d2b9c74ddf4518d0bf",
-    "semantic_hash": "54cead537ea1f5d2b9c74ddf4518d0bf"
+    "mtime": 1785789419.967989,
+    "ast_hash": "eca27e84d823fec1d9771066258c22e9",
+    "semantic_hash": ""
   },
   "public/apple-touch-icon.png": {
     "mtime": 1784964626.3825037,

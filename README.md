@@ -18,14 +18,17 @@ actually spending money.
 - Only invited people can get in, and only to the weddings they were invited to. Enforced by
   Firestore security rules, not just the app's UI.
 - If you belong to one wedding you land straight in it; if you belong to several you pick.
-- The couple can invite family from the **More** tab; an admin can create new weddings.
-- **Setup** (More tab): categories and events, reorderable, with a shared colour used by every
-  chart in the app.
-- **Budget** tab: each side's total budget, per-category allocations, an allocation health bar
-  with the unallocated remainder shown explicitly, and a side-by-side comparison chart. Planning
-  only — no expenses yet.
+- Any member can edit a wedding's data — budgets, setup, contacts, questions. Only the couple (or
+  an admin) can invite or remove people, from the **More** tab; an admin can create new weddings.
+- **Setup** (More tab): categories and events, reorderable, with a shared colour and an optional
+  emoji icon used by every chart and list in the app.
+- **Budget** tab: each side's total budget, per-category allocations (optionally broken down per
+  event, e.g. "of Decor's ₹2L, ₹50k is Mehendi"), an allocation health bar with the unallocated
+  remainder shown explicitly, and a side-by-side comparison chart that can group by category or by
+  event. Planning only — no expenses yet.
 - **Plan** tab: comparison tables (cards on mobile, a table on desktop, "highlight best"), open
-  questions grouped by who to ask, and contacts with one-tap call / WhatsApp / email links.
+  questions grouped by who to ask (filterable by status/category/event behind one drawer), and
+  contacts with one-tap call / WhatsApp / email links (filterable by type/category/event).
 - An optional **AI assist** on comparisons — paste rough notes, get suggested columns and filled-in
   values in a review screen where nothing saves until you confirm it. Hidden unless the app has a
   Gemini key configured; see [`CLAUDE.md`](CLAUDE.md) for how to turn it on.
@@ -34,8 +37,8 @@ actually spending money.
 - **Guests** is still a "coming soon" placeholder — that's Phase 3.
 
 The full feature roadmap lives in [`FEATURES.md`](FEATURES.md). Completed phases are recorded in
-[`PHASE1.md`](PHASE1.md), [`PHASE1.5.md`](PHASE1.5.md) and [`PHASE2.md`](PHASE2.md); the next
-phase's brief hasn't been written yet.
+[`PHASE1.md`](PHASE1.md), [`PHASE1.5.md`](PHASE1.5.md) and [`PHASE2.md`](PHASE2.md); the active
+Phase 3 (guest list) brief is [`PHASE3.md`](PHASE3.md).
 
 ## How to install it on your phone
 

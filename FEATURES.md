@@ -74,8 +74,14 @@ The couple writes a membership fully formed, so **nobody ever creates their own 
 invitee may update only `uid` and `lastSeenAt` on their own membership.
 
 **Enforce in Firestore security rules, not just the UI.** Rules check membership by the existence
-of `memberships/{tenantId}__{callerEmail}`. Only `role == "couple"` *of that tenant* — or a global
-admin — may write that wedding's `categories`, `events`, `settings` and memberships.
+of `memberships/{tenantId}__{callerEmail}`.
+
+> Revised in the Phase 2.1 QA round: any member of a tenant may now write that wedding's data —
+> `categories`, `events`, `settings`, `budgets`, `contacts`, `questions`, `comparisons`, and the
+> tenant doc's own name/labels/date. Only `role == "couple"` *of that tenant* — or a global admin
+> — may write `memberships`, i.e. invite or remove people. That is also the privilege-escalation
+> boundary, so it stays the one thing still gated. See `CLAUDE.md` § Multi-tenancy for the current
+> `canWrite` / `canInvite` split.
 
 Bootstrap problem: the first tenant, its first `couple` membership, and the first `isAdmin` flag
 are created by hand in the Firestore console, since nobody can sign in to create them. Covered in
@@ -97,6 +103,7 @@ events/{eventId}
   perPlateEstPaise  number        // drives guest cost projection (§4.4)
   order             number
   colour            string        // hex; keep chart colours consistent app-wide
+  icon              string?       // optional emoji, added Phase 2.1; colour stays required
 ```
 
 ```
@@ -104,6 +111,7 @@ categories/{categoryId}
   name           string        // "Decor", "Venue", "Food", "Transport", "Attire", "Jewellery"
   colour         string
   order          number
+  icon           string?       // optional emoji, added Phase 2.1 QA; charts still fill from colour
 ```
 
 Note there is **no budget amount on the category** — budgets are per side, so they live in their
@@ -169,17 +177,28 @@ owing ₹4L, or over budget while being owed money. Never merge them into one nu
 tenants/{tenantId}/budgets/{side}_{categoryId}
   side              "a" | "b"
   categoryId        string
+  eventId           string | null // Phase 2.1: optional breakdown INSIDE this category's
+                                   // amount ("of Decor's ₹2L, ₹50k is Mehendi") — never an
+                                   // extra amount. null/absent is the category's own CEILING.
   allocatedPaise    number
   notes             string
   updatedAt         timestamp
 
-budgets/_totals/{side}
+tenants/{tenantId}/budgets/_totals_{side}
   totalBudgetPaise  number        // e.g. 200000000 for ₹20L
 ```
 
-Each side sets its own allocation per category. The two sides will distribute very differently
-and that's expected — Swara's side may carry far more of the accommodation and catering because
-of guest numbers.
+Each side sets its own amount per category — that amount is a ceiling. Optionally, it can be
+broken down further per event (`eventId` set); the event amounts are children of the ceiling and
+must sum to no more than it, with the difference shown as "unassigned". A category never itemised
+by event behaves exactly as before. See `src/lib/budget.ts` (`eventBreakdown`, `eventComparisonRows`)
+and `src/lib/tenantIds.ts` (`budgetAllocationId`) for the id scheme and the maths that prevents an
+event amount from double-counting into the category or side total. The `_totals_{side}` id (one
+underscore, not a subcollection) matches `budgetTotalsId()` — the path shown here was corrected
+to match the actual implementation.
+
+The two sides will distribute very differently and that's expected — Swara's side may carry far
+more of the accommodation and catering because of guest numbers.
 
 ### 2.2 Expenses
 
@@ -691,14 +710,17 @@ contacts/{contactId}
   categoryId      string | null
   eventIds        [ string ]
   notes           string
-  isBooked        boolean
   updatedAt       timestamp
 ```
+
+> `isBooked` was removed in the Phase 2.1 QA round: it was written and shown as a pill but read by
+> nothing, and `ComparisonOption.status` already has its own `"booked"` value — two sources of
+> truth for one fact. Whether a vendor is confirmed lives on the comparison option.
 
 - `tel:` and `mailto:` links so a tap dials — this is most of why the feature exists on a phone.
   Add a WhatsApp link (`https://wa.me/91XXXXXXXXXX`); realistically most vendor contact happens
   there.
-- Search by name, organisation, role. Filter by type and category.
+- Search by name, organisation, role. Filter by type, category and event.
 - From a contact, show linked open questions, expenses, tasks and comparison options.
 
 ---

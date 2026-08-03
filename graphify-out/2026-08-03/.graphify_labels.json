@@ -14,6 +14,7 @@
   "12": "Comparison Views & Criteria Editor",
   "13": "FEATURES Collections & Aggregates",
   "14": "FEATURES AI & Money Rules",
+  "15": "tenantHref",
   "16": "README Feature Highlights",
   "17": "Multi-tenancy Data Model",
   "18": "CLAUDE.md Doc Cross-references",
@@ -23,6 +24,7 @@
   "22": "Prettier Config",
   "23": "Admin Grant Process",
   "24": "Rejected Backend Options",
+  "25": "ConfigProvider.tsx",
   "26": "Guests Page & Empty State",
   "27": "Icon Generation Script",
   "28": "server-only & Vitest Config",
@@ -84,5 +86,9 @@
   "84": "README Service Worker Note",
   "85": "README Budget/Comparison Screens",
   "86": "Vitest Config",
-  "87": "Vitest Rules Config"
+  "87": "Vitest Rules Config",
+  "88": "MembershipsProvider.tsx",
+  "89": "TenantProvider.tsx",
+  "90": "Landing.tsx",
+  "91": "AuthProvider.tsx"
 }
