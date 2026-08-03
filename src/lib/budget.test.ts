@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { allocationHealth, comparisonRows, eventBreakdown, sumPaise } from "./budget";
+import {
+  allocationHealth,
+  comparisonRows,
+  eventBreakdown,
+  eventComparisonRows,
+  sumPaise,
+} from "./budget";
 
 // ₹1L = 10000000 paise.
 const L = (lakhs: number) => lakhs * 10000000;
@@ -123,6 +129,31 @@ describe("allocationHealth with per-event breakdowns", () => {
     expect(h.allocatedPaise).toBe(L(13));
     expect(h.unallocatedPaise).toBe(L(7));
     expect(h.overAllocated).toBe(false);
+  });
+});
+
+describe("eventComparisonRows", () => {
+  const events = [
+    { id: "mehendi", name: "Mehendi", colour: "#10b981" },
+    { id: "sangeet", name: "Sangeet", colour: "#a855f7" },
+  ];
+
+  it("sums only event-tagged amounts, across every category", () => {
+    const rows = eventComparisonRows(events, [
+      { side: "a", categoryId: "decor", eventId: "mehendi", allocatedPaise: L(2) },
+      { side: "a", categoryId: "food", eventId: "mehendi", allocatedPaise: L(3) },
+      { side: "b", categoryId: "decor", eventId: "sangeet", allocatedPaise: L(1) },
+      // Category-level (no eventId) — must NOT leak into any event's row.
+      { side: "a", categoryId: "venue", eventId: null, allocatedPaise: L(8) },
+    ]);
+    expect(rows.find((r) => r.eventId === "mehendi")).toMatchObject({ a: L(5), b: 0, totalPaise: L(5) });
+    expect(rows.find((r) => r.eventId === "sangeet")).toMatchObject({ a: 0, b: L(1) });
+  });
+
+  it("keeps an event nobody has itemised, at zero", () => {
+    const rows = eventComparisonRows(events, []);
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.totalPaise === 0)).toBe(true);
   });
 });
 

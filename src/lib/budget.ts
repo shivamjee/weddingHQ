@@ -73,17 +73,27 @@ export function allocationHealth(
   };
 }
 
-/** One row of the side-by-side comparison: a category with both sides' numbers
- *  against it, in the shared category colour. */
-export interface CategoryComparisonRow {
-  categoryId: string;
+/** Shape the side-by-side chart actually needs — a name, a colour, and each
+ *  side's number. `AllocationChart` renders either grouping without caring
+ *  which one it's looking at. */
+export interface ComparisonRow {
   name: string;
   colour: string;
   icon?: string;
   a: number;
   b: number;
-  /** Both sides together — what the category costs the wedding overall. */
+  /** Both sides together — what the row costs the wedding overall. */
   totalPaise: number;
+}
+
+/** One row of the side-by-side comparison, grouped by category. */
+export interface CategoryComparisonRow extends ComparisonRow {
+  categoryId: string;
+}
+
+/** One row of the side-by-side comparison, grouped by event. */
+export interface EventComparisonRow extends ComparisonRow {
+  eventId: string;
 }
 
 /**
@@ -114,6 +124,38 @@ export function comparisonRows(
       name: category.name,
       colour: category.colour,
       icon: category.icon,
+      a,
+      b,
+      totalPaise: a + b,
+    };
+  });
+}
+
+/**
+ * Build the side-by-side rows grouped by EVENT instead of category, for the
+ * Budget chart's "view by event" toggle. Sums only the event-tagged amounts
+ * itemised under `eventBreakdown` — never a category's own ceiling — so
+ * "Mehendi: ₹80k" means ₹80k has actually been itemised against Mehendi across
+ * every category, not the whole wedding's spend that day.
+ *
+ * A category whose ceiling has never been broken down by event contributes
+ * nothing here. That is the honest answer to "view by event": the money
+ * exists, but nobody has said which event it belongs to yet.
+ */
+export function eventComparisonRows(
+  events: readonly { id: string; name: string; colour: string; icon?: string }[],
+  allocations: readonly { side: Side; eventId?: string | null; allocatedPaise: number }[],
+): EventComparisonRow[] {
+  const tagged = allocations.filter((a) => a.eventId);
+  return events.map((event) => {
+    const forEvent = tagged.filter((a) => a.eventId === event.id);
+    const a = sumPaise(forEvent.filter((x) => x.side === "a").map((x) => x.allocatedPaise));
+    const b = sumPaise(forEvent.filter((x) => x.side === "b").map((x) => x.allocatedPaise));
+    return {
+      eventId: event.id,
+      name: event.name,
+      colour: event.colour,
+      icon: event.icon,
       a,
       b,
       totalPaise: a + b,

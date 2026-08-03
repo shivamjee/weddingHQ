@@ -70,8 +70,8 @@
     "semantic_hash": "7aaebcb5c65b5821c8e7af2bb9cf4c9f"
   },
   "src/app/t/[tenantId]/budget/page.tsx": {
-    "mtime": 1785786599.4326196,
-    "ast_hash": "cc1467125bd1838d8ef33a8348ea9bc7",
+    "mtime": 1785788961.476281,
+    "ast_hash": "b1fff8f0b9cb0b35acfe59cee88788ad",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
@@ -165,9 +165,9 @@
     "semantic_hash": "69e3c4dfe8d67c410393b0f2cf081290"
   },
   "src/components/budget/AllocationChart.tsx": {
-    "mtime": 1785047641.2393022,
-    "ast_hash": "c97c1e0ea45e8bb16cb70c70b15747c5",
-    "semantic_hash": "c97c1e0ea45e8bb16cb70c70b15747c5"
+    "mtime": 1785788911.3882709,
+    "ast_hash": "7f61298c836da3147134ddecd3ee2b97",
+    "semantic_hash": ""
   },
   "src/components/budget/AllocationHealthBar.tsx": {
     "mtime": 1785047553.9818103,
@@ -250,13 +250,13 @@
     "semantic_hash": "40d5db19238a717de92cb2b08d26a6d3"
   },
   "src/lib/budget.test.ts": {
-    "mtime": 1785786442.9681542,
-    "ast_hash": "b7fd48b8d0dde9a58426c0858bed73f2",
+    "mtime": 1785788989.1302452,
+    "ast_hash": "a7c59a73fd3201d64b41dcbdd4de1598",
     "semantic_hash": ""
   },
   "src/lib/budget.ts": {
-    "mtime": 1785786415.102913,
-    "ast_hash": "eae081cf8004e886fa73736872327c02",
+    "mtime": 1785788881.6163023,
+    "ast_hash": "f40f95d3289f80981b78c34f561a8e4a",
     "semantic_hash": ""
   },
   "src/lib/colours.ts": {

@@ -21,7 +21,7 @@
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { FALLBACK_COLOUR } from "@/lib/colours";
 import { formatCompact, formatINR, toPaise } from "@/lib/money";
-import type { CategoryComparisonRow } from "@/lib/budget";
+import type { ComparisonRow } from "@/lib/budget";
 
 /** Opacity for side B's bars. Solid vs. clearly-lighter reads at a glance and
  *  survives a greyscale print; the labels carry the real meaning regardless. */
@@ -31,26 +31,30 @@ export function AllocationChart({
   rows,
   labelA,
   labelB,
-  /** Single-side mode draws one bar per category instead of a pair. */
+  /** Single-side mode draws one bar per row instead of a pair. */
   only,
+  /** Shown when there is nothing to chart yet — the category and event
+   *  groupings are empty for different reasons, so callers say which. */
+  emptyMessage = "Nothing allocated yet.",
 }: {
-  rows: CategoryComparisonRow[];
+  rows: ComparisonRow[];
   labelA: string;
   labelB: string;
   only?: "a" | "b";
+  emptyMessage?: string;
 }) {
-  // EVERY category keeps its row, including ones with nothing against them.
-  // A named axis entry with no bar is the signal "nobody has budgeted for
+  // EVERY row keeps its place, including ones with nothing against them. A
+  // named axis entry with no bar is the signal "nobody has budgeted for
   // Transport" — the exact omission this chart exists to surface. Dropping
   // empty rows would make it invisible, which is the same reason
-  // comparisonRows() doesn't drop them either.
+  // comparisonRows() / eventComparisonRows() don't drop them either.
   const visible = rows;
   const anythingAllocated = rows.some((r) => (only ? r[only] : r.totalPaise) > 0);
 
   if (visible.length === 0 || !anythingAllocated) {
     return (
       <p className="rounded-2xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-400">
-        Nothing allocated yet.
+        {emptyMessage}
       </p>
     );
   }
@@ -95,7 +99,7 @@ export function AllocationChart({
           {(!only || only === "a") && (
             <Bar dataKey="a" name={labelA} radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {visible.map((row) => (
-                <Cell key={row.categoryId} fill={row.colour || FALLBACK_COLOUR} />
+                <Cell key={row.name} fill={row.colour || FALLBACK_COLOUR} />
               ))}
             </Bar>
           )}
@@ -103,7 +107,7 @@ export function AllocationChart({
             <Bar dataKey="b" name={labelB} radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {visible.map((row) => (
                 <Cell
-                  key={row.categoryId}
+                  key={row.name}
                   fill={row.colour || FALLBACK_COLOUR}
                   fillOpacity={only ? 1 : SIDE_B_OPACITY}
                 />
@@ -134,7 +138,7 @@ function AllocationTooltip({
   only?: "a" | "b";
 }) {
   if (!active || !payload?.length) return null;
-  const row = payload[0].payload as CategoryComparisonRow;
+  const row = payload[0].payload as ComparisonRow;
 
   return (
     <div className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs shadow-sm">

@@ -27,7 +27,9 @@ import {
   allocationHealth,
   comparisonRows,
   eventBreakdown,
+  eventComparisonRows,
   type CategoryComparisonRow,
+  type ComparisonRow,
   type EventSlice,
 } from "@/lib/budget";
 import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise, type Paise } from "@/lib/money";
@@ -60,11 +62,17 @@ interface BudgetData {
 }
 
 type View = Side | "both";
+/** How the two "Side by side" / "Where it goes" charts group their rows. Lives
+ *  once at the page level rather than per-chart — the two charts are never
+ *  visible at once (they're behind the "both" / one-side `view` toggle above),
+ *  so one shared choice is simpler than asking twice. */
+type GroupBy = "category" | "event";
 
 export default function BudgetPage() {
   const { tenantId, canWrite, sideLabel } = useTenant();
-  const { categories, loading: configLoading } = useConfig();
+  const { categories, events, loading: configLoading } = useConfig();
   const [view, setView] = useState<View>("both");
+  const [groupBy, setGroupBy] = useState<GroupBy>("category");
 
   const load = useCallback(async (): Promise<BudgetData> => {
     const snap = await getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS)));
@@ -98,6 +106,18 @@ export default function BudgetPage() {
   const totals = data?.totals ?? { a: 0, b: 0 };
 
   const rows = useMemo(() => comparisonRows(categories, allocations), [categories, allocations]);
+  const eventRows = useMemo(
+    () => eventComparisonRows(events, allocations),
+    [events, allocations],
+  );
+  // Grouping by event is meaningless with no events to group by — fall back to
+  // category rather than showing an empty chart behind a toggle nobody can see
+  // the point of. The ChipRow below is hidden in that case too.
+  const chartRows: ComparisonRow[] = groupBy === "event" && events.length > 0 ? eventRows : rows;
+  const chartEmptyMessage =
+    groupBy === "event"
+      ? "Nothing itemised by event yet — expand a category below to add one."
+      : "Nothing allocated yet.";
 
   const health = useMemo(
     () => ({
@@ -195,14 +215,24 @@ export default function BudgetPage() {
           </section>
 
           <section className="flex flex-col gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-stone-800">Side by side</h2>
-              <p className="mt-0.5 text-sm text-stone-500">
-                The same categories, both sides&rsquo; plans against each other.
-              </p>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <h2 className="text-base font-semibold text-stone-800">Side by side</h2>
+                <p className="mt-0.5 text-sm text-stone-500">
+                  {groupBy === "event"
+                    ? "The same events, both sides' itemised amounts against each other."
+                    : "The same categories, both sides' plans against each other."}
+                </p>
+              </div>
+              {events.length > 0 ? <GroupByToggle value={groupBy} onChange={setGroupBy} /> : null}
             </div>
             <SidesLegend labelA={sideLabel("a")} labelB={sideLabel("b")} />
-            <AllocationChart rows={rows} labelA={sideLabel("a")} labelB={sideLabel("b")} />
+            <AllocationChart
+              rows={chartRows}
+              labelA={sideLabel("a")}
+              labelB={sideLabel("b")}
+              emptyMessage={chartEmptyMessage}
+            />
           </section>
         </>
       ) : (
@@ -210,6 +240,11 @@ export default function BudgetPage() {
           side={view}
           totalPaise={totals[view]}
           rows={rows}
+          chartRows={chartRows}
+          chartEmptyMessage={chartEmptyMessage}
+          groupBy={groupBy}
+          setGroupBy={setGroupBy}
+          hasEvents={events.length > 0}
           allocations={allocations}
           onSaved={reload}
         />
@@ -226,12 +261,22 @@ function SideDetail({
   side,
   totalPaise,
   rows,
+  chartRows,
+  chartEmptyMessage,
+  groupBy,
+  setGroupBy,
+  hasEvents,
   allocations,
   onSaved,
 }: {
   side: Side;
   totalPaise: number;
   rows: CategoryComparisonRow[];
+  chartRows: ComparisonRow[];
+  chartEmptyMessage: string;
+  groupBy: GroupBy;
+  setGroupBy: (g: GroupBy) => void;
+  hasEvents: boolean;
   allocations: BudgetAllocationWithId[];
   onSaved: () => void;
 }) {
@@ -279,10 +324,41 @@ function SideDetail({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold text-stone-800">Where it goes</h2>
-        <AllocationChart rows={rows} labelA={sideLabel("a")} labelB={sideLabel("b")} only={side} />
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold text-stone-800">Where it goes</h2>
+          {hasEvents ? <GroupByToggle value={groupBy} onChange={setGroupBy} /> : null}
+        </div>
+        <AllocationChart
+          rows={chartRows}
+          labelA={sideLabel("a")}
+          labelB={sideLabel("b")}
+          only={side}
+          emptyMessage={chartEmptyMessage}
+        />
       </section>
     </div>
+  );
+}
+
+/** Category / Event toggle for the two allocation charts. A plain two-chip
+ *  `ChipRow` rather than a new component family — it's exactly the same
+ *  control as the side-view chips above, just a different pair of options. */
+function GroupByToggle({
+  value,
+  onChange,
+}: {
+  value: GroupBy;
+  onChange: (g: GroupBy) => void;
+}) {
+  return (
+    <ChipRow<GroupBy>
+      options={[
+        { value: "category", label: "By category" },
+        { value: "event", label: "By event" },
+      ]}
+      value={value}
+      onChange={(v) => v && onChange(v)}
+    />
   );
 }
 
