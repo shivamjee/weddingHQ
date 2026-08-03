@@ -7,13 +7,14 @@
 // comparisons are all tagged with them — so this screen is built first and kept
 // deliberately plain.
 //
-// SECURITY: couple-only in firestore.rules. `canWrite` below hides the controls
-// for a family member; it is UX, not the boundary. A family member who forges a
-// write gets rejected by the rules, which is what the emulator tests assert.
+// SECURITY: member-writable in firestore.rules — every member of the wedding may
+// edit categories and events. `canWrite` below is consequently true for anyone
+// who can reach this screen at all (the tenant shell already turns non-members
+// away), so its read-only branches don't currently render. They are kept because
+// they cost nothing and a narrower role would need them back.
 
 import { useMemo, useState } from "react";
 import {
-  deleteDoc,
   setDoc,
   updateDoc,
   writeBatch,
@@ -26,10 +27,12 @@ import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { DEFAULT_CATEGORIES, DEFAULT_EVENTS, FALLBACK_COLOUR, nextColour } from "@/lib/colours";
 import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise, type Paise } from "@/lib/money";
 import { ColourPicker } from "@/components/ui/ColourPicker";
+import { IconPicker } from "@/components/ui/IconPicker";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
   Field,
   FormMessage,
+  OptionMark,
   PrimaryButton,
   SecondaryButton,
   TextInput,
@@ -48,7 +51,7 @@ export default function SetupPage() {
         subtitle={
           canWrite
             ? "Categories and events are the labels the rest of the app uses. Set them up once; edit them any time."
-            : "The categories and events this wedding is organised around. Only the couple can change these."
+            : "The categories and events this wedding is organised around."
         }
       />
       <CategoriesSection />
@@ -77,6 +80,7 @@ function CategoriesSection() {
         batch.set(categoryDoc(tenantId, uniqueSlugId(c.name, [])), {
           name: c.name,
           colour: c.colour,
+          icon: c.icon,
           order: i,
         });
       });
@@ -176,10 +180,10 @@ function CategoryRow({
 
   return (
     <li className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
-      <span
-        className="h-4 w-4 shrink-0 rounded-full"
-        style={{ backgroundColor: category.colour || FALLBACK_COLOUR }}
-        aria-hidden
+      <OptionMark
+        colour={category.colour || FALLBACK_COLOUR}
+        icon={category.icon}
+        className="h-4 w-4"
       />
       <p className="min-w-0 flex-1 truncate text-base font-medium text-stone-800">
         {category.name}
@@ -219,9 +223,10 @@ function CategoryForm({
   onCancel: () => void;
 }) {
   const { tenantId } = useTenant();
-  const { categories } = useConfig();
+  const { categories, events } = useConfig();
   const [name, setName] = useState(existing?.name ?? "");
   const [colour, setColour] = useState(existing?.colour || initialColour);
+  const [icon, setIcon] = useState(existing?.icon ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -234,7 +239,7 @@ function CategoryForm({
     setError(null);
     try {
       if (existing) {
-        await updateDoc(categoryDoc(tenantId, existing.id), { name: clean, colour });
+        await updateDoc(categoryDoc(tenantId, existing.id), { name: clean, colour, icon });
       } else {
         // The id is derived from the name so `budgets/a_venue` stays readable in
         // the Firestore console. Uniqueness is checked against the already-loaded
@@ -244,12 +249,12 @@ function CategoryForm({
           clean,
           categories.map((c) => c.id),
         );
-        await setDoc(categoryDoc(tenantId, id), { name: clean, colour, order: nextOrder });
+        await setDoc(categoryDoc(tenantId, id), { name: clean, colour, icon, order: nextOrder });
       }
       onDone();
     } catch (err) {
       console.error("[setup] category save failed:", err);
-      setError("Could not save. Only the couple can edit categories.");
+      setError("Could not save that category. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -265,15 +270,20 @@ function CategoryForm({
       return;
     setBusy(true);
     try {
-      // Delete the category AND both sides' allocations for it, in one batch.
-      // An orphaned `budgets/a_venue` after "Venue" is gone would still be
-      // summed into that side's allocated total, so the health bar would report
-      // money committed to a category that no longer exists — invisible, and
-      // impossible to correct from the UI. Deleting a document that was never
-      // created is a harmless no-op, so this needs no existence check.
+      // Delete the category AND every budget document keyed by it, in one batch:
+      // both sides' category-level amounts and both sides' per-event breakdowns
+      // underneath them. An orphaned `budgets/a_venue` after "Venue" is gone
+      // would still be summed into that side's allocated total, so the health
+      // bar would report money committed to a category that no longer exists —
+      // invisible, and impossible to correct from the UI. Deleting a document
+      // that was never created is a harmless no-op, so this needs no existence
+      // check and no read.
       const batch = writeBatch(db);
       batch.delete(categoryDoc(tenantId, existing.id));
-      for (const side of SIDES) batch.delete(budgetDoc(tenantId, side, existing.id));
+      for (const side of SIDES) {
+        batch.delete(budgetDoc(tenantId, side, existing.id));
+        for (const event of events) batch.delete(budgetDoc(tenantId, side, existing.id, event.id));
+      }
       await batch.commit();
       onDone();
     } catch (err) {
@@ -296,6 +306,7 @@ function CategoryForm({
           placeholder="Decor"
         />
       </Field>
+      <IconPicker value={icon} onChange={setIcon} />
       <ColourPicker value={colour} onChange={setColour} />
       <FormMessage error={error} />
       <div className="flex flex-wrap items-center gap-2">
@@ -340,6 +351,7 @@ function EventsSection() {
         batch.set(eventDoc(tenantId, uniqueSlugId(e.name, [])), {
           name: e.name,
           colour: e.colour,
+          icon: e.icon,
           order: i,
           // Deliberately null / zero: the wedding is more than a year out, and a
           // placeholder date or cost gets mistaken for a decision that was made.
@@ -439,10 +451,10 @@ function EventRow({ event, index, total }: { event: EventWithId; index: number; 
 
   return (
     <li className="flex min-h-[60px] items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
-      <span
-        className="h-4 w-4 shrink-0 rounded-full"
-        style={{ backgroundColor: event.colour || FALLBACK_COLOUR }}
-        aria-hidden
+      <OptionMark
+        colour={event.colour || FALLBACK_COLOUR}
+        icon={event.icon}
+        className="h-4 w-4"
       />
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-medium text-stone-800">{event.name}</p>
@@ -481,9 +493,10 @@ function EventForm({
   onCancel: () => void;
 }) {
   const { tenantId } = useTenant();
-  const { events } = useConfig();
+  const { categories, events } = useConfig();
   const [name, setName] = useState(existing?.name ?? "");
   const [colour, setColour] = useState(existing?.colour || initialColour);
+  const [icon, setIcon] = useState(existing?.icon ?? "");
   const [date, setDate] = useState(dateInputValue(existing?.date ?? null));
   const [perPlate, setPerPlate] = useState(
     existing?.perPlateEstPaise ? paiseToRupeeInput(toPaise(existing.perPlateEstPaise)) : "",
@@ -507,6 +520,7 @@ function EventForm({
       const fields = {
         name: clean,
         colour,
+        icon,
         date: toTimestamp(date),
         perPlateEstPaise: perPlatePaise,
       };
@@ -526,7 +540,7 @@ function EventForm({
       onDone();
     } catch (err) {
       console.error("[setup] event save failed:", err);
-      setError("Could not save. Only the couple can edit events.");
+      setError("Could not save that event. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -534,10 +548,27 @@ function EventForm({
 
   async function remove() {
     if (!existing) return;
-    if (!window.confirm(`Delete "${existing.name}"?`)) return;
+    if (
+      !window.confirm(
+        `Delete "${existing.name}"? Any per-event budget amounts for it will be removed too.`,
+      )
+    )
+      return;
     setBusy(true);
     try {
-      await deleteDoc(eventDoc(tenantId, existing.id));
+      // Same reasoning as deleting a category: an allocation keyed by a deleted
+      // event would be orphaned. It would not corrupt any total — event rows are
+      // never summed into a category or a side (see src/lib/budget.ts) — but it
+      // would silently reappear if an event were later recreated with the same
+      // slug id, showing money nobody put there.
+      const batch = writeBatch(db);
+      batch.delete(eventDoc(tenantId, existing.id));
+      for (const side of SIDES) {
+        for (const category of categories) {
+          batch.delete(budgetDoc(tenantId, side, category.id, existing.id));
+        }
+      }
+      await batch.commit();
       onDone();
     } catch (err) {
       console.error("[setup] event delete failed:", err);
@@ -573,6 +604,7 @@ function EventForm({
           placeholder="1800"
         />
       </Field>
+      <IconPicker value={icon} onChange={setIcon} />
       <ColourPicker value={colour} onChange={setColour} />
       <FormMessage
         error={

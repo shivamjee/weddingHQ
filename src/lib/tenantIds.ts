@@ -33,10 +33,32 @@ export function membershipId(tenantId: string, email: string): string {
  *  app and in firestore.rules alike. */
 export const BUDGET_TOTALS_PREFIX = "_totals_";
 
-/** budgets/{side}_{categoryId} — e.g. "a_venue". */
-export function budgetAllocationId(side: Side, categoryId: string): string {
-  return `${side}_${categoryId}`;
+/**
+ * budgets/{side}_{categoryId} — e.g. "a_venue" — the category-level amount,
+ * which is that category's CEILING for that side.
+ *
+ * With an eventId, budgets/{side}_{categoryId}__{eventId} — e.g.
+ * "a_decor__mehendi" — an optional breakdown of that ceiling. Event amounts are
+ * children of the category amount and must sum to no more than it; the
+ * difference is the category's "unassigned" remainder. Never add an event
+ * amount into the category total (see comparisonRows in src/lib/budget.ts).
+ *
+ * TWO underscores before the event id, one after the side: a category id is a
+ * slug and may legally contain a single "_"-free hyphenated form, but the double
+ * separator means "a_per_plate" can never be mistaken for category "per" +
+ * event "plate". Existing single-underscore ids are unchanged and remain valid.
+ */
+export function budgetAllocationId(
+  side: Side,
+  categoryId: string,
+  eventId?: string | null,
+): string {
+  const base = `${side}_${categoryId}`;
+  return eventId ? `${base}${BUDGET_EVENT_SEP}${eventId}` : base;
 }
+
+/** Separator between the category part and the event part of an allocation id. */
+const BUDGET_EVENT_SEP = "__";
 
 /** budgets/_totals_{side} — e.g. "_totals_a". */
 export function budgetTotalsId(side: Side): string {

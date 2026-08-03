@@ -69,8 +69,15 @@ export const settingsDoc = (tenantId: string, docId: string): DocumentReference 
 export const budgetsCol = (tenantId: string): CollectionReference =>
   collection(db, "tenants", tenantId, "budgets");
 
-export const budgetDoc = (tenantId: string, side: Side, categoryId: string): DocumentReference =>
-  doc(db, "tenants", tenantId, "budgets", budgetAllocationId(side, categoryId));
+/** Omit `eventId` for the category-level amount (its ceiling); pass one for an
+ *  optional per-event breakdown underneath it. See budgetAllocationId(). */
+export const budgetDoc = (
+  tenantId: string,
+  side: Side,
+  categoryId: string,
+  eventId?: string | null,
+): DocumentReference =>
+  doc(db, "tenants", tenantId, "budgets", budgetAllocationId(side, categoryId, eventId));
 
 export const budgetTotalsDoc = (tenantId: string, side: Side): DocumentReference =>
   doc(db, "tenants", tenantId, "budgets", budgetTotalsId(side));

@@ -112,8 +112,17 @@ Rules of the road:
 - **Never build a Firestore path by hand.** Use `src/lib/paths.ts`. The membership id scheme is
   duplicated inside `firestore.rules`; `src/lib/tenantIds.ts` holds the one implementation and
   the rules tests import it, so drift fails the build.
+- **Roles: every member writes; only `couple` invites.** Both `couple` and `family` may write a
+  wedding's data — categories, events, settings, budgets, contacts, questions, comparisons, and
+  the tenant doc's own name/labels/date. `couple` adds exactly one power: creating and deleting
+  `memberships`. Family are parents and in-laws, not untrusted users, and `memberships` is also
+  the privilege-escalation boundary, so it is the one thing still gated. Screens read **`canWrite`**
+  (any member) or **`canInvite`** (couple/admin) from `useTenant()`, never a raw role — an invite
+  control on `canWrite` shows family a form the rules will reject. Note `canWrite` is currently
+  true for anyone who can reach a tenant screen at all, since the shell already turns non-members
+  away; its read-only UI branches are kept for a future narrower role, not currently reachable.
 - Routes are `/t/{tenantId}/…`. `/` routes you in (one wedding → straight there; several or an
-  admin → the `/tenants` picker). Screens read `canWrite` from `useTenant()`, not a raw role.
+  admin → the `/tenants` picker).
 - Rule `get()`/`exists()` calls are **billed as document reads** (cached per request, per path).
   Negligible at this scale, but it is where tenancy costs anything at all.
 

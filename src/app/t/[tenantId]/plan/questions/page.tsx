@@ -39,6 +39,7 @@ import { useLoader } from "@/lib/hooks/useLoader";
 import {
   ChipRow,
   Field,
+  FilterPanel,
   FormMessage,
   PrimaryButton,
   SecondaryButton,
@@ -196,8 +197,16 @@ export default function QuestionsPage() {
       <FormMessage error={error} />
 
       {questions.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <FilterPanel
+          activeCount={[statusFilter, categoryFilter, eventFilter].filter(Boolean).length}
+          onClear={() => {
+            setStatusFilter(null);
+            setCategoryFilter(null);
+            setEventFilter(null);
+          }}
+        >
           <ChipRow<QuestionStatus>
+            label="Status"
             options={QUESTION_STATUSES.map((s) => ({ value: s, label: QUESTION_STATUS_LABELS[s] }))}
             value={statusFilter}
             onChange={setStatusFilter}
@@ -209,7 +218,7 @@ export default function QuestionsPage() {
             eventFilter={eventFilter}
             setEventFilter={setEventFilter}
           />
-        </div>
+        </FilterPanel>
       ) : null}
 
       {loading ? (
@@ -281,7 +290,13 @@ function FilterRows({
     <>
       {categories.length > 0 ? (
         <ChipRow
-          options={categories.map((c) => ({ value: c.id, label: c.name, colour: c.colour }))}
+          label="Category"
+          options={categories.map((c) => ({
+            value: c.id,
+            label: c.name,
+            colour: c.colour,
+            icon: c.icon,
+          }))}
           value={categoryFilter}
           onChange={setCategoryFilter}
           allowClear
@@ -289,7 +304,13 @@ function FilterRows({
       ) : null}
       {events.length > 0 ? (
         <ChipRow
-          options={events.map((e) => ({ value: e.id, label: e.name, colour: e.colour }))}
+          label="Event"
+          options={events.map((e) => ({
+            value: e.id,
+            label: e.name,
+            colour: e.colour,
+            icon: e.icon,
+          }))}
           value={eventFilter}
           onChange={setEventFilter}
           allowClear

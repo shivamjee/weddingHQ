@@ -38,7 +38,11 @@ async function fetchMembers(tenantId: string): Promise<MembershipWithId[]> {
 
 export default function MorePage() {
   const { user } = useAuth();
-  const { tenantId, tenant, canWrite, sideLabel } = useTenant();
+  // canInvite, NOT canWrite: every member can write the wedding's data, but only
+  // the couple (or an admin) can add and remove people — firestore.rules gates
+  // the memberships collection on exactly that, so showing family an invite form
+  // would show them a form whose writes get rejected.
+  const { tenantId, tenant, canInvite, sideLabel } = useTenant();
   const { categories, events } = useConfig();
   const [members, setMembers] = useState<MembershipWithId[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +101,7 @@ export default function MorePage() {
                     {m.uid ? "" : " · not signed in yet"}
                   </p>
                 </div>
-                {canWrite && m.email !== user?.email?.toLowerCase() ? (
+                {canInvite && m.email !== user?.email?.toLowerCase() ? (
                   <RemoveButton
                     email={m.email}
                     tenantId={tenantId}
@@ -110,7 +114,7 @@ export default function MorePage() {
           </ul>
         )}
 
-        {canWrite ? <InviteForm onInvited={reload} /> : null}
+        {canInvite ? <InviteForm onInvited={reload} /> : null}
       </section>
 
       <section className="flex flex-col gap-2">
@@ -256,8 +260,10 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
       <ChipRow<Role>
         label="Role"
         options={[
+          // Both roles can edit the wedding; "couple" is the one that can also
+          // invite and remove people. Label it as that, not as "can edit".
           { value: "family", label: "Family" },
-          { value: "couple", label: "Couple (can edit)" },
+          { value: "couple", label: "Couple (can invite)" },
         ]}
         value={role}
         onChange={(v) => v && setRole(v)}

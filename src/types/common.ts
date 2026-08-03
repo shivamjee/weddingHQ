@@ -10,8 +10,10 @@ export type Side = "a" | "b";
 
 export const SIDES: readonly Side[] = ["a", "b"] as const;
 
-/** "couple" can write shared config (memberships, categories, events, settings)
- *  *within their own tenant*; "family" is read-mostly. A global admin (see
- *  `User.isAdmin`) outranks both and reaches every tenant. Enforced in
- *  firestore.rules, not just the UI. */
+/** Both roles write this wedding's data — config, budgets, contacts, questions.
+ *  "couple" adds exactly one power: inviting and removing people. Family are
+ *  parents and in-laws, not untrusted users; the only thing worth gating is who
+ *  gets in, which is also where privilege escalation would happen. A global
+ *  admin (see `User.isAdmin`) outranks both and reaches every tenant. Enforced
+ *  in firestore.rules, not just the UI. */
 export type Role = "couple" | "family";

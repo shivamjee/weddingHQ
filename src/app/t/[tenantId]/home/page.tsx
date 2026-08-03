@@ -132,19 +132,29 @@ export default function HomePage() {
             />
           )}
 
-          <SummaryLink
-            href={tenantHref(tenantId, "/plan/questions")}
-            title={
-              data?.openQuestions
-                ? `${data.openQuestions} question${data.openQuestions === 1 ? "" : "s"} to ask`
-                : "No open questions"
-            }
-            body={
-              data?.openQuestions
-                ? "Grouped by who to ask, ready for your next call."
-                : "Jot one down the moment you think of it."
-            }
-          />
+          <section className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-base font-semibold text-stone-800">Questions to ask</h2>
+              <Link
+                href={tenantHref(tenantId, "/plan/questions")}
+                className="text-sm font-medium text-rose-600"
+              >
+                Open
+              </Link>
+            </div>
+            <div>
+              <p className="text-2xl font-semibold text-stone-800">
+                {data?.openQuestions
+                  ? `${data.openQuestions} open`
+                  : "None open"}
+              </p>
+              <p className="mt-0.5 text-sm text-stone-500">
+                {data?.openQuestions
+                  ? "Grouped by who to ask, ready for your next call."
+                  : "Jot one down the moment you think of it."}
+              </p>
+            </div>
+          </section>
         </>
       )}
     </div>

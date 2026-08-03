@@ -39,24 +39,37 @@ export function nextColour(used: readonly string[]): string {
   return free ?? PALETTE[used.length % PALETTE.length];
 }
 
+/** Emoji offered for a category or an event, alongside its colour. An icon is
+ *  quicker to recognise in a list than a coloured dot once there are eight of
+ *  them — but it does NOT replace the colour, because the charts need a fill and
+ *  an emoji cannot provide one.
+ *
+ *  A fixed set rather than a free text field: on a phone the emoji keyboard is
+ *  fine, but on desktop a text input invites someone to type "X", and nothing
+ *  downstream is prepared to render an arbitrary string in a 10px slot. */
+export const WEDDING_ICONS = [
+  "💒", "🍽️", "🌸", "📸", "🎵", "💄", "🚗", "🎁",
+  "💍", "🏨", "🪔", "✨", "🎂", "👗", "📿", "💐",
+] as const;
+
 /** Suggested starting categories (FEATURES.md §1.2). Offered as one tap on an
  *  empty Setup screen; every one of them is editable and deletable afterwards. */
-export const DEFAULT_CATEGORIES: readonly { name: string; colour: string }[] = [
-  { name: "Venue", colour: PALETTE[7] },
-  { name: "Food", colour: PALETTE[1] },
-  { name: "Decor", colour: PALETTE[10] },
-  { name: "Attire", colour: PALETTE[9] },
-  { name: "Jewellery", colour: PALETTE[2] },
-  { name: "Photography", colour: PALETTE[6] },
-  { name: "Transport", colour: PALETTE[5] },
-  { name: "Accommodation", colour: PALETTE[4] },
+export const DEFAULT_CATEGORIES: readonly { name: string; colour: string; icon: string }[] = [
+  { name: "Venue", colour: PALETTE[7], icon: "💒" },
+  { name: "Food", colour: PALETTE[1], icon: "🍽️" },
+  { name: "Decor", colour: PALETTE[10], icon: "🌸" },
+  { name: "Attire", colour: PALETTE[9], icon: "👗" },
+  { name: "Jewellery", colour: PALETTE[2], icon: "💍" },
+  { name: "Photography", colour: PALETTE[6], icon: "📸" },
+  { name: "Transport", colour: PALETTE[5], icon: "🚗" },
+  { name: "Accommodation", colour: PALETTE[4], icon: "🏨" },
 ];
 
 /** Suggested starting events. Dates are deliberately null — the wedding is more
  *  than a year out and a placeholder date would be mistaken for a real one. */
-export const DEFAULT_EVENTS: readonly { name: string; colour: string }[] = [
-  { name: "Mehendi", colour: PALETTE[4] },
-  { name: "Sangeet", colour: PALETTE[9] },
-  { name: "Wedding", colour: PALETTE[0] },
-  { name: "Reception", colour: PALETTE[7] },
+export const DEFAULT_EVENTS: readonly { name: string; colour: string; icon: string }[] = [
+  { name: "Mehendi", colour: PALETTE[4], icon: "🪔" },
+  { name: "Sangeet", colour: PALETTE[9], icon: "🎵" },
+  { name: "Wedding", colour: PALETTE[0], icon: "💐" },
+  { name: "Reception", colour: PALETTE[7], icon: "🎂" },
 ];

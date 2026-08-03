@@ -4,9 +4,9 @@
 // under /t/{tenantId}/… can ask "which wedding, which side labels, may I write?"
 // without re-deriving any of it.
 //
-// Phase 2 screens should read `canWrite` and `sideLabel()` from here rather than
-// looking at a role or hardcoding "Shivam"/"Swara" — that is what keeps the app
-// correct once there is a second wedding.
+// Screens should read `canWrite` / `canInvite` and `sideLabel()` from here rather
+// than looking at a role or hardcoding "Shivam"/"Swara" — that is what keeps the
+// app correct once there is a second wedding.
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getDoc } from "firebase/firestore";
@@ -24,8 +24,14 @@ interface TenantContextValue {
   /** The caller's side in this wedding, or null for a non-member admin. */
   side: Side | null;
   role: Role | null;
-  /** May write shared config (categories, events, settings, invitations). */
+  /** May write this wedding's data — config, budgets, contacts, questions.
+   *  Every member can; family are parents and in-laws, not untrusted users. */
   canWrite: boolean;
+  /** May invite and remove people. Couple (or a global admin) only — this is
+   *  the one power role still gates, and the one the rules still gate too.
+   *  Never use `canWrite` for an invite control: family would see a form whose
+   *  writes firestore.rules rejects. */
+  canInvite: boolean;
   /** Display label for a side — "Shivam", "Swara". Never render the raw id. */
   sideLabel: (side: Side) => string;
   loading: boolean;
@@ -90,7 +96,8 @@ export function TenantProvider({ tenantId, children }: { tenantId: string; child
       side: membership?.side ?? null,
       role: membership?.role ?? null,
       // A global admin has full write access to every wedding, matching the rules.
-      canWrite: membership?.role === "couple" || isAdmin,
+      canWrite: Boolean(membership) || isAdmin,
+      canInvite: membership?.role === "couple" || isAdmin,
       // Fully optional-chained: a hand-typed bootstrap document (the couple's
       // first wedding is created by hand in the Firestore console, not through
       // the app's own form) can plausibly have sideA/sideB missing entirely

@@ -36,6 +36,7 @@ import {
   ChipMultiRow,
   ChipRow,
   Field,
+  FilterPanel,
   FormMessage,
   PrimaryButton,
   SecondaryButton,
@@ -50,11 +51,12 @@ export default function ContactsPage() {
   // No `canWrite` check anywhere on this screen: contacts are member-writable
   // by design (see firestore.rules), so every member gets the Add button.
   const { tenantId } = useTenant();
-  const { categories, categoryById } = useConfig();
+  const { categories, categoryById, events } = useConfig();
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<ContactType | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [eventFilter, setEventFilter] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ContactWithId | null>(null);
 
@@ -104,12 +106,15 @@ export default function ContactsPage() {
     return contacts.filter((c) => {
       if (typeFilter && c.type !== typeFilter) return false;
       if (categoryFilter && c.categoryId !== categoryFilter) return false;
+      // `eventIds` is a LIST on a contact (one caterer can cover the Sangeet and
+      // the Reception), unlike a question's single `eventId`.
+      if (eventFilter && !(c.eventIds ?? []).includes(eventFilter)) return false;
       if (!needle) return true;
       // Name, organisation and role — the three things you'd actually remember
       // about a vendor (FEATURES.md §5).
       return [c.name, c.organisation, c.role].some((f) => (f ?? "").toLowerCase().includes(needle));
     });
-  }, [contacts, search, typeFilter, categoryFilter]);
+  }, [contacts, search, typeFilter, categoryFilter, eventFilter]);
 
   if (editing || adding) {
     return (
@@ -144,26 +149,59 @@ export default function ContactsPage() {
 
       {contacts.length > 0 ? (
         <div className="flex flex-col gap-3">
+          {/* Search stays OUTSIDE the drawer — it's the primary way to find a
+              contact, and burying it behind a tap would be the opposite of the
+              fix. Only the chip rows fold away. */}
           <TextInput
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, business or role"
           />
-          <ChipRow<ContactType>
-            options={CONTACT_TYPES.map((t) => ({ value: t, label: CONTACT_TYPE_LABELS[t] }))}
-            value={typeFilter}
-            onChange={setTypeFilter}
-            allowClear
-          />
-          {categories.length > 0 ? (
-            <ChipRow
-              options={categories.map((c) => ({ value: c.id, label: c.name, colour: c.colour }))}
-              value={categoryFilter}
-              onChange={setCategoryFilter}
+          <FilterPanel
+            activeCount={[typeFilter, categoryFilter, eventFilter].filter(Boolean).length}
+            onClear={() => {
+              setTypeFilter(null);
+              setCategoryFilter(null);
+              setEventFilter(null);
+            }}
+          >
+            <ChipRow<ContactType>
+              label="Type"
+              options={CONTACT_TYPES.map((t) => ({ value: t, label: CONTACT_TYPE_LABELS[t] }))}
+              value={typeFilter}
+              onChange={setTypeFilter}
               allowClear
             />
-          ) : null}
+            {categories.length > 0 ? (
+              <ChipRow
+                label="Category"
+                options={categories.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  colour: c.colour,
+                  icon: c.icon,
+                }))}
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                allowClear
+              />
+            ) : null}
+            {events.length > 0 ? (
+              <ChipRow
+                label="Event"
+                options={events.map((e) => ({
+                  value: e.id,
+                  label: e.name,
+                  colour: e.colour,
+                  icon: e.icon,
+                }))}
+                value={eventFilter}
+                onChange={setEventFilter}
+                allowClear
+              />
+            ) : null}
+          </FilterPanel>
         </div>
       ) : null}
 
@@ -226,14 +264,7 @@ function ContactCard({
     <li className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-base font-medium text-stone-800">
-            {contact.name}
-            {contact.isBooked ? (
-              <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 align-middle text-xs font-semibold text-emerald-700">
-                Booked
-              </span>
-            ) : null}
-          </p>
+          <p className="truncate text-base font-medium text-stone-800">{contact.name}</p>
           {subtitle ? <p className="truncate text-sm text-stone-500">{subtitle}</p> : null}
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-400">
             <span>{CONTACT_TYPE_LABELS[contact.type] ?? "Other"}</span>
@@ -325,7 +356,6 @@ function ContactForm({
   const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? null);
   const [eventIds, setEventIds] = useState<string[]>(existing?.eventIds ?? []);
   const [notes, setNotes] = useState(existing?.notes ?? "");
-  const [isBooked, setIsBooked] = useState(existing?.isBooked ?? false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -349,7 +379,6 @@ function ContactForm({
       categoryId,
       eventIds,
       notes: notes.trim(),
-      isBooked,
       updatedAt: serverTimestamp(),
     };
 
@@ -471,16 +500,6 @@ function ContactForm({
       <Field label="Notes (optional)">
         <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
-
-      <label className="flex min-h-[44px] items-center gap-3">
-        <input
-          type="checkbox"
-          checked={isBooked}
-          onChange={(e) => setIsBooked(e.target.checked)}
-          className="h-5 w-5 accent-rose-500"
-        />
-        <span className="text-base text-stone-700">Booked</span>
-      </label>
 
       <FormMessage error={error} />
 

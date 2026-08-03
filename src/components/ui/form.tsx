@@ -61,6 +61,39 @@ export interface ChipOption<T extends string> {
   /** Optional colour dot — used for category / event chips so the chip carries
    *  the same colour the charts use. */
   colour?: string;
+  /** Optional emoji, shown INSTEAD of the colour dot when set. Categories and
+   *  events carry one; an emoji is quicker to recognise than a coloured dot,
+   *  especially once there are eight of them. */
+  icon?: string;
+}
+
+/** The colour dot / emoji that prefixes a chip or a list row. One place, so the
+ *  "icon wins over colour" rule can't drift between screens. */
+export function OptionMark({
+  colour,
+  icon,
+  className = "h-2.5 w-2.5",
+}: {
+  colour?: string;
+  icon?: string;
+  /** Sizing for the colour-dot form. The emoji sizes itself off the text. */
+  className?: string;
+}) {
+  if (icon) {
+    return (
+      <span className="shrink-0 leading-none" aria-hidden>
+        {icon}
+      </span>
+    );
+  }
+  if (!colour) return null;
+  return (
+    <span
+      className={`shrink-0 rounded-full ${className}`}
+      style={{ backgroundColor: colour }}
+      aria-hidden
+    />
+  );
 }
 
 /**
@@ -109,13 +142,7 @@ export function ChipRow<T extends string>({
                     : "border-stone-300 text-stone-600"
                 }`}
               >
-                {o.colour ? (
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: o.colour }}
-                    aria-hidden
-                  />
-                ) : null}
+                <OptionMark colour={o.colour} icon={o.icon} />
                 {o.label}
               </button>
             );
@@ -164,13 +191,7 @@ export function ChipMultiRow<T extends string>({
                     : "border-stone-300 text-stone-600"
                 }`}
               >
-                {o.colour ? (
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: o.colour }}
-                    aria-hidden
-                  />
-                ) : null}
+                <OptionMark colour={o.colour} icon={o.icon} />
                 {o.label}
               </button>
             );
@@ -178,6 +199,68 @@ export function ChipMultiRow<T extends string>({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Collapsible filter drawer for the list screens.
+ *
+ * Three unlabelled chip rows stacked at the top of Questions were most of the
+ * screen on a phone, and gave no hint of which row filtered what. This folds
+ * them behind one 44px row that reports how many filters are on.
+ *
+ * Native `<details>` on purpose — the open/closed state, the keyboard handling
+ * and the disclosure semantics are all free, and no filter state has to move up
+ * into React.
+ *
+ * Deliberately UNCONTROLLED: forcing it open whenever a filter is active would
+ * leave it permanently open on Questions, whose status filter defaults to
+ * "open". The count badge is what stops a filtered list from looking unfiltered.
+ */
+export function FilterPanel({
+  activeCount,
+  onClear,
+  children,
+}: {
+  activeCount: number;
+  onClear: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <details className="rounded-2xl border border-stone-200 bg-white [&[open]>summary]:border-b [&[open]>summary]:border-stone-100">
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 px-4 py-2 text-sm font-medium text-stone-600 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden className="text-stone-400 transition-transform">
+          &#9662;
+        </span>
+        Filters
+        {activeCount > 0 ? (
+          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+            {activeCount}
+          </span>
+        ) : null}
+        {activeCount > 0 ? (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              // Inside <summary>, so a plain click would also toggle the drawer.
+              e.preventDefault();
+              e.stopPropagation();
+              onClear();
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              onClear();
+            }}
+            className="ml-auto min-h-[44px] shrink-0 px-2 py-3 text-sm font-medium text-rose-600"
+          >
+            Clear
+          </span>
+        ) : null}
+      </summary>
+      <div className="flex flex-col gap-3 px-4 py-3">{children}</div>
+    </details>
   );
 }
 

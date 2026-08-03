@@ -42,7 +42,11 @@ export interface Contact {
   categoryId: string | null;
   eventIds: string[];
   notes: string;
-  isBooked: boolean;
+  // No `isBooked` here on purpose (removed after Phase 2 QA): it was written and
+  // shown as a pill but read by nothing, and `ComparisonOption.status` already
+  // has a "booked" value — two sources of truth for one fact. Existing documents
+  // keep the orphan field; nothing reads it. Whether a vendor is confirmed lives
+  // on the comparison option.
   createdBy: string; // uid
   createdAt: Timestamp;
   updatedAt: Timestamp;

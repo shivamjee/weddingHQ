@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { allocationHealth, comparisonRows, sumPaise } from "./budget";
+import { allocationHealth, comparisonRows, eventBreakdown, sumPaise } from "./budget";
 
 // ₹1L = 10000000 paise.
 const L = (lakhs: number) => lakhs * 10000000;
@@ -97,5 +97,77 @@ describe("comparisonRows", () => {
       { side: "a", categoryId: "deleted-one", allocatedPaise: L(5) },
     ]);
     expect(rows.every((r) => r.totalPaise === 0)).toBe(true);
+  });
+
+  it("does NOT add per-event breakdowns on top of the category amount", () => {
+    // THE regression this feature can silently cause. Venue's ceiling for side a
+    // is ₹8L; itemising ₹5L of it as Sangeet must leave the row at ₹8L, not ₹13L.
+    const rows = comparisonRows(categories, [
+      { side: "a", categoryId: "venue", eventId: null, allocatedPaise: L(8) },
+      { side: "a", categoryId: "venue", eventId: "sangeet", allocatedPaise: L(5) },
+    ]);
+    expect(rows[0]).toMatchObject({ a: L(8), totalPaise: L(8) });
+  });
+});
+
+describe("allocationHealth with per-event breakdowns", () => {
+  it("itemising a category cannot push a side over budget", () => {
+    // ₹20L ceiling, ₹13L allocated across categories, part of it itemised by
+    // event. Counting the event rows too would report ₹19L allocated.
+    const h = allocationHealth(L(20), [
+      { allocatedPaise: L(8), eventId: null },
+      { allocatedPaise: L(5), eventId: null },
+      { allocatedPaise: L(4), eventId: "mehendi" },
+      { allocatedPaise: L(2), eventId: "sangeet" },
+    ]);
+    expect(h.allocatedPaise).toBe(L(13));
+    expect(h.unallocatedPaise).toBe(L(7));
+    expect(h.overAllocated).toBe(false);
+  });
+});
+
+describe("eventBreakdown", () => {
+  const events = [
+    { id: "mehendi", name: "Mehendi", colour: "#10b981" },
+    { id: "sangeet", name: "Sangeet", colour: "#a855f7" },
+  ];
+  const allocations = [
+    { side: "a" as const, categoryId: "decor", eventId: null, allocatedPaise: L(2) },
+    { side: "a" as const, categoryId: "decor", eventId: "mehendi", allocatedPaise: 5000000 },
+    { side: "a" as const, categoryId: "decor", eventId: "sangeet", allocatedPaise: 3000000 },
+    // Another side and another category — neither should leak in.
+    { side: "b" as const, categoryId: "decor", eventId: "mehendi", allocatedPaise: L(9) },
+    { side: "a" as const, categoryId: "food", eventId: "mehendi", allocatedPaise: L(9) },
+  ];
+
+  it("splits the ceiling and reports the unassigned remainder", () => {
+    // ₹2L ceiling, ₹50k Mehendi + ₹30k Sangeet → ₹1.2L still unassigned.
+    const b = eventBreakdown("a", "decor", L(2), events, allocations);
+    expect(b.perEvent.map((e) => e.allocatedPaise)).toEqual([5000000, 3000000]);
+    expect(b.assignedPaise).toBe(8000000);
+    expect(b.unassignedPaise).toBe(L(2) - 8000000);
+    expect(b.over).toBe(false);
+    expect(b.any).toBe(true);
+  });
+
+  it("flags an overshoot instead of clamping it", () => {
+    const b = eventBreakdown("a", "decor", 6000000, events, allocations);
+    expect(b.over).toBe(true);
+    expect(b.unassignedPaise).toBe(-2000000);
+  });
+
+  it("a category nobody has itemised reports nothing to expand", () => {
+    const b = eventBreakdown("a", "attire", L(3), events, allocations);
+    expect(b.any).toBe(false);
+    expect(b.assignedPaise).toBe(0);
+    expect(b.unassignedPaise).toBe(L(3));
+  });
+
+  it("keeps an event row at zero rather than dropping it", () => {
+    // Same reason comparisonRows keeps an unbudgeted category: "nothing set
+    // aside for the Sangeet" is only visible if the row survives.
+    const b = eventBreakdown("a", "decor", L(2), events, [allocations[1]]);
+    expect(b.perEvent).toHaveLength(2);
+    expect(b.perEvent[1]).toMatchObject({ eventId: "sangeet", allocatedPaise: 0 });
   });
 });

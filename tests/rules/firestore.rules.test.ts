@@ -275,7 +275,7 @@ describe("sign-in discovery", () => {
   });
 });
 
-describe("within a tenant: members read, couple writes", () => {
+describe("within a tenant: members read and write, couple invites", () => {
   it("a family member reads their own tenant's config and the member list", async () => {
     const db = authed(T1_FAMILY);
     await assertSucceeds(getDoc(doc(db, "tenants", T1)));
@@ -287,25 +287,36 @@ describe("within a tenant: members read, couple writes", () => {
     );
   });
 
-  it("a family member cannot write config or invite anyone", async () => {
+  it("a family member writes config and the wedding's own details", async () => {
+    // Family are parents and in-laws. Categories and events are the vocabulary
+    // the whole family plans in — gating them to the couple is how the setup
+    // screen goes stale.
     const db = authed(T1_FAMILY);
-    await assertFails(
+    await assertSucceeds(
       setDoc(doc(db, "tenants", T1, "categories", "food"), {
         name: "Food",
         colour: "#00f",
         order: 2,
       }),
     );
-    await assertFails(
+    await assertSucceeds(
       setDoc(doc(db, "tenants", T1, "events", "mehendi"), {
         name: "Mehendi",
         order: 2,
         colour: "#ff0",
       }),
     );
-    await assertFails(
+    await assertSucceeds(
       setDoc(doc(db, "tenants", T1, "settings", "currency"), { rates: { USD: 0.9 } }),
     );
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1), { name: "Renamed by family" }));
+  });
+
+  it("a family member cannot invite anyone — the ONE thing role still gates", async () => {
+    // This is also the privilege-escalation boundary (see the dedicated block
+    // further down). If this ever flips to assertSucceeds, the memberships rules
+    // were loosened by mistake.
+    const db = authed(T1_FAMILY);
     await assertFails(
       setDoc(doc(db, "memberships", mid(T1, "new@example.com")), {
         tenantId: T1,
@@ -315,6 +326,7 @@ describe("within a tenant: members read, couple writes", () => {
         invitedBy: T1_FAMILY.uid,
       }),
     );
+    await assertFails(deleteDoc(doc(db, "memberships", mid(T1, T1_COUPLE.email))));
   });
 
   it("the couple can write config and invite into their own tenant", async () => {
@@ -376,10 +388,11 @@ describe("within a tenant: members read, couple writes", () => {
   });
 });
 
-describe("budgets — every member reads, only the couple writes", () => {
+describe("budgets — every member reads and writes; integrity is the guard", () => {
   const alloc = (categoryId: string, side = "a", allocatedPaise = 50000000) => ({
     side,
     categoryId,
+    eventId: null,
     allocatedPaise,
     notes: "",
   });
@@ -393,20 +406,67 @@ describe("budgets — every member reads, only the couple writes", () => {
     await assertSucceeds(getDocs(collection(db, "tenants", T1, "budgets")));
   });
 
-  it("a family member cannot set a budget or an allocation", async () => {
-    // Budgets are the wedding's financial decisions — read-only for family.
+  it("a family member sets a budget and an allocation", async () => {
+    // Each side's parents are the people actually setting that side's numbers.
     const db = authed(T1_FAMILY);
-    await assertFails(
+    await assertSucceeds(
       setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "food")), alloc("food")),
     );
-    await assertFails(
+    await assertSucceeds(
       setDoc(doc(db, "tenants", T1, "budgets", budgetTotalsId("b")), {
         side: "b",
         totalBudgetPaise: 300000000,
       }),
     );
-    await assertFails(
+    await assertSucceeds(
       deleteDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor"))),
+    );
+  });
+
+  it("accepts a per-event breakdown at {side}_{categoryId}__{eventId}", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor", "sangeet")), {
+        ...alloc("decor"),
+        eventId: "sangeet",
+        allocatedPaise: 5000000,
+      }),
+    );
+  });
+
+  it("rejects an event allocation whose id omits the event", async () => {
+    // Otherwise `a_decor` could carry `eventId: "sangeet"` and be read as the
+    // category's own ceiling — the exact double-count the model rules out.
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor")), {
+        ...alloc("decor"),
+        eventId: "sangeet",
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "decor", "sangeet")), {
+        ...alloc("decor"),
+        eventId: null, // id says sangeet, fields say category-level
+      }),
+    );
+  });
+
+  it("a family member's malformed allocation is still rejected", async () => {
+    // Loosening the role check must not loosen the integrity check — that is
+    // now the only thing standing between a typo and a wrong allocation total.
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "food")), {
+        ...alloc("food"),
+        side: "b", // id says "a"
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "budgets", budgetAllocationId("a", "food")), {
+        ...alloc("food"),
+        allocatedPaise: 1234.5, // rupees, not integer paise
+      }),
     );
   });
 

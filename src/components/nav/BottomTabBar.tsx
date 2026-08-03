@@ -11,6 +11,12 @@ import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 //
 // Every href is scoped to the active wedding, so switching weddings keeps you on
 // the same tab rather than dumping you back at Home.
+//
+// The bar is `sticky bottom-0`, not static: the app column is a plain flex stack
+// that grows past the viewport on a long page, so the *document* scrolls and a
+// static bar scrolls away with it. Sticky pins it without clamping <body> to the
+// viewport height — <body> is shared with "/" and "/tenants", which have no
+// inner scroll container and would clip if it were clamped.
 
 type TabIcon = ComponentType<{ className?: string }>;
 
@@ -28,7 +34,7 @@ export function BottomTabBar() {
 
   return (
     <nav
-      className="flex shrink-0 items-stretch border-t border-stone-200 bg-white/95 backdrop-blur"
+      className="sticky bottom-0 z-10 flex shrink-0 items-stretch border-t border-stone-200 bg-white/95 backdrop-blur"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Primary"
     >

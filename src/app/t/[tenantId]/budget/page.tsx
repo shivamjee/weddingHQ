@@ -7,36 +7,52 @@
 // an intention: what each side plans to put against each category, and how much
 // of their ceiling is still unspoken for.
 //
-// SECURITY: members read, only the couple writes (firestore.rules `budgets`).
-// `canWrite` below hides the inputs; the rules are the actual boundary.
+// SECURITY: every member of the wedding reads AND writes (firestore.rules
+// `budgets`) — each side's parents are the people actually setting that side's
+// numbers. The rules' integrity checks (id agrees with fields, integer paise)
+// are the real guard here, not a role.
 //
 // READ COST: one bounded collection read for the whole screen — both sides'
 // allocations and both totals live in the same `budgets` collection. Switching
 // between the three views re-renders, it does not re-read.
 
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { getDocs, limit, query, serverTimestamp, setDoc } from "firebase/firestore";
 import { BUDGET_TOTALS_PREFIX, budgetDoc, budgetTotalsDoc, budgetsCol } from "@/lib/paths";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
-import { MAX_CATEGORIES, useConfig } from "@/lib/tenants/ConfigProvider";
+import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
-import { allocationHealth, comparisonRows, type CategoryComparisonRow } from "@/lib/budget";
-import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise } from "@/lib/money";
+import {
+  allocationHealth,
+  comparisonRows,
+  eventBreakdown,
+  type CategoryComparisonRow,
+  type EventSlice,
+} from "@/lib/budget";
+import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise, type Paise } from "@/lib/money";
 import { AllocationChart, SidesLegend } from "@/components/budget/AllocationChart";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
 import {
   ChipRow,
   FormMessage,
+  OptionMark,
   PrimaryButton,
   SecondaryButton,
   TextInput,
 } from "@/components/ui/form";
 import type { BudgetAllocationWithId, Side } from "@/types";
 
-/** READ COST (CLAUDE.md §3): two allocations per category plus one totals doc
- *  per side. Bounded well above anything this app will hold. */
-const MAX_BUDGET_DOCS = MAX_CATEGORIES * 2 + 2;
+/** READ COST (CLAUDE.md §3): one document per (side, category), plus an optional
+ *  one per (side, category, event) breakdown, plus one totals doc per side. A
+ *  realistic wedding is 8 categories × 6 events × 2 sides ≈ 96 event rows + 16
+ *  category rows + 2 totals ≈ 114.
+ *
+ *  A flat 300 rather than MAX_CATEGORIES × MAX_EVENTS × 2: both of those bounds
+ *  are 50, which would authorise a 5,000-document read on a screen that should
+ *  never approach it. If a wedding ever hits this cap the screen under-reports
+ *  rather than running up a bill, which is the right way round. */
+const MAX_BUDGET_DOCS = 300;
 
 interface BudgetData {
   allocations: BudgetAllocationWithId[];
@@ -64,7 +80,13 @@ export default function BudgetPage() {
         const side = data.side as Side;
         if (side === "a" || side === "b") totals[side] = Number(data.totalBudgetPaise) || 0;
       } else {
-        allocations.push({ id: d.id, ...data } as BudgetAllocationWithId);
+        // `eventId` is absent on documents written before per-event breakdowns
+        // existed. Normalise to null here so the maths never has to guess.
+        allocations.push({
+          id: d.id,
+          ...data,
+          eventId: data.eventId ?? null,
+        } as BudgetAllocationWithId);
       }
     }
     return { allocations, totals };
@@ -130,7 +152,7 @@ export default function BudgetPage() {
             Go to Setup
           </Link>
         ) : (
-          <p className="text-sm text-stone-400">Ask the couple to add categories in Setup.</p>
+          <p className="text-sm text-stone-400">Add categories in Setup to get started.</p>
         )}
       </div>
     );
@@ -247,7 +269,9 @@ function SideDetail({
               categoryId={row.categoryId}
               name={row.name}
               colour={row.colour}
+              icon={row.icon}
               allocatedPaise={row[side]}
+              allocations={allocations}
               onSaved={onSaved}
             />
           ))}
@@ -293,7 +317,7 @@ function TotalBudgetEditor({
       onSaved();
     } catch (err) {
       console.error("[budget] total save failed:", err);
-      setError("Could not save. Only the couple can set budgets.");
+      setError("Could not save that budget. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -354,84 +378,190 @@ function TotalBudgetEditor({
   );
 }
 
+/**
+ * One category's amount for one side, with an optional per-event breakdown
+ * folded underneath it (QA #4).
+ *
+ * The category amount is the CEILING and stays exactly what it was before this
+ * feature: tapping the row edits it, and the health bar and charts read it
+ * alone. Expanding shows how much of that ceiling has been itemised per event
+ * and how much is still unassigned. A wedding that never expands a row sees
+ * identical numbers to before.
+ */
 function AllocationRow({
   side,
   categoryId,
   name,
   colour,
+  icon,
   allocatedPaise,
+  allocations,
   onSaved,
 }: {
   side: Side;
   categoryId: string;
   name: string;
   colour: string;
+  icon?: string;
   allocatedPaise: number;
+  allocations: BudgetAllocationWithId[];
   onSaved: () => void;
 }) {
   const { tenantId, canWrite } = useTenant();
+  const { events } = useConfig();
   const [editing, setEditing] = useState(false);
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
-  // An empty field means "nothing allocated" — zero, not a refusal to save.
-  const parsed = text.trim() === "" ? toPaise(0) : parseRupeeInput(text);
+  const breakdown = useMemo(
+    () => eventBreakdown(side, categoryId, allocatedPaise, events, allocations),
+    [side, categoryId, allocatedPaise, events, allocations],
+  );
 
-  async function save() {
-    if (parsed === null || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await setDoc(budgetDoc(tenantId, side, categoryId), {
-        side,
-        categoryId,
-        allocatedPaise: parsed,
-        notes: "",
-        updatedAt: serverTimestamp(),
-      });
-      setEditing(false);
-      onSaved();
-    } catch (err) {
-      console.error("[budget] allocation save failed:", err);
-      setError("Could not save. Only the couple can set allocations.");
-    } finally {
-      setBusy(false);
-    }
+  // Nothing to expand into if the wedding has no events set up at all.
+  const expandable = events.length > 0;
+  const open = expanded || breakdown.over;
+
+  async function saveCategory(paise: Paise) {
+    await setDoc(budgetDoc(tenantId, side, categoryId), {
+      side,
+      categoryId,
+      eventId: null,
+      allocatedPaise: paise,
+      notes: "",
+      updatedAt: serverTimestamp(),
+    });
+    setEditing(false);
+    onSaved();
   }
 
   if (editing) {
     return (
-      <li className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/40 p-4">
-        <label className="flex flex-col gap-1">
-          <span className="flex items-center gap-2 text-xs font-medium text-stone-500">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: colour }}
-              aria-hidden
-            />
-            {name}, in rupees
+      <li>
+        <AmountEditor
+          label={
+            <>
+              <OptionMark colour={colour} icon={icon} />
+              {name}, in rupees
+            </>
+          }
+          initialPaise={allocatedPaise}
+          onSave={saveCategory}
+          onCancel={() => setEditing(false)}
+        />
+      </li>
+    );
+  }
+
+  return (
+    <li className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          disabled={!canWrite}
+          onClick={() => setEditing(true)}
+          className="flex min-h-[60px] flex-1 items-center gap-3 px-4 py-3 text-left disabled:cursor-default"
+        >
+          <OptionMark colour={colour} icon={icon} className="h-4 w-4" />
+          <span className="min-w-0 flex-1 truncate text-base font-medium text-stone-800">
+            {name}
           </span>
-          <TextInput
-            inputMode="decimal"
-            autoFocus
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="0"
-          />
-          <span className="text-xs text-stone-400">
-            {parsed !== null ? formatINR(parsed) : "Enter a plain number, like 800000."}
+          <span
+            className={`shrink-0 text-base font-semibold ${
+              allocatedPaise > 0 ? "text-stone-800" : "text-stone-300"
+            }`}
+          >
+            {allocatedPaise > 0 ? formatINR(toPaise(allocatedPaise)) : "—"}
           </span>
-        </label>
-        <FormMessage error={error} />
-        <div className="flex gap-2">
-          <PrimaryButton onClick={save} disabled={parsed === null || busy}>
-            {busy ? "Saving…" : "Save"}
-          </PrimaryButton>
-          <SecondaryButton onClick={() => setEditing(false)} disabled={busy}>
-            Cancel
-          </SecondaryButton>
+        </button>
+        {expandable ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-label={`${open ? "Hide" : "Show"} ${name} by event`}
+            onClick={() => setExpanded((v) => !v)}
+            className={`flex min-h-[60px] w-11 shrink-0 items-center justify-center text-sm ${
+              breakdown.any || breakdown.over ? "text-rose-500" : "text-stone-300"
+            }`}
+          >
+            <span aria-hidden className={open ? "rotate-180" : ""}>
+              &#9662;
+            </span>
+          </button>
+        ) : null}
+      </div>
+
+      {expandable && open ? (
+        <div className="border-t border-stone-100 bg-stone-50/60 px-4 py-2">
+          <ul>
+            {breakdown.perEvent.map((slice) => (
+              <EventAmountRow
+                key={slice.eventId}
+                side={side}
+                categoryId={categoryId}
+                slice={slice}
+                onSaved={onSaved}
+              />
+            ))}
+          </ul>
+          <div
+            className={`flex items-center justify-between gap-3 border-t border-stone-200 py-2 text-sm ${
+              breakdown.over ? "font-semibold text-rose-600" : "text-stone-500"
+            }`}
+          >
+            <span>{breakdown.over ? "Over the category amount by" : "Unassigned"}</span>
+            <span>
+              {formatINR(toPaise(Math.abs(breakdown.unassignedPaise)))}
+            </span>
+          </div>
         </div>
+      ) : null}
+    </li>
+  );
+}
+
+/** One event's slice of a category. Same edit-in-place pattern as the category
+ *  row above, one level in. */
+function EventAmountRow({
+  side,
+  categoryId,
+  slice,
+  onSaved,
+}: {
+  side: Side;
+  categoryId: string;
+  slice: EventSlice;
+  onSaved: () => void;
+}) {
+  const { tenantId, canWrite } = useTenant();
+  const [editing, setEditing] = useState(false);
+
+  async function save(paise: Paise) {
+    await setDoc(budgetDoc(tenantId, side, categoryId, slice.eventId), {
+      side,
+      categoryId,
+      eventId: slice.eventId,
+      allocatedPaise: paise,
+      notes: "",
+      updatedAt: serverTimestamp(),
+    });
+    setEditing(false);
+    onSaved();
+  }
+
+  if (editing) {
+    return (
+      <li className="py-2">
+        <AmountEditor
+          label={
+            <>
+              <OptionMark colour={slice.colour} icon={slice.icon} />
+              {slice.name}, in rupees
+            </>
+          }
+          initialPaise={slice.allocatedPaise}
+          onSave={save}
+          onCancel={() => setEditing(false)}
+        />
       </li>
     );
   }
@@ -441,26 +571,83 @@ function AllocationRow({
       <button
         type="button"
         disabled={!canWrite}
-        onClick={() => {
-          setText(allocatedPaise > 0 ? paiseToRupeeInput(toPaise(allocatedPaise)) : "");
-          setEditing(true);
-        }}
-        className="flex min-h-[60px] w-full items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-left disabled:cursor-default"
+        onClick={() => setEditing(true)}
+        className="flex min-h-[44px] w-full items-center gap-2 py-1 text-left disabled:cursor-default"
       >
+        <OptionMark colour={slice.colour} icon={slice.icon} />
+        <span className="min-w-0 flex-1 truncate text-sm text-stone-600">{slice.name}</span>
         <span
-          className="h-4 w-4 shrink-0 rounded-full"
-          style={{ backgroundColor: colour }}
-          aria-hidden
-        />
-        <span className="min-w-0 flex-1 truncate text-base font-medium text-stone-800">{name}</span>
-        <span
-          className={`shrink-0 text-base font-semibold ${
-            allocatedPaise > 0 ? "text-stone-800" : "text-stone-300"
+          className={`shrink-0 text-sm ${
+            slice.allocatedPaise > 0 ? "font-medium text-stone-700" : "text-stone-300"
           }`}
         >
-          {allocatedPaise > 0 ? formatINR(toPaise(allocatedPaise)) : "—"}
+          {slice.allocatedPaise > 0 ? formatINR(toPaise(slice.allocatedPaise)) : "—"}
         </span>
       </button>
     </li>
+  );
+}
+
+/** The rupee input shared by the category row and the event rows — one parse,
+ *  one busy state, one error string, rather than three copies of them. */
+function AmountEditor({
+  label,
+  initialPaise,
+  onSave,
+  onCancel,
+}: {
+  label: ReactNode;
+  initialPaise: number;
+  onSave: (paise: Paise) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState(
+    initialPaise > 0 ? paiseToRupeeInput(toPaise(initialPaise)) : "",
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // An empty field means "nothing allocated" — zero, not a refusal to save.
+  const parsed = text.trim() === "" ? toPaise(0) : parseRupeeInput(text);
+
+  async function submit() {
+    if (parsed === null || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave(parsed);
+    } catch (err) {
+      console.error("[budget] allocation save failed:", err);
+      setError("Could not save that amount. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/40 p-4">
+      <label className="flex flex-col gap-1">
+        <span className="flex items-center gap-2 text-xs font-medium text-stone-500">{label}</span>
+        <TextInput
+          inputMode="decimal"
+          autoFocus
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="0"
+        />
+        <span className="text-xs text-stone-400">
+          {parsed !== null ? formatINR(parsed) : "Enter a plain number, like 800000."}
+        </span>
+      </label>
+      <FormMessage error={error} />
+      <div className="flex gap-2">
+        <PrimaryButton onClick={submit} disabled={parsed === null || busy}>
+          {busy ? "Saving…" : "Save"}
+        </PrimaryButton>
+        <SecondaryButton onClick={onCancel} disabled={busy}>
+          Cancel
+        </SecondaryButton>
+      </div>
+    </div>
   );
 }

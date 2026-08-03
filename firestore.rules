@@ -13,7 +13,11 @@ rules_version = '2';
 //     It is both the invitation and the membership — the couple (or an admin)
 //     writes it fully formed, and the invitee never writes their own role/side.
 //     There is therefore no "bootstrap create" hole to defend.
-//   • role == "couple" may write shared config *within their own tenant only*.
+//   • Every member of a tenant may write that wedding's data — config, budgets,
+//     contacts, questions, comparisons. role == "couple" adds exactly one extra
+//     power: inviting and removing people (the memberships block). Family are
+//     parents and in-laws, not untrusted users; the only thing worth gating is
+//     who gets in, and that is also the privilege-escalation boundary.
 //   • users/{uid}.isAdmin == true is a GLOBAL admin: every tenant, read+write.
 //     It is frozen here (nobody can grant it to themselves or anyone else) and
 //     is set by hand in the Firestore console. See CLAUDE.md.
@@ -85,7 +89,11 @@ service cloud.firestore {
     }
 
     // ---- memberships/{tenantId}__{email} ----------------------------------
-    // The access gate. Readable by: the person it names (this is how sign-in
+    // The access gate, and THE ONLY couple-gated collection. Everything else in
+    // a wedding is member-writable; who gets into the wedding is not, because
+    // this is also where privilege escalation would happen.
+    //
+    // Readable by: the person it names (this is how sign-in
     // discovers which weddings you belong to), anyone else in the same tenant
     // (the member list), and admins.
     //
@@ -150,35 +158,45 @@ service cloud.firestore {
 
       allow create: if isAdmin()
         && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isTenantCouple(tenantId) || isAdmin();
+      // Name, side labels and the wedding date are shared planning data, not
+      // privileges — any member may correct them. Creating and deleting a
+      // wedding stays with admins.
+      allow update: if isTenantMember(tenantId) || isAdmin();
       allow delete: if isAdmin();
 
       // ---- shared config, per wedding -------------------------------------
-      // Any member of THIS tenant reads; only its couple (or an admin) writes.
+      // Any member of THIS tenant reads and writes. Categories and events are
+      // the vocabulary the whole family plans in; making only the couple able
+      // to add "Mehendi" is how the setup screen goes stale.
       match /categories/{categoryId} {
         allow read: if isTenantMember(tenantId) || isAdmin();
-        allow write: if isTenantCouple(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
       }
 
       match /events/{eventId} {
         allow read: if isTenantMember(tenantId) || isAdmin();
-        allow write: if isTenantCouple(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
       }
 
       match /settings/{docId} {
         allow read: if isTenantMember(tenantId) || isAdmin();
-        allow write: if isTenantCouple(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
       }
 
       // ---- budgets (Phase 2 Step 2) ---------------------------------------
       // Per-side allocations and each side's overall ceiling. Every member
-      // READS them — FEATURES.md §0 settled that everyone sees everything, so
-      // there is no per-side hiding to enforce — but only the couple WRITES:
-      // these are the financial decisions of the wedding.
+      // reads AND writes them — FEATURES.md §0 settled that everyone sees
+      // everything, and each side's parents are the people actually setting
+      // that side's numbers, so gating writes to the couple only got in the
+      // way. The integrity checks below are the real guard here.
       //
-      // Two shapes share this collection, told apart by the document id:
-      //   {side}_{categoryId}   one category's allocation for one side
-      //   _totals_{side}        that side's overall budget
+      // Three shapes share this collection, told apart by the document id:
+      //   {side}_{categoryId}              a category's amount for one side —
+      //                                    that category's CEILING
+      //   {side}_{categoryId}__{eventId}   an optional breakdown INSIDE that
+      //                                    ceiling ("of Decor's ₹2L, ₹50k is
+      //                                    Mehendi"), never an extra amount
+      //   _totals_{side}                   that side's overall budget
       // Both id schemes come from src/lib/tenantIds.ts, which the rules tests
       // import — so if the app's builders and these strings ever drift, the
       // tests fail rather than every budget write silently being rejected.
@@ -191,15 +209,28 @@ service cloud.firestore {
       match /budgets/{budgetId} {
         function validAllocation() {
           let d = request.resource.data;
+          let base = d.get("side", "") + "_" + d.get("categoryId", "");
+          let eventId = d.get("eventId", null);
           return d.get("side", "") in ["a", "b"]
             && d.get("categoryId", "") is string
             && d.get("categoryId", "").size() > 0
-            && budgetId == d.get("side", "") + "_" + d.get("categoryId", "")
+            // An absent or null eventId is the category-level (ceiling) shape;
+            // a non-empty string id appends "__{eventId}". Both forms come from
+            // budgetAllocationId() in src/lib/tenantIds.ts, which the rules
+            // tests import — so a drift here fails the build rather than
+            // silently rejecting every per-event write.
+            && (
+              (eventId == null && budgetId == base)
+              || (eventId is string && eventId.size() > 0 && budgetId == base + "__" + eventId)
+            )
             // Money is integer paise, always (FEATURES.md §1.3). A float here
             // means someone wrote rupees; a negative means a typo.
             && d.get("allocatedPaise", -1) is int
             && d.get("allocatedPaise", -1) >= 0;
         }
+        // NOT checked here: that a category's event amounts sum to no more than
+        // its ceiling. That is a cross-document sum, which would need a get()
+        // per write, and the overshoot is surfaced in the UI instead.
 
         function validTotals() {
           let d = request.resource.data;
@@ -210,10 +241,11 @@ service cloud.firestore {
         }
 
         allow read: if isTenantMember(tenantId) || isAdmin();
-        allow create, update: if (isTenantCouple(tenantId) || isAdmin())
+        allow create, update: if (isTenantMember(tenantId) || isAdmin())
           && (validAllocation() || validTotals());
-        // Deleting a category removes its two allocation documents alongside it.
-        allow delete: if isTenantCouple(tenantId) || isAdmin();
+        // Deleting a category or an event removes its allocation documents
+        // alongside it.
+        allow delete: if isTenantMember(tenantId) || isAdmin();
       }
 
       // ---- contacts (Phase 2 Step 3) --------------------------------------
