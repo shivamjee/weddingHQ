@@ -42,6 +42,13 @@ export interface Guest {
   name: string;
   ageGroup: AgeGroup;
   dietary: string; // optional until the caterer asks
+  /** Own contact info, if this person has one distinct from the household's.
+   *  Optional in TypeScript because documents written before this field
+   *  existed have no such field; read as `?? ""`. Falls back to the
+   *  household's `primaryPhone`/`email` when unset — most named guests don't
+   *  have their own, since the household is the invitation unit. */
+  phone?: string;
+  email?: string;
   notes: string;
   createdBy: string; // uid
   createdAt: Timestamp;

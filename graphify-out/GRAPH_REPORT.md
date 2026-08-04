@@ -1,16 +1,16 @@
 # Graph Report - wedding_app  (2026-08-03)
 
 ## Corpus Check
-- 110 files · ~87,266 words
+- 110 files · ~87,771 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 821 nodes · 1824 edges · 94 communities (32 shown, 62 thin omitted)
+- 821 nodes · 1805 edges · 95 communities (33 shown, 62 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.68)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `76c39e57`
+- Built from commit: `98a2de81`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -104,12 +104,13 @@
 - Landing.tsx
 - contacts/page.tsx
 - PWA (installable web app)
+- Landing.tsx
 
 ## God Nodes (most connected - your core abstractions)
-1. `useTenant()` - 46 edges
-2. `useAuth()` - 37 edges
+1. `useTenant()` - 44 edges
+2. `useAuth()` - 36 edges
 3. `toPaise()` - 27 edges
-4. `useConfig()` - 27 edges
+4. `useConfig()` - 25 edges
 5. `tenantHref()` - 22 edges
 6. `formatINR()` - 21 edges
 7. `Side` - 17 edges
@@ -137,23 +138,23 @@
 - **Changing hostname / adding a domain checklist** — claude_vercel, claude_google_cloud_console_oauth_client, claude_authdomain_same_origin_proxy, claude_wedding_hq_ten_vercel_app [EXTRACTED 1.00]
 - **AI comparison-assist route-handler pattern** — phase2_ai_route_handler, phase2_gemini_api_key, phase2_verifycaller, phase2_zod_schema_validation, phase2_src_lib_ai_provider_ts [EXTRACTED 1.00]
 
-## Communities (94 total, 62 thin omitted)
+## Communities (95 total, 62 thin omitted)
 
 ### Community 0 - "App Root & Layout"
 Cohesion: 0.11
 Nodes (20): aggregates/balances (§2.5), aggregates/budgetTotals (§2.5), Budget analytics (§2.6), Budget consumption driven by shares, never who paid, tenants/{tenantId}/budgets/{side}_{categoryId} (§2.1), categories/{categoryId} (§1.2), CSV import and export (§4.6), events/{eventId} (§1.2) (+12 more)
 
 ### Community 1 - "Tenant Shell & More Tab"
-Cohesion: 0.08
-Nodes (53): RemoveButton(), ComparisonDetailPage(), Mode, STATUS_STYLES, AiAssistSheet(), SuggestedCriterion, SuggestedValue, Suggestion (+45 more)
+Cohesion: 0.09
+Nodes (38): Mode, SuggestedCriterion, SuggestedValue, Suggestion, CardsView(), computeWinners(), STATUS_STYLES, TableView() (+30 more)
 
 ### Community 2 - "Budget Page & Home"
-Cohesion: 0.15
-Nodes (33): AllocationRow(), AmountEditor(), EventAmountRow(), GroupBy, SideDetail(), TotalBudgetEditor(), View, EventForm() (+25 more)
+Cohesion: 0.11
+Nodes (39): AllocationRow(), AmountEditor(), BudgetData, EventAmountRow(), GroupBy, SideDetail(), TotalBudgetEditor(), View (+31 more)
 
 ### Community 3 - "Tenant Config & Firestore Paths"
 Cohesion: 0.08
-Nodes (33): HomePage(), budgetsCol(), budgetTotalsDoc(), categoriesCol(), eventsCol(), guestDoc(), guestTargetDoc(), guestTotalsDoc() (+25 more)
+Nodes (30): HomePage(), NamedGuestsBrowser(), budgetDoc(), budgetsCol(), budgetTotalsDoc(), categoriesCol(), contactDoc(), eventsCol() (+22 more)
 
 ### Community 4 - "Deploy & Hosting Config"
 Cohesion: 0.05
@@ -184,8 +185,8 @@ Cohesion: 0.15
 Nodes (18): GET(), POST(), RequestBody, AiResponse, aiResponseSchema, buildPrompt(), coerceValue(), RESPONSE_SCHEMA (+10 more)
 
 ### Community 11 - "Category/Event Setup Screen"
-Cohesion: 0.07
-Nodes (43): BudgetPage(), MorePage(), CategoriesSection(), CategoryForm(), CategoryRow(), EventRow(), EventsSection(), reorder() (+35 more)
+Cohesion: 0.14
+Nodes (18): CategoriesSection(), CategoryRow(), EventRow(), EventsSection(), reorder(), ColourPicker(), IconPicker(), DEFAULT_CATEGORIES (+10 more)
 
 ### Community 12 - "Comparison Views & Criteria Editor"
 Cohesion: 0.50
@@ -228,44 +229,48 @@ Cohesion: 0.50
 Nodes (4): Firebase Cloud Functions (avoid, Blaze-only), Firebase Firestore (Spark plan), Rejected: Railway/Render/Fly.io/DigitalOcean/AWS EC2, Rejected: standalone Postgres/MySQL/Mongo
 
 ### Community 25 - "ConfigProvider.tsx"
-Cohesion: 0.06
-Nodes (43): geistMono, geistSans, metadata, viewport, Home(), TenantShell(), fetchMembers(), InviteForm() (+35 more)
+Cohesion: 0.05
+Nodes (69): geistMono, geistSans, metadata, viewport, Home(), BudgetPage(), TenantShell(), fetchMembers() (+61 more)
 
 ### Community 26 - "Guests Page & Empty State"
-Cohesion: 0.06
-Nodes (65): ImportGuestsPage(), Loaded, LOG_VERB, Mode, GuestBarRow, GuestBars(), GuestNames(), HouseholdCard() (+57 more)
+Cohesion: 0.07
+Nodes (58): Loaded, LOG_VERB, Mode, GuestNames(), HouseholdCard(), HouseholdDraft, HouseholdForm(), parseCount() (+50 more)
 
 ### Community 88 - "MembershipsProvider.tsx"
 Cohesion: 0.07
-Nodes (50): BudgetData, RUNG_LABEL, TierLadder(), LadderRow, LoadedTenant, TenantContext, TenantContextValue, BudgetAllocation (+42 more)
+Nodes (48): AuthContextValue, ConfigContextValue, LoadedConfig, LoadedTenant, Category, CategoryWithId, Comparison, ComparisonOption (+40 more)
 
 ### Community 92 - "contacts/page.tsx"
-Cohesion: 0.24
-Nodes (13): ContactCard(), contactDoc(), digits(), formatPhone(), mailtoHref(), telHref(), toInternational(), whatsappHref() (+5 more)
+Cohesion: 0.13
+Nodes (25): ImportGuestsPage(), CSV_FIELDS, CsvField, guessMapping(), guestsToCsvRows(), HEADER_HINTS, householdsToCsvRows(), ImportDraft (+17 more)
 
 ### Community 93 - "PWA (installable web app)"
 Cohesion: 0.50
 Nodes (4): PWA (installable web app), Rejected: native iOS/Android apps (React Native), public/sw.js (hand-written service worker), iPhone PWA install instructions (Safari)
 
+### Community 94 - "Landing.tsx"
+Cohesion: 0.27
+Nodes (6): Landing(), subscribeToNothing(), SignInButton(), LastTenant, readLastTenant(), readLastTenantName()
+
 ## Knowledge Gaps
-- **220 isolated node(s):** `Mode`, `Loaded`, `LOG_VERB`, `name`, `version` (+215 more)
+- **220 isolated node(s):** `RUNG_LABEL`, `ChipOption`, `PLATES`, `H`, `PlannedHousehold` (+215 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **62 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `useTenant()` connect `Category/Event Setup Screen` to `Tenant Shell & More Tab`, `Budget Page & Home`, `Tenant Config & Firestore Paths`, `MembershipsProvider.tsx`, `ConfigProvider.tsx`, `Guests Page & Empty State`, `contacts/page.tsx`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+- **Why does `useTenant()` connect `ConfigProvider.tsx` to `Tenant Shell & More Tab`, `Budget Page & Home`, `Tenant Config & Firestore Paths`, `Category/Event Setup Screen`, `Guests Page & Empty State`, `contacts/page.tsx`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Why does `Phase 3 — Guest list (active brief)` connect `CLAUDE.md Doc Cross-references` to `Tenancy Collections & Build Order`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Why does `tenants/{tenantId}/guests top-level collection` connect `CLAUDE.md Doc Cross-references` to `Multi-tenancy Data Model`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **What connects `Mode`, `Loaded`, `LOG_VERB` to the rest of the system?**
+- **What connects `RUNG_LABEL`, `ChipOption`, `PLATES` to the rest of the system?**
   _220 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App Root & Layout` be split into smaller, more focused modules?**
   _Cohesion score 0.11052631578947368 - nodes in this community are weakly interconnected._
 - **Should `Tenant Shell & More Tab` be split into smaller, more focused modules?**
-  _Cohesion score 0.07589781562384303 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08734693877551021 - nodes in this community are weakly interconnected._
 - **Should `Budget Page & Home` be split into smaller, more focused modules?**
-  _Cohesion score 0.14518002322880372 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11161387631975868 - nodes in this community are weakly interconnected._

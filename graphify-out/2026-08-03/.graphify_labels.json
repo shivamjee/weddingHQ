@@ -90,5 +90,7 @@
   "88": "MembershipsProvider.tsx",
   "89": "TenantProvider.tsx",
   "90": "Landing.tsx",
-  "91": "AuthProvider.tsx"
+  "91": "AuthProvider.tsx",
+  "92": "contacts/page.tsx",
+  "93": "PWA (installable web app)"
 }

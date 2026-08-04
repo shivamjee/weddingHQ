@@ -9,13 +9,36 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+const BackArrow = (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-4 w-4"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+const backClass =
+  "-ml-2 flex min-h-[44px] w-fit items-center gap-1 px-2 text-sm font-medium text-stone-500 hover:text-stone-800";
+
 export function PageHeader({
   backHref,
+  onBack,
   title,
   subtitle,
   action,
 }: {
   backHref?: string;
+  /** For a screen reached via in-component state (a "view" mode) rather than
+   *  a real route — same look as `backHref`, but a click handler instead of a
+   *  Link. Ignored if `backHref` is also set. */
+  onBack?: () => void;
   title: string;
   subtitle?: ReactNode;
   action?: ReactNode;
@@ -23,24 +46,15 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-1">
       {backHref ? (
-        <Link
-          href={backHref}
-          className="-ml-2 flex min-h-[44px] w-fit items-center gap-1 px-2 text-sm font-medium text-stone-500 hover:text-stone-800"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
+        <Link href={backHref} className={backClass}>
+          {BackArrow}
           Back
         </Link>
+      ) : onBack ? (
+        <button type="button" onClick={onBack} className={backClass}>
+          {BackArrow}
+          Back
+        </button>
       ) : null}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

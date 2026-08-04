@@ -44,6 +44,7 @@ import {
 import { GuestBars, type GuestBarRow } from "@/components/guests/GuestBars";
 import { GuestNames } from "@/components/guests/GuestNames";
 import { HouseholdCard } from "@/components/guests/HouseholdCard";
+import { HouseholdView } from "@/components/guests/HouseholdView";
 import { NamedGuestsBrowser } from "@/components/guests/NamedGuestsBrowser";
 import { HouseholdForm, type HouseholdDraft } from "@/components/guests/HouseholdForm";
 import { TierLadder } from "@/components/guests/TierLadder";
@@ -101,6 +102,7 @@ const RENDER_PAGE = 50;
 
 type Mode =
   | { kind: "list" }
+  | { kind: "view"; household: HouseholdWithId }
   | { kind: "form"; household?: HouseholdWithId }
   | { kind: "names"; household: HouseholdWithId };
 
@@ -308,8 +310,32 @@ export default function GuestsPage() {
     URL.revokeObjectURL(url);
   }
 
+  const eventNamesFor = useCallback(
+    (h: HouseholdWithId) =>
+      h.eventIds
+        .map((id) => events.find((e) => e.id === id))
+        .filter((e) => e !== undefined)
+        .map((e) => ({ id: e.id, name: e.name, colour: e.colour, icon: e.icon })),
+    [events],
+  );
+
   // ---- modes ---------------------------------------------------------------
   // Full-screen swaps rather than a modal, matching the rest of the app.
+
+  if (mode.kind === "view") {
+    const household = mode.household;
+    return (
+      <HouseholdView
+        household={household}
+        plates={plates}
+        sideLabel={sideLabel(household.side)}
+        eventNames={eventNamesFor(household)}
+        onEdit={() => setMode({ kind: "form", household })}
+        onNames={() => setMode({ kind: "names", household })}
+        onBack={() => setMode({ kind: "list" })}
+      />
+    );
+  }
 
   if (mode.kind === "form") {
     const editing = mode.household;
@@ -545,12 +571,7 @@ export default function GuestsPage() {
                   household={household}
                   plates={plates}
                   sideLabel={sideLabel(household.side)}
-                  eventNames={household.eventIds
-                    .map((id) => events.find((e) => e.id === id))
-                    .filter((e) => e !== undefined)
-                    .map((e) => ({ id: e.id, name: e.name, colour: e.colour, icon: e.icon }))}
-                  onEdit={() => setMode({ kind: "form", household })}
-                  onNames={() => setMode({ kind: "names", household })}
+                  onView={() => setMode({ kind: "view", household })}
                 />
               ))}
             </ul>

@@ -75,8 +75,8 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
-    "mtime": 1785800740.3644385,
-    "ast_hash": "75ec9171199ba3c2f865017fff3c93c5",
+    "mtime": 1785804997.775065,
+    "ast_hash": "234ef0c00826dc61622861d4df2cae67",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/home/page.tsx": {
@@ -545,8 +545,8 @@
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdForm.tsx": {
-    "mtime": 1785800292.8587089,
-    "ast_hash": "bb9f75bc15a441dd66cf12545475d5bd",
+    "mtime": 1785805030.042569,
+    "ast_hash": "6a878a1e0bfdb7e0afcdf1105ba86c51",
     "semantic_hash": ""
   },
   "src/components/guests/TierLadder.tsx": {
@@ -587,6 +587,11 @@
   "src/types/household.ts": {
     "mtime": 1785799882.2946947,
     "ast_hash": "d23fe883df2b825ad3bd787a72586b58",
+    "semantic_hash": ""
+  },
+  "src/components/guests/NamedGuestsBrowser.tsx": {
+    "mtime": 1785803937.405451,
+    "ast_hash": "3cb659042a5c21e62a7355fdfde6ced5",
     "semantic_hash": ""
   }
 }
