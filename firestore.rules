@@ -288,6 +288,52 @@ service cloud.firestore {
           allow write: if isTenantMember(tenantId) || isAdmin();
         }
       }
+
+      // ---- guest list (Phase 3) -------------------------------------------
+      // Member-writable, and emphatically so: the whole premise is that four
+      // people — the couple and both sets of parents — contribute names
+      // independently (FEATURES.md §4). Gating this to the couple would mean
+      // parents emailing lists to be typed in, which is the workflow the
+      // feature exists to replace.
+      //
+      // No field-shape validation here, unlike budgets. There is no id/field
+      // agreement to protect (auto-ids), and a wrong head count is a planning
+      // mistake to fix on screen, not a privilege boundary to defend.
+      match /households/{householdId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
+      }
+
+      // Named guests. TOP-LEVEL under the tenant rather than nested under a
+      // household, so this is an ordinary rules block and tenant isolation
+      // stays a path prefix — a `guests` SUBcollection would force
+      // collectionGroup queries in Phase 6, and those match every path depth in
+      // the whole database, including other weddings. See src/types/guest.ts.
+      match /guests/{guestId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
+      }
+
+      // Derived rollups (currently only `guestTotals`, read by Home so it
+      // doesn't have to load every household). Not shape-validated on purpose:
+      // it is recomputed from documents the same member can already write
+      // directly, so a rule here would guard nothing they couldn't do anyway.
+      match /aggregates/{docId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if isTenantMember(tenantId) || isAdmin();
+      }
+
+      // Append-only change log (FEATURES.md §4.3). CREATE only — no update, no
+      // delete, for members, the couple and the global admin alike. An audit
+      // log anyone can rewrite does not answer "who deleted my aunt?", which is
+      // the entire reason it exists. `by` must be the caller, so an entry
+      // cannot be filed under somebody else's name.
+      match /guestLog/{entryId} {
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow create: if (isTenantMember(tenantId) || isAdmin())
+          && request.resource.data.get("by", "") == request.auth.uid;
+        allow update, delete: if false;
+      }
     }
 
     // ---- everything else --------------------------------------------------

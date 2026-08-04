@@ -7,7 +7,7 @@ export type { Tenant, TenantWithId, SideInfo } from "./tenant";
 export type { Membership, MembershipWithId } from "./membership";
 export type { Event, EventWithId } from "./event";
 export type { Category, CategoryWithId } from "./category";
-export type { CurrencySettings } from "./settings";
+export type { CurrencySettings, GuestTargetSettings } from "./settings";
 export type { BudgetAllocation, BudgetAllocationWithId, BudgetTotals } from "./budget";
 export type { Contact, ContactWithId, ContactType } from "./contact";
 export { CONTACT_TYPES, CONTACT_TYPE_LABELS } from "./contact";
@@ -30,3 +30,19 @@ export {
   OPTION_STATUSES,
   OPTION_STATUS_LABELS,
 } from "./comparison";
+export type { Household, HouseholdWithId, Tier, HouseholdStatus } from "./household";
+export {
+  TIERS,
+  TIER_LABELS,
+  HOUSEHOLD_STATUSES,
+  HOUSEHOLD_STATUS_LABELS,
+} from "./household";
+export type { Guest, GuestWithId, AgeGroup } from "./guest";
+export { AGE_GROUPS, AGE_GROUP_LABELS } from "./guest";
+export type {
+  GuestTotals,
+  GuestTotalsSlice,
+  GuestLogAction,
+  GuestLogEntry,
+  GuestLogEntryWithId,
+} from "./guestTotals";

@@ -118,3 +118,37 @@ export const optionDoc = (
   optionId: string,
 ): DocumentReference =>
   doc(db, "tenants", tenantId, "comparisons", comparisonId, "options", optionId);
+
+// ---- guest list (Phase 3) --------------------------------------------------
+// Auto-ids for both, like contacts: nothing keys off a household's or a guest's
+// id, and two families can legitimately be called "The Sharmas".
+
+export const householdsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "households");
+
+export const householdDoc = (tenantId: string, householdId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "households", householdId);
+
+/** TOP-LEVEL under the tenant, NOT nested under the household — see the comment
+ *  on `Guest` in src/types/guest.ts. The link is the `householdId` field. */
+export const guestsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "guests");
+
+export const guestDoc = (tenantId: string, guestId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "guests", guestId);
+
+/** tenants/{t}/aggregates/guestTotals — the one-document rollup Home reads
+ *  instead of the whole household list. See src/types/guestTotals.ts. */
+export const guestTotalsDoc = (tenantId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "aggregates", "guestTotals");
+
+/** Append-only change log. Create-only in firestore.rules. */
+export const guestLogCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "guestLog");
+
+/** The venue capacity the tier ladder measures against. A plain `settings` doc —
+ *  no new builder needed, but named here so callers don't retype the doc id. */
+export const GUEST_TARGET_SETTINGS_ID = "guestTarget";
+
+export const guestTargetDoc = (tenantId: string): DocumentReference =>
+  settingsDoc(tenantId, GUEST_TARGET_SETTINGS_ID);

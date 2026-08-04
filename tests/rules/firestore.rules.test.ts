@@ -676,6 +676,109 @@ describe("comparisons — including the options subcollection", () => {
   });
 });
 
+describe("guest list — households, guests and the derived totals", () => {
+  const household = {
+    name: "The Agarwals",
+    side: "a",
+    tier: "must",
+    status: "proposed",
+    invitedBy: T1_FAMILY.uid,
+    eventIds: ["sangeet"],
+    adultCount: 2,
+    childCount: 2,
+  };
+  const guest = { householdId: "hh1", name: "Rohit Agarwal", ageGroup: "adult", dietary: "" };
+  const totals = { overall: { households: 1, people: 4 }, roomsNeeded: 0 };
+
+  it("a family member — not just the couple — adds, edits and removes households", async () => {
+    // The premise of the whole feature: four people contribute names
+    // independently (FEATURES.md §4).
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "households", "hh1"), household));
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1, "households", "hh1"), { tier: "should" }));
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "guests", "g1"), guest));
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1, "guests", "g1"), { dietary: "veg" }));
+    await assertSucceeds(deleteDoc(doc(db, "tenants", T1, "guests", "g1")));
+    await assertSucceeds(deleteDoc(doc(db, "tenants", T1, "households", "hh1")));
+  });
+
+  it("any member writes the derived totals, and the target setting", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "aggregates", "guestTotals"), totals));
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "settings", "guestTarget"), {
+      targetHeads: 400,
+    }));
+  });
+
+  it("members read each other's households, guests and totals", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "households", "hh1"), household);
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "guests", "g1"), guest);
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "aggregates", "guestTotals"), totals);
+    });
+    const db = authed(T1_COUPLE);
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "households")));
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "guests")));
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "aggregates", "guestTotals")));
+  });
+
+  it("a member of the OTHER wedding is denied every part of it", async () => {
+    const db = authed(T2_COUPLE);
+    await assertFails(getDocs(collection(db, "tenants", T1, "households")));
+    await assertFails(getDocs(collection(db, "tenants", T1, "guests")));
+    await assertFails(getDoc(doc(db, "tenants", T1, "aggregates", "guestTotals")));
+    await assertFails(getDocs(collection(db, "tenants", T1, "guestLog")));
+    await assertFails(setDoc(doc(db, "tenants", T1, "households", "sneak"), household));
+    await assertFails(setDoc(doc(db, "tenants", T1, "guests", "sneak"), guest));
+    await assertFails(setDoc(doc(db, "tenants", T1, "aggregates", "guestTotals"), totals));
+  });
+
+  it("a stranger and an unauthenticated caller are denied", async () => {
+    for (const db of [authed(STRANGER), testEnv.unauthenticatedContext().firestore()]) {
+      await assertFails(getDocs(collection(db, "tenants", T1, "households")));
+      await assertFails(getDocs(collection(db, "tenants", T1, "guests")));
+      await assertFails(setDoc(doc(db, "tenants", T1, "households", "hh9"), household));
+    }
+  });
+
+  it("an invitee who has never signed in can still add their side's households", async () => {
+    const db = authed(INVITEE);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "households", "hh2"), household));
+  });
+});
+
+describe("guestLog is append-only — that is the whole point of it", () => {
+  const entry = (uid: string) => ({
+    action: "removed",
+    householdName: "The Agarwals",
+    householdId: null,
+    people: 4,
+    by: uid,
+    byName: "Mom",
+  });
+
+  it("any member files an entry and everyone can read the log", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "guestLog", "e1"), entry(T1_FAMILY.uid)));
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "guestLog")));
+  });
+
+  it("nobody can edit or delete an entry — not the couple, not the admin", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "guestLog", "e1"), entry(T1_FAMILY.uid));
+    });
+    for (const db of [authed(T1_FAMILY), authed(T1_COUPLE), authed(ADMIN)]) {
+      await assertFails(updateDoc(doc(db, "tenants", T1, "guestLog", "e1"), { byName: "Someone" }));
+      await assertFails(deleteDoc(doc(db, "tenants", T1, "guestLog", "e1")));
+    }
+  });
+
+  it("an entry cannot be filed under somebody else's name", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(setDoc(doc(db, "tenants", T1, "guestLog", "e2"), entry(T1_COUPLE.uid)));
+  });
+});
+
 describe("privilege escalation is closed", () => {
   it("a family member cannot promote themselves to couple", async () => {
     const db = authed(T1_FAMILY);

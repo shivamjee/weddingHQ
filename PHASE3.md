@@ -177,11 +177,20 @@ tenant denied**. The fixtures already set up two weddings for exactly this.
 
 ## Read-cost & indexes (CLAUDE.md §3 / FEATURES §1.5)
 
-- **Bound every list query with `limit()`** (page size 50, cursor via `startAfter()`), as Phase 2's
-  contacts and questions screens already do.
-- **The tier ladder and cost projection read `aggregates/guestTotals`, not the household list** —
-  that is what the aggregate is for. Updated transactionally on household create/update/delete,
-  and **not** on `guests` writes.
+- **AS BUILT — read model revised from this brief's original text.** "Page size 50 with a
+  `startAfter()` cursor" and "every count respects the active filters" contradict: a filtered
+  headcount computed over page 1 of several is wrong, which is exactly the failure this doc calls
+  "worse than no filter" below. The Guests screen instead does **one** bounded read of the whole
+  household list (`limit(500)`) and paginates the *rendering* only — every count is computed over
+  the full in-memory list, so a filter always changes the total correctly. At real scale
+  (100–300 households) this is the same order as the Budget screen's existing 300-document read.
+- The tier ladder and cost projection on the **Guests screen itself** read that in-memory list, not
+  the aggregate — a fixed set of aggregate keys can't answer an arbitrary filter combination.
+  `aggregates/guestTotals` exists for **Home**, which needs the headline numbers without loading
+  every household. It is **recompute-and-overwrite, not transactional**: the Guests screen already
+  holds the full list after any household write, so it recomputes the whole aggregate document from
+  that list and `setDoc`s it — one writer path, no transaction, self-healing on the next write. See
+  FEATURES.md §4.5. Still **not** written on `guests` writes.
 - Filtered counts not covered by the aggregate's keys are computed over the loaded page
   client-side — filtered views are exploratory, and this is far cheaper than a query per filter
   combination.

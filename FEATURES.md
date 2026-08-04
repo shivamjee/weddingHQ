@@ -665,9 +665,14 @@ aggregates/guestTotals
   updatedAt      timestamp
 ```
 
-Updated transactionally on household create / update / delete. **Not** on `guests` writes — naming
-someone changes no count (§4.1), so the aggregate has exactly one set of writers and cannot drift
-from the planning numbers.
+**Recompute-and-overwrite, not transactional** (revised during Phase 3 build — see CLAUDE.md
+§ Current phase for why). The Guests screen already holds the full household list in memory
+(every on-screen count has to respect the active filters, which rules out serving them from a
+handful of fixed aggregate keys), so after any household create/update/delete it recomputes this
+whole document from that list and `setDoc`s it. One writer path, no transaction to get wrong, and
+a document that somehow drifted heals itself on the next household write. **Not** written on
+`guests` writes — naming someone changes no count (§4.1), so the aggregate cannot drift from the
+planning numbers.
 
 Filtered counts that aren't covered by these keys are computed over the loaded page client-side —
 acceptable given filtered views are exploratory, and far cheaper than a query per filter

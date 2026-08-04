@@ -281,19 +281,38 @@ Two additions beyond the brief's letter, both deliberate and commented at the co
   every category. `FEATURES.md` §2.1 is updated to match, including a stale `_totals/{side}`
   subcollection path that was actually always a flat `_totals_{side}` doc.
 
-**Phase 3 — Guest list** is the active brief: `PHASE3.md`. Read it before starting work. Households
-as the invitation unit, tiers with a cumulative ladder, and the cost projection that consumes the
-`perPlateEstPaise` captured on events in Phase 2.
+**Phase 3 — Guest list is COMPLETE** (`PHASE3.md`, kept as a record — it has an "AS BUILT" note
+where the shipped read model differs from the original brief). Households as the invitation unit,
+`guests` top-level with names deliberately optional, a tier ladder (`must` → `should` → `if_space`)
+with a cumulative running total against an editable `settings/guestTarget`, a cost projection from
+`Event.perPlateEstPaise` with a live marginal-cost line while adding a household, combinable
+filters where every on-screen count respects them, a room block, CSV import (column mapping →
+dry-run preview with duplicate warnings → commit as `proposed`) and export, fuzzy duplicate
+detection at entry, and an append-only `guestLog` for provenance. All in `src/lib/guests.ts` (pure,
+unit-tested) plus `src/app/t/[tenantId]/guests/`.
 
-`FEATURES.md` §4.1 was revised before that brief was written. Two decisions there are load-bearing
-and were made deliberately — don't quietly undo them:
+Two decisions from `FEATURES.md` §4.1, load-bearing and made deliberately — don't quietly undo
+them:
 - **Named guests are a top-level `tenants/{tenantId}/guests` collection, not a subcollection of
   the household.** Nesting them would force `collectionGroup` queries for RSVP, dietary and
   seating in Phase 6 — and a collectionGroup query spans *every* tenant, which would put tenant
   isolation back on a `tenantId ==` filter a query could forget. See § Multi-tenancy above.
 - **Head counts live on the household and are never derived from guest documents.** "Dad's
   colleagues, 12 people" must be enterable with zero names attached; that is what people actually
-  type, and demanding twelve blank rows is how the feature goes unused.
+  type, and demanding twelve blank rows is how the feature goes unused. Enforced in
+  `src/lib/guests.ts`: no function there takes a `guests` document at all.
+
+One read-model correction made during the build, not in the original brief: `PHASE3.md` asked for
+50-row pages with a cursor, but "every count respects the active filters" (§4.4) is impossible over
+a partial page — a filtered headcount computed from page 1 of several is simply wrong. The Guests
+screen instead does **one** bounded read of the whole household list (`limit(500)`) and paginates
+only the *rendering*; every count is computed from the full in-memory list. Same trade the Budget
+screen already makes at 300 documents. `aggregates/guestTotals` (for Home, which cannot afford that
+same read) is **recompute-and-overwrite, not transactional** — the screen already holds the full
+list after any write, so it recomputes the whole aggregate and `setDoc`s it. No `runTransaction`
+existed anywhere in this codebase to build the originally-briefed version on top of; this is the
+same guarantee (Home never shows numbers from before the last write settled) with nothing to get
+wrong in a transaction. `FEATURES.md` §4.5 and `PHASE3.md` are both updated to match.
 
 Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
 access-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,

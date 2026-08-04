@@ -2,25 +2,34 @@
 
 // Home — a deliberately small summary (PHASE2 Step 6).
 //
-// Kept minimal on purpose. A year out there is no spend history, no guest list
-// and no task timeline, so a "full" dashboard would be mostly empty cards and
-// misleading charts. This shows only the two things that are real right now:
-// how each side's budget is allocated, and how many questions are waiting to be
-// asked. It grows when there is something to grow with (Phase 4+).
+// Kept minimal on purpose. A year out there is no spend history and no task
+// timeline, so a "full" dashboard would be mostly empty cards and misleading
+// charts. This shows only what is real right now: how each side's budget is
+// allocated, where the headcount stands against the venue, and how many
+// questions are waiting to be asked. It grows when there is something to grow
+// with (Phase 4+).
 //
-// READ COST: one bounded read of `budgets`, plus one COUNT aggregation for open
-// questions. A count query is billed as one read per 1,000 documents matched —
-// far cheaper than fetching the questions just to length them.
+// READ COST: one bounded read of `budgets`, one COUNT aggregation for open
+// questions, and — added in Phase 3 — TWO single-document reads for the guest
+// headcount. `aggregates/guestTotals` exists precisely so this screen never
+// loads three hundred households to print one number.
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { getCountFromServer, getDocs, limit, query, where } from "firebase/firestore";
-import { BUDGET_TOTALS_PREFIX, budgetsCol, questionsCol } from "@/lib/paths";
+import { getCountFromServer, getDoc, getDocs, limit, query, where } from "firebase/firestore";
+import {
+  BUDGET_TOTALS_PREFIX,
+  budgetsCol,
+  guestTargetDoc,
+  guestTotalsDoc,
+  questionsCol,
+} from "@/lib/paths";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { MAX_CATEGORIES, useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { allocationHealth, comparisonRows } from "@/lib/budget";
 import { formatDate } from "@/lib/dates";
+import { formatINR, toPaise } from "@/lib/money";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
 import type { BudgetAllocationWithId, Side } from "@/types";
 
@@ -31,9 +40,11 @@ export default function HomePage() {
   const { categories, loading: configLoading } = useConfig();
 
   const load = useCallback(async () => {
-    const [budgetSnap, openCount] = await Promise.all([
+    const [budgetSnap, openCount, guestSnap, targetSnap] = await Promise.all([
       getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS))),
       getCountFromServer(query(questionsCol(tenantId), where("status", "==", "open"))),
+      getDoc(guestTotalsDoc(tenantId)),
+      getDoc(guestTargetDoc(tenantId)),
     ]);
 
     const allocations: BudgetAllocationWithId[] = [];
@@ -47,7 +58,22 @@ export default function HomePage() {
         allocations.push({ id: d.id, ...data } as BudgetAllocationWithId);
       }
     }
-    return { allocations, totals, openQuestions: openCount.data().count };
+    const overall = guestSnap.exists()
+      ? (guestSnap.data().overall as { people?: number; households?: number; projectedPaise?: number })
+      : null;
+    const target = targetSnap.exists() ? Number(targetSnap.data().targetHeads) : 0;
+
+    return {
+      allocations,
+      totals,
+      openQuestions: openCount.data().count,
+      guests: {
+        people: Number(overall?.people ?? 0),
+        households: Number(overall?.households ?? 0),
+        projectedPaise: toPaise(Math.trunc(Number(overall?.projectedPaise ?? 0))),
+      },
+      guestTarget: Number.isFinite(target) && target > 0 ? target : null,
+    };
   }, [tenantId]);
 
   const { data, loading } = useLoader(load, "Could not load your summary.");
@@ -129,6 +155,47 @@ export default function HomePage() {
               href={tenantHref(tenantId, "/budget")}
               title="Set your budgets"
               body="Nothing allocated yet — start with each side's total."
+            />
+          )}
+
+          {data && data.guests.people > 0 ? (
+            <section className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="text-base font-semibold text-stone-800">Guests</h2>
+                <Link
+                  href={tenantHref(tenantId, "/guests")}
+                  className="text-sm font-medium text-rose-600"
+                >
+                  Open
+                </Link>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold text-stone-800">
+                  {data.guests.people}
+                  {data.guestTarget ? (
+                    <span className="text-base font-normal text-stone-500">
+                      {" "}
+                      of {data.guestTarget}
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-0.5 text-sm text-stone-500">
+                  {data.guests.households}{" "}
+                  {data.guests.households === 1 ? "household" : "households"} ·{" "}
+                  {formatINR(data.guests.projectedPaise)} projected
+                </p>
+                {data.guestTarget && data.guests.people > data.guestTarget ? (
+                  <p className="mt-1 text-sm text-rose-700">
+                    {data.guests.people - data.guestTarget} over the target.
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          ) : (
+            <SummaryLink
+              href={tenantHref(tenantId, "/guests")}
+              title="Start the guest list"
+              body="Households, tiers, and what each one costs to feed."
             />
           )}
 

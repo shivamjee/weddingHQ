@@ -264,6 +264,40 @@ export function FilterPanel({
   );
 }
 
+/**
+ * Generic disclosure. Same native `<details>` reasoning as `FilterPanel` above —
+ * open/closed state, keyboard handling and semantics all free, nothing lifted
+ * into React.
+ *
+ * The load-bearing use is the household form's "More details" (PHASE3 Step 1):
+ * five fields visible and the other twelve folded away is the difference between
+ * a guest list that gets filled in and one that doesn't.
+ */
+export function Expander({
+  summary,
+  children,
+  defaultOpen = false,
+}: {
+  summary: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  return (
+    <details
+      open={defaultOpen}
+      className="rounded-2xl border border-stone-200 bg-white [&[open]>summary]:border-b [&[open]>summary]:border-stone-100"
+    >
+      <summary className="flex min-h-[44px] cursor-pointer list-none items-center gap-2 px-4 py-2 text-sm font-medium text-stone-600 [&::-webkit-details-marker]:hidden">
+        <span aria-hidden className="text-stone-400">
+          &#9662;
+        </span>
+        {summary}
+      </summary>
+      <div className="flex flex-col gap-3 px-4 py-3">{children}</div>
+    </details>
+  );
+}
+
 export function PrimaryButton({
   children,
   ...props
