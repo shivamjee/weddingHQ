@@ -18,8 +18,11 @@ export function GuestView({
 }: {
   guest: GuestWithId;
   household: HouseholdWithId;
-  onEdit: () => void;
-  onRemove: () => void;
+  /** Omit either when this guest was reached by browsing across households
+   *  (NamedGuestsBrowser) rather than from their own household's Names screen —
+   *  editing there stays one tap further, on the household it belongs to. */
+  onEdit?: () => void;
+  onRemove?: () => void;
   onBack: () => void;
 }) {
   const phone = guest.phone || household.primaryPhone;
@@ -32,10 +35,12 @@ export function GuestView({
     <div className="flex flex-1 flex-col gap-4 px-5 py-6">
       <PageHeader onBack={onBack} title={guest.name} subtitle={AGE_GROUP_LABELS[guest.ageGroup]} />
 
-      <div className="flex gap-3">
-        <PrimaryButton onClick={onEdit}>Edit</PrimaryButton>
-        <SecondaryButton onClick={onRemove}>Remove</SecondaryButton>
-      </div>
+      {onEdit || onRemove ? (
+        <div className="flex gap-3">
+          {onEdit ? <PrimaryButton onClick={onEdit}>Edit</PrimaryButton> : null}
+          {onRemove ? <SecondaryButton onClick={onRemove}>Remove</SecondaryButton> : null}
+        </div>
+      ) : null}
 
       {guest.dietary || guest.notes ? (
         <dl className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4">

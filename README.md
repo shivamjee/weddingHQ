@@ -11,8 +11,8 @@ is Shivam & Swara's.
 
 ## What it does (so far)
 
-Phases 1 (foundation), 1.5 (multi-tenancy) and 2 (decision support) are done — everything up to
-actually spending money.
+Phases 1 (foundation), 1.5 (multi-tenancy), 2 (decision support) and 3 (guest list) are done —
+everything up to actually spending money.
 
 - Sign in with Google, one tap — no passwords, no forms.
 - Only invited people can get in, and only to the weddings they were invited to. Enforced by
@@ -32,13 +32,22 @@ actually spending money.
 - An optional **AI assist** on comparisons — paste rough notes, get suggested columns and filled-in
   values in a review screen where nothing saves until you confirm it. Hidden unless the app has a
   Gemini key configured; see [`CLAUDE.md`](CLAUDE.md) for how to turn it on.
-- A light **Home** summary — allocation health and how many questions are still open.
+- **Guests** tab: households as the invitation unit — "Dad's colleagues, 12 people" is a complete
+  entry with no names needed. A **tier ladder** (must / should / if space) against an editable
+  target headcount that says which tier breaks it and by how many, a **cost projection** from each
+  event's per-plate estimate (with the live "+₹30,000" delta while you're still typing), combinable
+  filters where every number on screen respects them, a room block, CSV import (map your columns,
+  preview with duplicate warnings, then commit) and export, a duplicate warning as you type a name,
+  and a log of who added or removed whom. Tap any household or name for a profile with one-tap
+  call / WhatsApp / email.
+- A light **Home** summary — allocation health, headcount against target, and how many questions
+  are still open.
 - Installs to your phone's home screen and opens like a native app (see below).
-- **Guests** is still a "coming soon" placeholder — that's Phase 3.
 
 The full feature roadmap lives in [`FEATURES.md`](FEATURES.md). Completed phases are recorded in
-[`PHASE1.md`](PHASE1.md), [`PHASE1.5.md`](PHASE1.5.md) and [`PHASE2.md`](PHASE2.md); the active
-Phase 3 (guest list) brief is [`PHASE3.md`](PHASE3.md).
+[`PHASE1.md`](PHASE1.md), [`PHASE1.5.md`](PHASE1.5.md), [`PHASE2.md`](PHASE2.md) and
+[`PHASE3.md`](PHASE3.md). Next up is Phase 4, money in motion — its brief,
+[`PHASE4.md`](PHASE4.md), is drafted but **not yet reviewed**.
 
 ## How to install it on your phone
 
@@ -99,6 +108,10 @@ Chosen to stay entirely on free tiers and minimise manual infrastructure work (s
 - **`src/lib/budget.ts` / `src/lib/comparison.ts` / `src/lib/phone.ts`** — pure, unit-tested logic
   for allocation health, comparison-table scoring/highlighting, and turning a phone number typed
   any which way into working `tel:` / `wa.me` links.
+- **`src/lib/guests.ts` / `src/lib/guestCsv.ts`** — pure, unit-tested guest-list maths: head counts
+  and the cost projection (which read the household's hand-entered numbers and never count name
+  documents), the tier ladder, the filters every on-screen total is derived through, and the CSV
+  column mapping whose dry-run genuinely cannot write anything because it can't reach Firestore.
 - **`src/lib/ai/`** — the AI comparison assist: `provider.ts` is the one place that calls Gemini
   (swap providers by editing this file alone), `verifyCaller.ts` verifies the caller's Firebase ID
   token with no service-account secret, `compareSchema.ts` is the zod contract for what the model
@@ -127,7 +140,7 @@ Google sign-in needs HTTPS locally — run `npm run dev:https` and open `https:/
 instead of plain `npm run dev` (see `CLAUDE.md` for why).
 
 ```bash
-npm test          # unit tests (money helpers, tenant id scheme)
+npm test          # unit tests (money, tenant ids, budget, comparison, phone, guests, guest CSV)
 npm run test:rules  # Firestore security rules tests (spins up a local emulator)
 npm run build      # production build
 npm run lint       # ESLint

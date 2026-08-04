@@ -539,6 +539,7 @@ households/{householdId}
   nightsNeeded        number | null
   address             string        // optional until invitations are printed
   primaryPhone        string
+  email               string?       // Phase 3.1; absent on older docs, read as ?? ""
   notes               string
   createdBy           uid
   createdAt           timestamp
@@ -549,6 +550,8 @@ guests/{guestId}                    // TOP-LEVEL, not nested under the household
   name            string
   ageGroup        "adult" | "child" | "infant"
   dietary         string            // optional until the caterer asks
+  phone           string?           // Phase 3.1: only when this person's own number differs
+  email           string?           // from the household's. Falls back to the household's.
   notes           string
   createdBy       uid
   createdAt       timestamp
@@ -631,6 +634,14 @@ be entered twice. Warn on fuzzy name or phone match at entry.
 
 The running total is the point. Set a target headcount (from the booked venue's capacity where
 available) and mark which tier breaks it, by how many people.
+
+**AS BUILT (Phase 3.1):** the shipped table is `Tier | People | Rooms | Cost`. The `Running` column
+was replaced by a per-tier **rooms** count (`LadderRow.rooms`, off the same `summarise()` call) —
+accommodation is the other number people scan this screen for, and the room block was otherwise
+only visible in the summary strip. The cumulative running total still drives *which tier breaks the
+target*, and that sentence sits directly under the table; `runningPeople` / `runningPaise` are still
+computed and still cumulative. `Cost` shows `runningPaise`, so the cost column remains cumulative
+while `People` and `Rooms` are per-tier.
 
 **Cost projection.** For each household, sum `perPlateEstPaise` across the events they're
 invited to, times its **planned** head count (`adultCount + childCount` — never a count of `guests`
@@ -872,7 +883,8 @@ whether the budget is realistic at all. The brief is in `PHASE3.md`.
 
 **Phase 4 — Money in motion**
 Expense entry with the three states, splits, aggregates, balances, settle-up, the full analytics
-set in §2.6. Build when deposits and real payments start, roughly six months out.
+set in §2.6. Build when deposits and real payments start, roughly six months out. The brief is
+`PHASE4.md` — **drafted, not yet reviewed**; settle its open questions before building.
 
 **Phase 5 — Day-of**
 Run sheets, offline caching, today view. Useless until dates and vendors are locked.

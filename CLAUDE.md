@@ -314,6 +314,32 @@ existed anywhere in this codebase to build the originally-briefed version on top
 same guarantee (Home never shows numbers from before the last write settled) with nothing to get
 wrong in a transaction. `FEATURES.md` §4.5 and `PHASE3.md` are both updated to match.
 
+**Phase 3.1 — Guest-list QA, layered on top of Phase 3, is COMPLETE.** From walking the shipped
+screens:
+- **Rows are minimal; detail lives on a profile screen.** A household row and a named-guest row are
+  now one glance line each, and the whole row is the tap target. Tapping opens `HouseholdView` /
+  `GuestView` — read-only, with the full detail set and tap-to-call/WhatsApp/email. Edit, Names and
+  Remove moved there. Stacking three action pills under every card made a list of a hundred
+  households unreadable on a phone.
+- **`ActionLink` promoted into `src/components/ui/form.tsx`** from `plan/contacts/page.tsx`, which
+  now imports it. Three screens render call/WhatsApp/email pills; one implementation.
+- **`PageHeader` gained `onBack`** alongside `backHref`, for screens reached by in-component state
+  (the "view" modes above) rather than a real route. `backHref` still wins when both are set.
+- **Named guests carry optional `phone` / `email`**, falling back to the household's when unset —
+  the household is still the invitation unit, so most names will never set their own. Households
+  gained an optional `email` for the same reason. Both are `?`-optional in TypeScript because
+  documents written before them exist; read as `?? ""`.
+- **Every household save routes into that household's Names screen**, add or edit, with a line on
+  the form saying names are optional and come next. Saving then hunting for a "Names" button was
+  the hop people forgot.
+- **The tier ladder's `Running` column became `Rooms`** (per-tier, not cumulative — `LadderRow.rooms`
+  off the same `summarise()` call). The cumulative running total that marks *which tier breaks the
+  target* now appears only in the sentence under the table. `FEATURES.md` §4.4 is updated.
+- **A "Named guests" browser** under the summary box on the Guests tab: every named guest across the
+  currently filtered households, lazily read only when the expander is opened. Tapping a row opens
+  the same `GuestView`, minus Edit/Remove — it is a cross-household browse, and editing stays on the
+  household the guest belongs to.
+
 Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
 access-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,
 manifest + service worker, five-tab nav.
@@ -323,10 +349,15 @@ weddings. It replaced the `allowlist` collection with `memberships`, moved all w
 `tenants/{tenantId}/…`, changed sides from `"shivam"/"swara"` to `"a"/"b"` with tenant labels, and
 added the global admin role. **Phase 2 builds on that shape** — see § Multi-tenancy above.
 
-Still out of scope until their own phase: expenses and the three states, splits, settlements and
-balances (Phase 4); tasks and run sheets (Phase 5+); receipts, Firebase Storage, RSVP and AI
-expense categorisation (Phase 6). The categoriser will reuse `src/lib/ai/provider.ts` and the
-route-handler pattern Phase 2 established rather than building a second AI integration.
+**Phase 4 — Money in motion is NEXT and NOT STARTED.** The brief is `PHASE4.md`, which is
+**marked TO BE REVIEWED** — it was drafted from `FEATURES.md` §2.2–§2.7 at the end of the Phase 3
+session and has not been read back or agreed. Read it and settle its open questions before writing
+any code against it. Nothing in this repo implements expenses yet.
+
+Still out of scope until their own phase: tasks and run sheets (Phase 5+); receipts, Firebase
+Storage, RSVP and AI expense categorisation (Phase 6). The categoriser will reuse
+`src/lib/ai/provider.ts` and the route-handler pattern Phase 2 established rather than building a
+second AI integration.
 
 ## graphify
 

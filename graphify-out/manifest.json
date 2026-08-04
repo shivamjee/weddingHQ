@@ -75,8 +75,8 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
-    "mtime": 1785804997.775065,
-    "ast_hash": "234ef0c00826dc61622861d4df2cae67",
+    "mtime": 1785807995.4194908,
+    "ast_hash": "c03e2fff6bdf33297ee825bcd8d0e84b",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/home/page.tsx": {
@@ -215,9 +215,9 @@
     "semantic_hash": "76d4d0189c3a43bc444700b792421925"
   },
   "src/components/ui/PageHeader.tsx": {
-    "mtime": 1785046890.141459,
-    "ast_hash": "bed6523127d48ae09ce03ab991138e2e",
-    "semantic_hash": "bed6523127d48ae09ce03ab991138e2e"
+    "mtime": 1785807918.7786782,
+    "ast_hash": "c9beb2aa59d8af93f466c6b0a529d4ba",
+    "semantic_hash": ""
   },
   "src/components/ui/form.tsx": {
     "mtime": 1785806364.6416893,
@@ -535,13 +535,13 @@
     "semantic_hash": ""
   },
   "src/components/guests/GuestNames.tsx": {
-    "mtime": 1785806461.1262276,
-    "ast_hash": "64f38a671b6b9fe80052c23a1dfcd3ea",
+    "mtime": 1785808072.7637155,
+    "ast_hash": "1701cd46d335cc781283ff41c4074535",
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdCard.tsx": {
-    "mtime": 1785806424.6713462,
-    "ast_hash": "ba819c50eab5782d4b84099b91f595c9",
+    "mtime": 1785807968.7693317,
+    "ast_hash": "1c01f4c79ab8c576365ac5920083a47d",
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdForm.tsx": {
@@ -575,8 +575,8 @@
     "semantic_hash": ""
   },
   "src/types/guest.ts": {
-    "mtime": 1785799891.9863544,
-    "ast_hash": "683240adab1e13f21c47a4a854c40f02",
+    "mtime": 1785807909.746369,
+    "ast_hash": "c5b3cb4b08be0e896c1ee3cb4e07a077",
     "semantic_hash": ""
   },
   "src/types/guestTotals.ts": {
@@ -592,6 +592,16 @@
   "src/components/guests/NamedGuestsBrowser.tsx": {
     "mtime": 1785803937.405451,
     "ast_hash": "3cb659042a5c21e62a7355fdfde6ced5",
+    "semantic_hash": ""
+  },
+  "src/components/guests/GuestView.tsx": {
+    "mtime": 1785807959.2663822,
+    "ast_hash": "d829a929896429e4888ba78c1c8671ea",
+    "semantic_hash": ""
+  },
+  "src/components/guests/HouseholdView.tsx": {
+    "mtime": 1785807945.7231174,
+    "ast_hash": "8897432060a6c7cd507d86131e6e8bb6",
     "semantic_hash": ""
   }
 }

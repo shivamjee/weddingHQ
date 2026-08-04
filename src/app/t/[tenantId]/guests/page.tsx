@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/form";
 import { GuestBars, type GuestBarRow } from "@/components/guests/GuestBars";
 import { GuestNames } from "@/components/guests/GuestNames";
+import { GuestView } from "@/components/guests/GuestView";
 import { HouseholdCard } from "@/components/guests/HouseholdCard";
 import { HouseholdView } from "@/components/guests/HouseholdView";
 import { NamedGuestsBrowser } from "@/components/guests/NamedGuestsBrowser";
@@ -83,6 +84,7 @@ import {
   TIERS,
   TIER_LABELS,
   type GuestLogAction,
+  type GuestWithId,
   type HouseholdStatus,
   type HouseholdWithId,
   type MembershipWithId,
@@ -104,7 +106,8 @@ type Mode =
   | { kind: "list" }
   | { kind: "view"; household: HouseholdWithId }
   | { kind: "form"; household?: HouseholdWithId }
-  | { kind: "names"; household: HouseholdWithId };
+  | { kind: "names"; household: HouseholdWithId }
+  | { kind: "guestView"; guest: GuestWithId; household: HouseholdWithId };
 
 interface Loaded {
   households: HouseholdWithId[];
@@ -321,6 +324,16 @@ export default function GuestsPage() {
 
   // ---- modes ---------------------------------------------------------------
   // Full-screen swaps rather than a modal, matching the rest of the app.
+
+  if (mode.kind === "guestView") {
+    return (
+      <GuestView
+        guest={mode.guest}
+        household={mode.household}
+        onBack={() => setMode({ kind: "list" })}
+      />
+    );
+  }
 
   if (mode.kind === "view") {
     const household = mode.household;
@@ -540,7 +553,11 @@ export default function GuestsPage() {
             ) : null}
           </section>
 
-          <NamedGuestsBrowser tenantId={tenantId} visibleHouseholds={visible} />
+          <NamedGuestsBrowser
+            tenantId={tenantId}
+            visibleHouseholds={visible}
+            onViewGuest={(guest, household) => setMode({ kind: "guestView", guest, household })}
+          />
 
           <Expander summary="Breakdown">
             <ChipRow<BreakdownKey>

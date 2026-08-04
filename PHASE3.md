@@ -244,6 +244,28 @@ AI-guessed guest data, and nothing AI-driven near headcount or cost.
 10. All list queries bounded with `limit()`. Money via `src/lib/money.ts` (integer paise).
 11. Firebase still on **Spark**; no Cloud Functions, no Storage. Vercel still on **Hobby**.
 
+All eleven are met. Item 3 is met with one shipped change: the ladder *table* shows per-tier rooms
+where this brief implied a running-total column, and the cumulative total that marks the breaking
+tier is the sentence beneath it — see the Phase 3.1 list below.
+
+## Phase 3.1 — QA round after walking the shipped screens
+
+Layered on top of the above, all complete. `CLAUDE.md` § Current phase carries the same list with
+the reasoning; `FEATURES.md` §4.1 and §4.4 are updated to match.
+
+- List rows (households and named guests) reduced to one glance line, whole row tappable, opening a
+  read-only `HouseholdView` / `GuestView` profile that carries the full detail set and the
+  call/WhatsApp/email links. Edit / Names / Remove live on the profile, not the row.
+- `ActionLink` moved from `plan/contacts/page.tsx` into `src/components/ui/form.tsx`; contacts
+  imports it. `PageHeader` gained an `onBack` handler for state-driven screens.
+- Named guests gained optional `phone` / `email`, falling back to the household's; households
+  gained an optional `email`.
+- Saving a household — add *or* edit — routes into that household's Names screen; "Done" sits at
+  the bottom of that screen.
+- The ladder's `Running` column became per-tier `Rooms` (`LadderRow.rooms`).
+- A lazily-read "Named guests" browser on the Guests tab lists every name across the filtered
+  households, opening the same profile without Edit/Remove.
+
 ## Standing rules (unchanged from Phases 1–2 / CLAUDE.md)
 
 - Ask before deviating from the stack; flag anything that costs money (especially Cloud Functions

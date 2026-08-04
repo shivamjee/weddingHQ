@@ -6,8 +6,12 @@
 // PLANNED headcount (the authoritative number) and was never meant to open into
 // a names list — most households have none at all (§4.1's whole point). This is
 // the honest answer to "where do I see names": a separate, secondary view, not a
-// drill-down on the summary. Editing a name still happens on the household's own
-// "Names" screen; this is read-only, for scanning across households.
+// drill-down on the summary.
+//
+// Tapping a row opens that guest's profile (GuestView) — same screen the
+// household's own Names list uses, just without Edit/Remove: this is a
+// cross-household browse, and editing stays one tap further, on the household
+// the guest actually belongs to.
 //
 // READ COST: one bounded read of the WHOLE `guests` collection, lazy — mounted
 // only once the expander is opened, same pattern as the change log below it.
@@ -26,11 +30,16 @@ const MAX_NAMED_GUESTS = 500;
 export function NamedGuestsBrowser({
   tenantId,
   visibleHouseholds,
+  onViewGuest,
 }: {
   tenantId: string;
   /** Already filtered by the screen's active filters — this view respects them
    *  too, same as every other count on the page (§4.4). */
   visibleHouseholds: readonly HouseholdWithId[];
+  /** Opens the guest's profile — a full-screen swap owned by the parent page,
+   *  same as the household "view" mode, rather than something rendered inside
+   *  this collapsed drawer. */
+  onViewGuest: (guest: GuestWithId, household: HouseholdWithId) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -46,7 +55,9 @@ export function NamedGuestsBrowser({
         Named guests
       </summary>
       <div className="px-4 py-3">
-        {open ? <Rows tenantId={tenantId} visibleHouseholds={visibleHouseholds} /> : null}
+        {open ? (
+          <Rows tenantId={tenantId} visibleHouseholds={visibleHouseholds} onViewGuest={onViewGuest} />
+        ) : null}
       </div>
     </details>
   );
@@ -55,9 +66,11 @@ export function NamedGuestsBrowser({
 function Rows({
   tenantId,
   visibleHouseholds,
+  onViewGuest,
 }: {
   tenantId: string;
   visibleHouseholds: readonly HouseholdWithId[];
+  onViewGuest: (guest: GuestWithId, household: HouseholdWithId) => void;
 }) {
   const load = useCallback(async () => {
     const snap = await getDocs(query(guestsCol(tenantId), limit(MAX_NAMED_GUESTS)));
@@ -66,8 +79,8 @@ function Rows({
 
   const { data, loading, error } = useLoader(load, "Could not load named guests.");
 
-  const householdName = useMemo(
-    () => new Map(visibleHouseholds.map((h) => [h.id, h.name])),
+  const householdById = useMemo(
+    () => new Map(visibleHouseholds.map((h) => [h.id, h])),
     [visibleHouseholds],
   );
   const visibleIds = useMemo(() => new Set(visibleHouseholds.map((h) => h.id)), [visibleHouseholds]);
@@ -93,28 +106,35 @@ function Rows({
 
   return (
     <ul className="flex flex-col gap-2 text-sm">
-      {rows.map((guest) => (
-        <li
-          key={guest.id}
-          className="flex items-center justify-between gap-3 border-b border-stone-50 pb-2 last:border-0"
-        >
-          <div className="min-w-0">
-            <p className="truncate font-medium text-stone-700">{guest.name}</p>
-            <p className="truncate text-xs text-stone-400">
-              {householdName.get(guest.householdId) ?? "Unknown household"}
-            </p>
-          </div>
-          <div className="shrink-0 text-right text-xs text-stone-400">
-            {AGE_GROUP_LABELS[guest.ageGroup]}
-            {guest.dietary ? (
-              <>
-                <br />
-                {guest.dietary}
-              </>
-            ) : null}
-          </div>
-        </li>
-      ))}
+      {rows.map((guest) => {
+        const household = householdById.get(guest.householdId);
+        return (
+          <li key={guest.id} className="border-b border-stone-50 pb-2 last:border-0">
+            <button
+              type="button"
+              onClick={() => household && onViewGuest(guest, household)}
+              disabled={!household}
+              className="flex w-full items-center justify-between gap-3 text-left disabled:opacity-60"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium text-stone-700">{guest.name}</p>
+                <p className="truncate text-xs text-stone-400">
+                  {household?.name ?? "Unknown household"}
+                </p>
+              </div>
+              <div className="shrink-0 text-right text-xs text-stone-400">
+                {AGE_GROUP_LABELS[guest.ageGroup]}
+                {guest.dietary ? (
+                  <>
+                    <br />
+                    {guest.dietary}
+                  </>
+                ) : null}
+              </div>
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }
