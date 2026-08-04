@@ -103,6 +103,7 @@ export function HouseholdForm({
   );
   const [address, setAddress] = useState(existing?.address ?? "");
   const [phone, setPhone] = useState(existing?.primaryPhone ?? "");
+  const [email, setEmail] = useState(existing?.email ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   const [busy, setBusy] = useState(false);
@@ -151,6 +152,7 @@ export function HouseholdForm({
         nightsNeeded: accommodationNeeded && nights.trim() ? parseCount(nights) : null,
         address: address.trim(),
         primaryPhone: phone.trim(),
+        email: email.trim(),
         notes: notes.trim(),
       });
     } catch (err) {
@@ -320,6 +322,15 @@ export function HouseholdForm({
             type="tel"
             inputMode="tel"
             placeholder="98765 43210"
+          />
+        </Field>
+
+        <Field label="Email">
+          <TextInput
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="agarwals@example.com"
           />
         </Field>
 

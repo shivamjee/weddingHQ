@@ -63,6 +63,11 @@ export interface Household {
   nightsNeeded: number | null;
   address: string; // optional until invitations are printed
   primaryPhone: string;
+  /** Optional in TypeScript because documents written before this field
+   *  existed have no such field; read it as `?? ""`. Powers the "Email" action
+   *  link on the household card — there is no email anywhere else in the guest
+   *  data model, since named guests inherit the household's contact info. */
+  email?: string;
   notes: string;
   createdBy: string; // uid
   createdAt: Timestamp;

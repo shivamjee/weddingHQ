@@ -24,11 +24,20 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { ChipRow, Field, FormMessage, PrimaryButton, SecondaryButton, TextInput } from "@/components/ui/form";
+import {
+  ActionLink,
+  ChipRow,
+  Field,
+  FormMessage,
+  PrimaryButton,
+  SecondaryButton,
+  TextInput,
+} from "@/components/ui/form";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { guestDoc, guestsCol } from "@/lib/paths";
 import { householdHeads } from "@/lib/guests";
+import { mailtoHref, telHref, whatsappHref } from "@/lib/phone";
 import { AGE_GROUPS, AGE_GROUP_LABELS, type AgeGroup, type GuestWithId, type HouseholdWithId } from "@/types";
 
 /** READ COST: bounded per CLAUDE.md §3. A household of more than 50 named people
@@ -79,6 +88,13 @@ export function GuestNames({
   const namedAdults = guests.filter((g) => g.ageGroup === "adult").length;
   const namedChildren = guests.length - namedAdults;
   const drifted = guests.length > 0 && guests.length !== planned;
+
+  // Named guests have no phone/email of their own — the household IS the
+  // invitation unit and its contact info is what every name in it shares. Same
+  // reasoning as HouseholdCard.
+  const tel = telHref(household.primaryPhone);
+  const wa = whatsappHref(household.primaryPhone);
+  const mail = mailtoHref(household.email ?? "");
 
   async function reconcile() {
     setBusy(true);
@@ -137,13 +153,9 @@ export function GuestNames({
         }
         action={<SecondaryButton onClick={() => setAdding(true)}>+ Name</SecondaryButton>}
       />
-      <button
-        type="button"
-        onClick={onBack}
-        className="self-start min-h-[44px] text-sm font-medium text-rose-600"
-      >
-        ← Back to the guest list
-      </button>
+      <PrimaryButton type="button" onClick={onBack} className="self-start">
+        Done
+      </PrimaryButton>
 
       {/* Offered, never automatic. The planned count is the authoritative
           number until a person decides otherwise. */}
@@ -184,19 +196,43 @@ export function GuestNames({
           {guests.map((guest) => (
             <li
               key={guest.id}
-              className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-4"
+              className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4"
             >
-              <button type="button" onClick={() => setEditing(guest)} className="flex-1 text-left">
-                <p className="font-medium text-stone-800">{guest.name}</p>
-                <p className="text-sm text-stone-500">
-                  {AGE_GROUP_LABELS[guest.ageGroup]}
-                  {guest.dietary ? ` · ${guest.dietary}` : ""}
-                </p>
-              </button>
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-stone-800">{guest.name}</p>
+                  <p className="text-sm text-stone-500">
+                    {AGE_GROUP_LABELS[guest.ageGroup]}
+                    {guest.dietary ? ` · ${guest.dietary}` : ""}
+                  </p>
+                  {guest.notes ? (
+                    <p className="mt-0.5 text-xs text-stone-400">{guest.notes}</p>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditing(guest)}
+                  className="min-h-[44px] shrink-0 px-2 text-sm font-medium text-stone-400 hover:text-stone-800"
+                >
+                  Edit
+                </button>
+              </div>
+
+              {/* Via the household's own phone/email — a name has none of its
+                  own. Only rendered when it actually parses, same as
+                  HouseholdCard. */}
+              {tel || wa || mail ? (
+                <div className="flex flex-wrap gap-2">
+                  {tel ? <ActionLink href={tel} label="Call" /> : null}
+                  {wa ? <ActionLink href={wa} label="WhatsApp" external /> : null}
+                  {mail ? <ActionLink href={mail} label="Email" /> : null}
+                </div>
+              ) : null}
+
               <button
                 type="button"
                 onClick={() => void remove(guest)}
-                className="min-h-[44px] px-2 text-sm font-medium text-stone-400 hover:text-rose-600"
+                className="self-start min-h-[44px] px-2 text-sm font-medium text-stone-400 hover:text-rose-600"
               >
                 Remove
               </button>

@@ -3,14 +3,15 @@
 // The tier ladder (PHASE3 Step 2, FEATURES.md §4.2) — the highest-value screen
 // in the phase and nearly free once households exist.
 //
-// CUMULATIVE, not per-tier. "Must 260, +Should 430, +If space 550" against a
-// target of 400 turns the conversation into "which of these are really Should?"
-// instead of "why did you delete my cousin?". The running total is the point;
-// a per-tier table would show the same data and start none of that.
+// The RUNNING total ("Must 260, +Should 430, +If space 550" against a target of
+// 400) is what marks which tier breaks the venue — but by request it lives in
+// the sentence below the table now, not as its own column. The table itself
+// shows Rooms instead: a per-tier room-block count, since accommodation is the
+// other number people scan this screen for.
 //
 // The target lives in settings/guestTarget and is member-writable like every
-// other setting. Without one, the ladder still shows running totals — it just
-// doesn't invent a line for them to cross.
+// other setting. Without one, the ladder still runs its totals for the sentence
+// below — it just doesn't invent a line for them to cross.
 
 import { useState } from "react";
 import { setDoc, serverTimestamp } from "firebase/firestore";
@@ -76,7 +77,7 @@ export function TierLadder({
             <tr className="border-b border-stone-100 text-left text-xs font-medium text-stone-500">
               <th className="px-4 py-2 font-medium">Tier</th>
               <th className="px-2 py-2 text-right font-medium">People</th>
-              <th className="px-2 py-2 text-right font-medium">Running</th>
+              <th className="px-2 py-2 text-right font-medium">Rooms</th>
               <th className="px-4 py-2 text-right font-medium">Cost</th>
             </tr>
           </thead>
@@ -95,8 +96,8 @@ export function TierLadder({
                   </span>
                 </td>
                 <td className="px-2 py-3 text-right tabular-nums text-stone-500">{row.people}</td>
-                <td className="px-2 py-3 text-right font-semibold tabular-nums text-stone-800">
-                  {row.runningPeople}
+                <td className="px-2 py-3 text-right tabular-nums text-stone-500">
+                  {row.rooms > 0 ? row.rooms : "—"}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-stone-600">
                   {formatCompact(row.runningPaise)}

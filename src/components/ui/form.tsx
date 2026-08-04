@@ -326,6 +326,29 @@ export function SecondaryButton({
   );
 }
 
+/** A tap-to-call / WhatsApp / email pill. Only ever rendered when the
+ *  underlying value actually parses to a link (see src/lib/phone.ts) — a
+ *  dead tap that opens a dialler on nothing is worse than no link at all. */
+export function ActionLink({
+  href,
+  label,
+  external = false,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="flex min-h-[44px] items-center rounded-full border border-stone-300 px-4 text-sm font-medium text-stone-700 hover:border-stone-400"
+    >
+      {label}
+    </a>
+  );
+}
+
 /** Inline error / success line, so every screen reports the same way. */
 export function FormMessage({
   error,

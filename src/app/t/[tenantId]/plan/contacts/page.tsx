@@ -33,6 +33,7 @@ import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { formatPhone, mailtoHref, telHref, whatsappHref } from "@/lib/phone";
 import {
+  ActionLink,
   ChipMultiRow,
   ChipRow,
   Field,
@@ -307,26 +308,6 @@ function ContactCard({
         <p className="text-sm whitespace-pre-wrap text-stone-500">{contact.notes}</p>
       ) : null}
     </li>
-  );
-}
-
-function ActionLink({
-  href,
-  label,
-  external = false,
-}: {
-  href: string;
-  label: string;
-  external?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-      className="flex min-h-[44px] items-center rounded-full border border-stone-300 px-4 text-sm font-medium text-stone-700 hover:border-stone-400"
-    >
-      {label}
-    </a>
   );
 }
 

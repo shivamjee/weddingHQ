@@ -261,6 +261,17 @@ describe("tierLadder", () => {
     expect(rows[0].runningPaise).toBe(260 * 400000);
     expect(rows[2].runningPaise).toBe(550 * 400000);
   });
+
+  it("rooms is per-tier, not cumulative — unlike the running fields", () => {
+    const withRooms = [
+      h({ id: "m", tier: "must", accommodationNeeded: true, roomsNeeded: 2 }),
+      h({ id: "s", tier: "should", accommodationNeeded: true, roomsNeeded: 3 }),
+    ];
+    const rows = tierLadder(withRooms, PLATES, null);
+    expect(rows[0].rooms).toBe(2);
+    expect(rows[1].rooms).toBe(3); // NOT 5 — this tier alone, not must+should
+    expect(rows[2].rooms).toBe(0);
+  });
 });
 
 describe("breakdownBy", () => {

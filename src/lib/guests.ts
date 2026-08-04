@@ -236,6 +236,9 @@ export interface LadderRow {
   households: number;
   people: number;
   projectedPaise: Paise;
+  /** Rooms needed by THIS tier alone — not cumulative, unlike the running
+   *  fields below. */
+  rooms: number;
   /** This tier and everything above it — the point of the whole table. */
   runningHouseholds: number;
   runningPeople: number;
@@ -284,6 +287,7 @@ export function tierLadder(
       households: summary.households,
       people: summary.people,
       projectedPaise: summary.projectedPaise,
+      rooms: summary.roomsNeeded,
       runningHouseholds,
       runningPeople,
       runningPaise: toPaise(runningPaise),
