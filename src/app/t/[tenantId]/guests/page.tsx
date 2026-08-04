@@ -44,6 +44,7 @@ import {
 import { GuestBars, type GuestBarRow } from "@/components/guests/GuestBars";
 import { GuestNames } from "@/components/guests/GuestNames";
 import { HouseholdCard } from "@/components/guests/HouseholdCard";
+import { NamedGuestsBrowser } from "@/components/guests/NamedGuestsBrowser";
 import { HouseholdForm, type HouseholdDraft } from "@/components/guests/HouseholdForm";
 import { TierLadder } from "@/components/guests/TierLadder";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -238,13 +239,15 @@ export default function GuestsPage() {
     async (draft: HouseholdDraft, existing?: HouseholdWithId) => {
       if (!user) throw new Error("not signed in");
       let next: HouseholdWithId[];
+      let saved: HouseholdWithId;
 
       if (existing) {
         await updateDoc(householdDoc(tenantId, existing.id), {
           ...draft,
           updatedAt: serverTimestamp(),
         });
-        next = households.map((h) => (h.id === existing.id ? { ...h, ...draft } : h));
+        saved = { ...existing, ...draft };
+        next = households.map((h) => (h.id === existing.id ? saved : h));
       } else {
         const ref = await addDoc(householdsCol(tenantId), {
           ...draft,
@@ -252,7 +255,8 @@ export default function GuestsPage() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        next = [...households, { id: ref.id, ...draft } as HouseholdWithId];
+        saved = { id: ref.id, ...draft } as HouseholdWithId;
+        next = [...households, saved];
       }
 
       await writeAggregate(next);
@@ -262,8 +266,13 @@ export default function GuestsPage() {
         existing?.id ?? null,
         draft.adultCount + draft.childCount,
       );
-      setMode({ kind: "list" });
       reload();
+      // Every save — add or edit — routes into the Names screen for that
+      // household. That screen's own empty state already offers "Add a name"
+      // and a "Back to the guest list" skip, so this is the whole fix: one
+      // fewer hop to remember, no new UI, and consistent whichever way you got
+      // here.
+      setMode({ kind: "names", household: saved });
     },
     [tenantId, user, households, writeAggregate, writeLog, reload],
   );
@@ -504,6 +513,8 @@ export default function GuestsPage() {
               </p>
             ) : null}
           </section>
+
+          <NamedGuestsBrowser tenantId={tenantId} visibleHouseholds={visible} />
 
           <Expander summary="Breakdown">
             <ChipRow<BreakdownKey>

@@ -334,6 +334,11 @@ export function HouseholdForm({
 
       <FormMessage error={error} />
 
+      <p className="text-xs text-stone-400">
+        Names are optional and come next — you can skip straight back to the list if you don&rsquo;t
+        have any to add.
+      </p>
+
       <div className="flex items-center gap-3">
         <PrimaryButton type="submit" disabled={!cleanName || busy}>
           {busy ? "Saving…" : "Save"}
