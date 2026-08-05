@@ -221,7 +221,7 @@ export default function ContactsPage() {
           Nothing matches those filters.
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
           {visible.map((contact) => (
             <ContactCard
               key={contact.id}

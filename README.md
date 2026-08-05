@@ -117,8 +117,8 @@ Chosen to stay entirely on free tiers and minimise manual infrastructure work (s
   token with no service-account secret, `compareSchema.ts` is the zod contract for what the model
   is allowed to return. Called from `src/app/api/ai/compare/route.ts`, the app's only server code —
   it never writes to Firestore, only returns a suggestion the client saves after confirmation.
-- **`src/components/nav/`** — the bottom tab bar and header that make up the app's navigation
-  shell.
+- **`src/components/nav/`** — the app's navigation shell: header, a bottom tab bar on phones, a
+  sidebar on tablet/desktop (`md:` and up) — both read the same tab list so they can't drift.
 - **`public/sw.js`** — the service worker that caches the app shell so it opens (rather than
   showing a browser error) with no signal.
 - **`tests/rules/`** — automated tests proving the security rules actually block non-invited

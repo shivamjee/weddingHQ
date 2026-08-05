@@ -247,7 +247,7 @@ export default function QuestionsPage() {
                     : `${group.items.length} question${group.items.length === 1 ? "" : "s"}`}
                 </span>
               </div>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
                 {group.items.map((q) => (
                   <QuestionCard
                     key={q.id}

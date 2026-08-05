@@ -10,15 +10,18 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { NotInvited } from "@/components/NotInvited";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { BottomTabBar } from "@/components/nav/BottomTabBar";
+import { SidebarNav } from "@/components/nav/SidebarNav";
 
 // Guard + chrome for one wedding. Two gates, in order:
 //   1. not signed in                             → bounced to "/"
 //   2. signed in, but this wedding isn't theirs  → a clear no-access screen, NOT
 //      a redirect (a redirect loop is how a hand-typed URL comes to look broken)
 //
-// Inside, the shell is the same fixed-height column as Phase 1 — header,
-// scrollable content, bottom tab bar — centered and max-width constrained, so
-// the desktop view is the same phone-width layout rather than a second design.
+// Below `md` (768px) this is still Phase 1's fixed-height phone column: header,
+// scrollable content, bottom tab bar, capped at max-w-md. At `md:` and up a
+// persistent SidebarNav replaces the bottom bar and the content column is
+// allowed to grow — see CLAUDE.md § Responsive layout for which screens use
+// the extra width and which stay single-column on purpose.
 
 export default function TenantLayout({
   children,
@@ -66,10 +69,15 @@ function TenantShell({ children }: { children: React.ReactNode }) {
   // read the rules would reject.
   return (
     <ConfigProvider tenantId={tenantId}>
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col border-stone-200 sm:border-x">
-        <AppHeader />
-        <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
-        <BottomTabBar />
+      <div className="mx-auto flex w-full max-w-md flex-1 border-stone-200 sm:border-x md:max-w-none md:border-x-0">
+        <SidebarNav />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppHeader />
+          <main className="mx-auto flex w-full max-w-none flex-1 flex-col overflow-y-auto md:max-w-3xl lg:max-w-6xl">
+            {children}
+          </main>
+          <BottomTabBar />
+        </div>
       </div>
     </ConfigProvider>
   );

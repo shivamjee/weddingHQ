@@ -75,8 +75,8 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
-    "mtime": 1785807995.4194908,
-    "ast_hash": "c03e2fff6bdf33297ee825bcd8d0e84b",
+    "mtime": 1785808562.8258824,
+    "ast_hash": "1dea753679fd2c4323d5caa0dba9cbcb",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/home/page.tsx": {
@@ -435,13 +435,13 @@
     "semantic_hash": "9e09241799026ac05be315a2f0b50055"
   },
   "CLAUDE.md": {
-    "mtime": 1785802074.044665,
-    "ast_hash": "5b60774440bbd2b1266b037d5ce5b667",
+    "mtime": 1785808774.0475261,
+    "ast_hash": "681ec3605898c9333e1b9669e98c3e03",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1785802030.3659213,
-    "ast_hash": "35df6578576f702975d73cde81a3fed3",
+    "mtime": 1785808802.1867738,
+    "ast_hash": "86ccb56982bc965e2e768743d62d5710",
     "semantic_hash": ""
   },
   "PHASE1.5.md": {
@@ -460,13 +460,13 @@
     "semantic_hash": "02357b9a3c5ec4404f0b8453444e0086"
   },
   "PHASE3.md": {
-    "mtime": 1785802047.2917135,
-    "ast_hash": "714baf62982562874d901e86b3c013cd",
+    "mtime": 1785808819.7997088,
+    "ast_hash": "1caf8899488dfc43081caba5302e7bec",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1785789419.967989,
-    "ast_hash": "eca27e84d823fec1d9771066258c22e9",
+    "mtime": 1785808850.7592747,
+    "ast_hash": "8da7f75e9f64c8429b0f169aef910c07",
     "semantic_hash": ""
   },
   "public/apple-touch-icon.png": {
@@ -590,18 +590,23 @@
     "semantic_hash": ""
   },
   "src/components/guests/NamedGuestsBrowser.tsx": {
-    "mtime": 1785803937.405451,
-    "ast_hash": "3cb659042a5c21e62a7355fdfde6ced5",
+    "mtime": 1785808541.271117,
+    "ast_hash": "16ee59fdb861803647a5e5dab5d65f8c",
     "semantic_hash": ""
   },
   "src/components/guests/GuestView.tsx": {
-    "mtime": 1785807959.2663822,
-    "ast_hash": "d829a929896429e4888ba78c1c8671ea",
+    "mtime": 1785808487.6277668,
+    "ast_hash": "e9c4a32dc81925e5303bce36a99357c9",
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdView.tsx": {
     "mtime": 1785807945.7231174,
     "ast_hash": "8897432060a6c7cd507d86131e6e8bb6",
+    "semantic_hash": ""
+  },
+  "PHASE4.md": {
+    "mtime": 1785808950.1022394,
+    "ast_hash": "8a205fea8479d384cf47b29484451030",
     "semantic_hash": ""
   }
 }
