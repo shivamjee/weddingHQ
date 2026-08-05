@@ -140,11 +140,11 @@ describe("eventComparisonRows", () => {
 
   it("sums only event-tagged amounts, across every category", () => {
     const rows = eventComparisonRows(events, [
-      { side: "a", categoryId: "decor", eventId: "mehendi", allocatedPaise: L(2) },
-      { side: "a", categoryId: "food", eventId: "mehendi", allocatedPaise: L(3) },
-      { side: "b", categoryId: "decor", eventId: "sangeet", allocatedPaise: L(1) },
+      { side: "a", eventId: "mehendi", allocatedPaise: L(2) },
+      { side: "a", eventId: "mehendi", allocatedPaise: L(3) },
+      { side: "b", eventId: "sangeet", allocatedPaise: L(1) },
       // Category-level (no eventId) — must NOT leak into any event's row.
-      { side: "a", categoryId: "venue", eventId: null, allocatedPaise: L(8) },
+      { side: "a", eventId: null, allocatedPaise: L(8) },
     ]);
     expect(rows.find((r) => r.eventId === "mehendi")).toMatchObject({ a: L(5), b: 0, totalPaise: L(5) });
     expect(rows.find((r) => r.eventId === "sangeet")).toMatchObject({ a: 0, b: L(1) });
