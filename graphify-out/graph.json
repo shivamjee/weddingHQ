@@ -1063,8 +1063,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_page",
-      "community": 25,
-      "community_name": "ConfigProvider.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "app/page.tsx"
     },
     {
@@ -1074,8 +1074,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_app_page_home",
-      "community": 25,
-      "community_name": "ConfigProvider.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "home()"
     },
     {
@@ -1236,7 +1236,7 @@
       "label": "Mode",
       "file_type": "code",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L105",
+      "source_location": "L106",
       "_origin": "ast",
       "id": "src_app_t_tenantid_guests_page_mode",
       "community": 26,
@@ -1247,7 +1247,7 @@
       "label": "Loaded",
       "file_type": "code",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L112",
+      "source_location": "L113",
       "_origin": "ast",
       "id": "src_app_t_tenantid_guests_page_loaded",
       "community": 26,
@@ -1258,7 +1258,7 @@
       "label": "GuestsPage()",
       "file_type": "code",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L118",
+      "source_location": "L119",
       "_origin": "ast",
       "id": "src_app_t_tenantid_guests_page_guestspage",
       "community": 26,
@@ -1269,7 +1269,7 @@
       "label": "ChangeLog()",
       "file_type": "code",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L672",
+      "source_location": "L679",
       "_origin": "ast",
       "id": "src_app_t_tenantid_guests_page_changelog",
       "community": 26,
@@ -1280,7 +1280,7 @@
       "label": "LOG_VERB",
       "file_type": "code",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L694",
+      "source_location": "L701",
       "_origin": "ast",
       "id": "src_app_t_tenantid_guests_page_log_verb",
       "community": 26,
@@ -1291,7 +1291,7 @@
       "label": "ChangeLogRows()",
       "file_type": "code",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L701",
+      "source_location": "L708",
       "_origin": "ast",
       "id": "src_app_t_tenantid_guests_page_changelogrows",
       "community": 26,
@@ -1338,8 +1338,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_t_tenantid_layout",
-      "community": 93,
-      "community_name": "[tenantId]/layout.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "[tenantid]/layout.tsx"
     },
     {
@@ -1349,8 +1349,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_app_t_tenantid_layout_tenantlayout",
-      "community": 93,
-      "community_name": "[tenantId]/layout.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "tenantlayout()"
     },
     {
@@ -1360,8 +1360,8 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "src_app_t_tenantid_layout_tenantshell",
-      "community": 93,
-      "community_name": "[tenantId]/layout.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "tenantshell()"
     },
     {
@@ -1371,8 +1371,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_t_tenantid_more_page",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "more/page.tsx"
     },
     {
@@ -1382,8 +1382,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_app_t_tenantid_more_page_fetchmembers",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "fetchmembers()"
     },
     {
@@ -1393,8 +1393,8 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_app_t_tenantid_more_page_morepage",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "morepage()"
     },
     {
@@ -1404,8 +1404,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "src_app_t_tenantid_more_page_removebutton",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "removebutton()"
     },
     {
@@ -1415,8 +1415,8 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "src_app_t_tenantid_more_page_inviteform",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "inviteform()"
     },
     {
@@ -1437,8 +1437,8 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "src_app_t_tenantid_more_setup_page_setuppage",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 93,
+      "community_name": "[tenantId]/layout.tsx",
       "norm_label": "setuppage()"
     },
     {
@@ -1690,8 +1690,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_t_tenantid_plan_layout",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 93,
+      "community_name": "[tenantId]/layout.tsx",
       "norm_label": "plan/layout.tsx"
     },
     {
@@ -1701,8 +1701,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_app_t_tenantid_plan_layout_sections",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 93,
+      "community_name": "[tenantId]/layout.tsx",
       "norm_label": "sections"
     },
     {
@@ -1712,8 +1712,8 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "src_app_t_tenantid_plan_layout_planlayout",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 93,
+      "community_name": "[tenantId]/layout.tsx",
       "norm_label": "planlayout()"
     },
     {
@@ -1745,8 +1745,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_app_t_tenantid_plan_questions_page",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "questions/page.tsx"
     },
     {
@@ -1767,8 +1767,8 @@
       "source_location": "L277",
       "_origin": "ast",
       "id": "src_app_t_tenantid_plan_questions_page_filterrows",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "filterrows()"
     },
     {
@@ -1778,8 +1778,8 @@
       "source_location": "L325",
       "_origin": "ast",
       "id": "src_app_t_tenantid_plan_questions_page_status_styles",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "status_styles"
     },
     {
@@ -1877,8 +1877,8 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "src_app_tenants_page_weddingcard",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 93,
+      "community_name": "[tenantId]/layout.tsx",
       "norm_label": "weddingcard()"
     },
     {
@@ -1965,8 +1965,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_loadingscreen",
-      "community": 25,
-      "community_name": "ConfigProvider.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "loadingscreen.tsx"
     },
     {
@@ -1976,8 +1976,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_components_loadingscreen_loadingscreen",
-      "community": 25,
-      "community_name": "ConfigProvider.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "loadingscreen()"
     },
     {
@@ -1987,8 +1987,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_notinvited",
-      "community": 25,
-      "community_name": "ConfigProvider.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "notinvited.tsx"
     },
     {
@@ -1998,8 +1998,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_components_notinvited_notinvited",
-      "community": 25,
-      "community_name": "ConfigProvider.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "notinvited()"
     },
     {
@@ -2185,8 +2185,8 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "src_components_comparison_aiassistsheet_aiassistsheet",
-      "community": 10,
-      "community_name": "AI Comparison Route",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "aiassistsheet()"
     },
     {
@@ -2317,8 +2317,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_components_comparison_optionform_optionform",
-      "community": 10,
-      "community_name": "AI Comparison Route",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "optionform()"
     },
     {
@@ -2614,8 +2614,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_components_guests_tierladder",
-      "community": 26,
-      "community_name": "Guests Page & Empty State",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "tierladder.tsx"
     },
     {
@@ -2625,8 +2625,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_components_guests_tierladder_rung_label",
-      "community": 26,
-      "community_name": "Guests Page & Empty State",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "rung_label"
     },
     {
@@ -2636,8 +2636,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_components_guests_tierladder_tierladder",
-      "community": 26,
-      "community_name": "Guests Page & Empty State",
+      "community": 2,
+      "community_name": "Budget Page & Home",
       "norm_label": "tierladder()"
     },
     {
@@ -2647,8 +2647,8 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "src_components_guests_tierladder_targeteditor",
-      "community": 26,
-      "community_name": "Guests Page & Empty State",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "targeteditor()"
     },
     {
@@ -2977,8 +2977,8 @@
       "source_location": "L220",
       "_origin": "ast",
       "id": "src_components_ui_form_filterpanel",
-      "community": 11,
-      "community_name": "contacts/page.tsx",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "filterpanel()"
     },
     {
@@ -3285,8 +3285,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_auth_authprovider",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "authprovider.tsx"
     },
     {
@@ -3296,8 +3296,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "src_lib_auth_authprovider_authcontextvalue",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "authcontextvalue"
     },
     {
@@ -3307,8 +3307,8 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "src_lib_auth_authprovider_authcontext",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "authcontext"
     },
     {
@@ -3318,8 +3318,8 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "src_lib_auth_authprovider_popup_fallback_codes",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "popup_fallback_codes"
     },
     {
@@ -3329,8 +3329,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_lib_auth_authprovider_authprovider",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "authprovider()"
     },
     {
@@ -3340,8 +3340,8 @@
       "source_location": "L178",
       "_origin": "ast",
       "id": "src_lib_auth_authprovider_useauth",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "useauth()"
     },
     {
@@ -4418,8 +4418,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_hooks_usemediaquery",
-      "community": 10,
-      "community_name": "AI Comparison Route",
+      "community": 26,
+      "community_name": "Guests Page & Empty State",
       "norm_label": "usemediaquery.ts"
     },
     {
@@ -4429,8 +4429,8 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "src_lib_hooks_usemediaquery_usemediaquery",
-      "community": 10,
-      "community_name": "AI Comparison Route",
+      "community": 26,
+      "community_name": "Guests Page & Empty State",
       "norm_label": "usemediaquery()"
     },
     {
@@ -4572,8 +4572,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "src_lib_paths_membershipscol",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 94,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "membershipscol()"
     },
     {
@@ -4583,8 +4583,8 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "src_lib_paths_membershipdoc",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 24,
+      "community_name": "Rejected Backend Options",
       "norm_label": "membershipdoc()"
     },
     {
@@ -4605,8 +4605,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "src_lib_paths_userdoc",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "userdoc()"
     },
     {
@@ -4759,8 +4759,8 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "src_lib_paths_questiondoc",
-      "community": 3,
-      "community_name": "Tenant Config & Firestore Paths",
+      "community": 10,
+      "community_name": "AI Comparison Route",
       "norm_label": "questiondoc()"
     },
     {
@@ -4880,8 +4880,8 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "src_lib_paths_guesttargetdoc",
-      "community": 26,
-      "community_name": "Guests Page & Empty State",
+      "community": 3,
+      "community_name": "Tenant Config & Firestore Paths",
       "norm_label": "guesttargetdoc()"
     },
     {
@@ -5001,8 +5001,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_lib_tenantids_membershipid",
-      "community": 1,
-      "community_name": "Tenant Shell & More Tab",
+      "community": 3,
+      "community_name": "Tenant Config & Firestore Paths",
       "norm_label": "membershipid()"
     },
     {
@@ -5144,8 +5144,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_lib_tenants_membershipsprovider",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 94,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "membershipsprovider.tsx"
     },
     {
@@ -5155,8 +5155,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_lib_tenants_membershipsprovider_fetchmemberships",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 94,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "fetchmemberships()"
     },
     {
@@ -5166,8 +5166,8 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_lib_tenants_membershipsprovider_membershipscontextvalue",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 94,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "membershipscontextvalue"
     },
     {
@@ -5177,8 +5177,8 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "src_lib_tenants_membershipsprovider_membershipscontext",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 94,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "membershipscontext"
     },
     {
@@ -5188,8 +5188,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_lib_tenants_membershipsprovider_membershipsprovider",
-      "community": 95,
-      "community_name": "useAuth",
+      "community": 94,
+      "community_name": "AuthProvider.tsx",
       "norm_label": "membershipsprovider()"
     },
     {
@@ -5276,8 +5276,8 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "src_lib_tenants_tenantprovider_tenanthref",
-      "community": 24,
-      "community_name": "Rejected Backend Options",
+      "community": 93,
+      "community_name": "[tenantId]/layout.tsx",
       "norm_label": "tenanthref()"
     },
     {
@@ -5309,8 +5309,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_lib_tenants_lasttenant_rememberlasttenant",
-      "community": 93,
-      "community_name": "[tenantId]/layout.tsx",
+      "community": 0,
+      "community_name": "App Root & Layout",
       "norm_label": "rememberlasttenant()"
     },
     {
@@ -5694,8 +5694,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_types_event",
-      "community": 88,
-      "community_name": "MembershipsProvider.tsx",
+      "community": 3,
+      "community_name": "Tenant Config & Firestore Paths",
       "norm_label": "event.ts"
     },
     {
@@ -5705,8 +5705,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_types_event_event",
-      "community": 88,
-      "community_name": "MembershipsProvider.tsx",
+      "community": 3,
+      "community_name": "Tenant Config & Firestore Paths",
       "norm_label": "event"
     },
     {
@@ -6145,8 +6145,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_types_user",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "user.ts"
     },
     {
@@ -6156,8 +6156,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_types_user_user",
-      "community": 94,
-      "community_name": "AuthProvider.tsx",
+      "community": 95,
+      "community_name": "useAuth",
       "norm_label": "user"
     },
     {
@@ -6887,9 +6887,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 100,
       "norm_label": "weddinghq (product)",
-      "community_name": "Stack Choices & OAuth Setup",
+      "community_name": "Vercel (frontend hosting)",
       "id": "claude_weddinghq"
     },
     {
@@ -6957,9 +6957,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 100,
       "norm_label": "firebase authentication",
-      "community_name": "Stack Choices & OAuth Setup",
+      "community_name": "Vercel (frontend hosting)",
       "id": "claude_firebase_authentication"
     },
     {
@@ -6985,9 +6985,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 98,
       "norm_label": "pwa (installable web app)",
-      "community_name": "Stack Choices & OAuth Setup",
+      "community_name": "Phase 2 security rules table (per collection)",
       "id": "claude_pwa"
     },
     {
@@ -7041,9 +7041,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 98,
       "norm_label": "rejected: native ios/android apps (react native)",
-      "community_name": "Stack Choices & OAuth Setup",
+      "community_name": "Phase 2 security rules table (per collection)",
       "id": "claude_rejected_native_apps"
     },
     {
@@ -7643,9 +7643,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 98,
       "norm_label": "public/sw.js (hand-written service worker)",
-      "community_name": "Stack Choices & OAuth Setup",
+      "community_name": "Phase 2 security rules table (per collection)",
       "id": "claude_service_worker_sw_js"
     },
     {
@@ -7825,9 +7825,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "budget consumption driven by shares, never who paid",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_budget_consumption_shares"
     },
     {
@@ -7979,9 +7979,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "money representation: integer paise (\u00a71.3)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_money_paise_representation"
     },
     {
@@ -8021,9 +8021,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "tenants/{tenantid}/budgets/{side}_{categoryid} (\u00a72.1)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_budgets_collection"
     },
     {
@@ -8049,9 +8049,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "expenses/{expenseid} (\u00a72.2)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_expenses_collection"
     },
     {
@@ -8063,9 +8063,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "expense states: estimated/committed/paid (\u00a72.3)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_expense_three_states"
     },
     {
@@ -8077,9 +8077,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "settlements/{settlementid} (\u00a72.4)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_settlements_collection"
     },
     {
@@ -8091,9 +8091,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "aggregates/budgettotals (\u00a72.5)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_aggregates_budgettotals"
     },
     {
@@ -8105,9 +8105,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "aggregates/balances (\u00a72.5)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_aggregates_balances"
     },
     {
@@ -8119,9 +8119,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 101,
+      "community": 8,
       "norm_label": "budget analytics (\u00a72.6)",
-      "community_name": "Budget analytics (\u00a72.6)",
+      "community_name": "Phase 2 Firestore Collections",
       "id": "features_budget_analytics"
     },
     {
@@ -8161,9 +8161,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "questions/{questionid} (\u00a73.1)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_questions_collection"
     },
     {
@@ -8175,9 +8175,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "comparisons/{comparisonid} (\u00a73.2)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_comparisons_collection"
     },
     {
@@ -8189,9 +8189,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "comparisons/{id}/options/{optionid} (\u00a73.2)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_comparison_options_subcollection"
     },
     {
@@ -8203,9 +8203,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "ai assist on comparisons (\u00a73.3)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_ai_assist_comparisons"
     },
     {
@@ -8427,9 +8427,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "ai expense categorisation (\u00a79.1)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_ai_expense_categorisation"
     },
     {
@@ -8469,9 +8469,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "manual steps (\u00a711)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_manual_steps"
     },
     {
@@ -8483,9 +8483,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "gemini_api_key (unprefixed secret)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_gemini_api_key"
     },
     {
@@ -8497,9 +8497,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "src/lib/ai/provider.ts (generatejson wrapper)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_src_lib_ai_provider_ts"
     },
     {
@@ -8511,9 +8511,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 0,
+      "community": 96,
       "norm_label": "next.js route handler on vercel hobby (free ai path)",
-      "community_name": "App Root & Layout",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "features_route_handler_pattern"
     },
     {
@@ -9183,9 +9183,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 102,
+      "community": 96,
       "norm_label": "step 1: categories & events setup",
-      "community_name": "Step 2: per-side budget allocations + allocation health",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step1_categories_events"
     },
     {
@@ -9197,9 +9197,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 102,
+      "community": 96,
       "norm_label": "step 2: per-side budget allocations + allocation health",
-      "community_name": "Step 2: per-side budget allocations + allocation health",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step2_budget_allocations"
     },
     {
@@ -9211,9 +9211,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "step 3: contacts (plan tab)",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step3_contacts"
     },
     {
@@ -9225,9 +9225,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "step 4: open questions (plan tab)",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step4_open_questions"
     },
     {
@@ -9239,9 +9239,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "step 5: comparison tables (plan tab)",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step5_comparison_tables"
     },
     {
@@ -9253,9 +9253,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "step 5b: ai assist for comparisons",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step5b_ai_assist"
     },
     {
@@ -9267,9 +9267,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "step 6: optional home summary + currency toggle",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_step6_optional"
     },
     {
@@ -9281,9 +9281,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "tenants/{tenantid}/budgets/{side}_{categoryid}",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_budgets_collection"
     },
     {
@@ -9295,9 +9295,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 102,
+      "community": 96,
       "norm_label": "budgets/_totals_{side}",
-      "community_name": "Step 2: per-side budget allocations + allocation health",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_budgets_totals"
     },
     {
@@ -9309,9 +9309,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "tenants/{tenantid}/contacts/{contactid}",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_contacts_collection"
     },
     {
@@ -9323,9 +9323,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "tenants/{tenantid}/questions/{id}",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_questions_collection"
     },
     {
@@ -9337,9 +9337,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "tenants/{tenantid}/comparisons/{id}",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_comparisons_collection"
     },
     {
@@ -9351,9 +9351,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "comparisons/{id}/options/{optionid}",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_comparison_options"
     },
     {
@@ -9365,9 +9365,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "src/app/api/ai/compare/route.ts",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_ai_route_handler"
     },
     {
@@ -9379,9 +9379,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "gemini_api_key vercel env var",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_gemini_api_key"
     },
     {
@@ -9393,9 +9393,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "src/lib/ai/provider.ts",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_src_lib_ai_provider_ts"
     },
     {
@@ -9407,9 +9407,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "caller verification via jose (jwt against google public certs)",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_verifycaller"
     },
     {
@@ -9421,9 +9421,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "zod schema validation of ai response",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_zod_schema_validation"
     },
     {
@@ -9435,9 +9435,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 102,
+      "community": 96,
       "norm_label": "recharts (new dependency, client-only)",
-      "community_name": "Step 2: per-side budget allocations + allocation health",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_recharts"
     },
     {
@@ -9449,9 +9449,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "phase 2 security rules table (per collection)",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_security_rules_table"
     },
     {
@@ -9463,9 +9463,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "phase 2 definition of done",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase2_definition_of_done"
     },
     {
@@ -9645,9 +9645,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 98,
+      "community": 96,
       "norm_label": "settings/guesttarget (couple-writable)",
-      "community_name": "Phase 2 security rules table (per collection)",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase3_settings_guesttarget"
     },
     {
@@ -9687,9 +9687,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 102,
+      "community": 96,
       "norm_label": "useconfig() hook (categorybyid/eventbyid)",
-      "community_name": "Step 2: per-side budget allocations + allocation health",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "phase3_useconfig_hook"
     },
     {
@@ -9827,9 +9827,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 21,
+      "community": 98,
       "norm_label": "iphone pwa install instructions (safari)",
-      "community_name": "Stack Choices & OAuth Setup",
+      "community_name": "Phase 2 security rules table (per collection)",
       "id": "readme_pwa_install_ios"
     },
     {
@@ -9855,9 +9855,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 100,
+      "community": 4,
       "norm_label": "tech stack table",
-      "community_name": "Vercel (frontend hosting)",
+      "community_name": "Deploy & Hosting Config",
       "id": "readme_tech_stack_table"
     },
     {
@@ -9869,9 +9869,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 100,
+      "community": 4,
       "norm_label": "src/lib/firebase.ts (client sdk setup)",
-      "community_name": "Vercel (frontend hosting)",
+      "community_name": "Deploy & Hosting Config",
       "id": "readme_src_lib_firebase_ts"
     },
     {
@@ -9967,9 +9967,9 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 99,
+      "community": 96,
       "norm_label": "src/lib/ai/ (provider.ts, verifycaller.ts, compareschema.ts)",
-      "community_name": "Step 5b: AI assist for comparisons",
+      "community_name": "Step 2: tiers + tier ladder",
       "id": "readme_src_lib_ai"
     },
     {
@@ -13103,7 +13103,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L672",
+      "source_location": "L679",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13114,7 +13114,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L701",
+      "source_location": "L708",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13125,7 +13125,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L118",
+      "source_location": "L119",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13136,7 +13136,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L112",
+      "source_location": "L113",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13147,7 +13147,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L694",
+      "source_location": "L701",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13158,7 +13158,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L105",
+      "source_location": "L106",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13494,7 +13494,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L79",
+      "source_location": "L80",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13506,7 +13506,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L77",
+      "source_location": "L78",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13518,7 +13518,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L77",
+      "source_location": "L78",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13530,7 +13530,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13542,7 +13542,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13554,7 +13554,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13566,7 +13566,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13578,7 +13578,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13590,7 +13590,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13602,7 +13602,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13614,7 +13614,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13626,7 +13626,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13638,7 +13638,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13650,7 +13650,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13662,7 +13662,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13698,7 +13698,31 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L78",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_app_t_tenantid_guests_page",
+      "target": "src_lib_hooks_usemediaquery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/t/[tenantId]/guests/page.tsx",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_app_t_tenantid_guests_page",
+      "target": "src_lib_hooks_usemediaquery_usemediaquery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/app/t/[tenantId]/guests/page.tsx",
+      "source_location": "L79",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13710,7 +13734,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L78",
+      "source_location": "L79",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13722,7 +13746,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13734,7 +13758,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13746,7 +13770,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13758,7 +13782,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13770,7 +13794,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13782,7 +13806,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13794,7 +13818,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13866,7 +13890,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13878,7 +13902,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13890,7 +13914,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13902,7 +13926,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13914,7 +13938,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13926,7 +13950,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13938,7 +13962,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13950,7 +13974,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13962,7 +13986,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13974,7 +13998,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13986,7 +14010,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -13998,7 +14022,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -14010,7 +14034,7 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page",
@@ -14022,7 +14046,7 @@
       "context": "field",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L113",
+      "source_location": "L114",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_loaded",
@@ -14034,7 +14058,7 @@
       "context": "field",
       "confidence": "EXTRACTED",
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L114",
+      "source_location": "L115",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_loaded",
@@ -14047,7 +14071,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L119",
+      "source_location": "L120",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14059,7 +14083,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L391",
+      "source_location": "L400",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14071,7 +14095,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L194",
+      "source_location": "L201",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14083,7 +14107,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L170",
+      "source_location": "L177",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14095,7 +14119,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L205",
+      "source_location": "L212",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14107,7 +14131,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L159",
+      "source_location": "L166",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14119,7 +14143,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L497",
+      "source_location": "L513",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14131,7 +14155,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L171",
+      "source_location": "L178",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14143,7 +14167,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L173",
+      "source_location": "L180",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14155,7 +14179,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L156",
+      "source_location": "L163",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14167,7 +14191,19 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L541",
+      "source_location": "L129",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "src_app_t_tenantid_guests_page_guestspage",
+      "target": "src_lib_hooks_usemediaquery_usemediaquery"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/t/[tenantId]/guests/page.tsx",
+      "source_location": "L557",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14179,7 +14215,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L227",
+      "source_location": "L234",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14191,7 +14227,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L136",
+      "source_location": "L143",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14203,7 +14239,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L204",
+      "source_location": "L211",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14215,7 +14251,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L250",
+      "source_location": "L257",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14227,7 +14263,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L134",
+      "source_location": "L141",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14239,7 +14275,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L135",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14251,7 +14287,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L121",
+      "source_location": "L122",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14263,7 +14299,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L420",
+      "source_location": "L436",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14275,7 +14311,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L120",
+      "source_location": "L121",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_guestspage",
@@ -14287,7 +14323,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L721",
+      "source_location": "L728",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_changelogrows",
@@ -14299,7 +14335,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/t/[tenantId]/guests/page.tsx",
-      "source_location": "L706",
+      "source_location": "L713",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_app_t_tenantid_guests_page_changelogrows",
@@ -33517,5 +33553,5 @@
       "source_file": "PHASE2.md"
     }
   ],
-  "built_at_commit": "ced5c0f9728a8858184e8d9e2f9823a6c925b8f9"
+  "built_at_commit": "eaf59fbcf63f8a33bae5cec78b1a3c19c4868ce6"
 }

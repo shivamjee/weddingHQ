@@ -159,10 +159,11 @@ are the framework's own `sm`/`md`/`lg`):
 **Shell** (`src/app/t/[tenantId]/layout.tsx`): below `md:`, `AppHeader` →
 scrollable content → `BottomTabBar`, capped at `max-w-md`, exactly as before.
 At `md:+`, `SidebarNav` (`src/components/nav/SidebarNav.tsx`) replaces the
-bottom bar as a persistent left column, and the content column is allowed to
-grow (`md:max-w-3xl lg:max-w-6xl`). Both nav components read the same `TABS`
-array from `src/components/nav/navItems.tsx` — add a tab there, not in either
-component, or the two navs will drift.
+bottom bar as a persistent left column, and the content column fills whatever
+width is left beside it — no max-width cap; capping it just strands the rest
+of a wide screen as dead space next to the sidebar. Both nav components read
+the same `TABS` array from `src/components/nav/navItems.tsx` — add a tab
+there, not in either component, or the two navs will drift.
 
 **Screens with bespoke desktop/tablet treatment**, and why each one earns it:
 
@@ -172,13 +173,20 @@ component, or the two navs will drift.
   `lg:grid-cols-2`; in a single side's detail view, the category list and the
   "Where it goes" chart sit side by side (`lg:grid-cols-2`) instead of
   stacked.
-- **Guests** (`guests/page.tsx`) — the one genuine list+detail split pane.
-  Below `lg:`, opening a household/guest still fully replaces the list (a
-  full-screen swap, unchanged). At `lg:+`, the list stays visible in a left
-  column and whichever detail mode is open (view/edit/names/named-guest)
-  renders beside it in a right column. Same `Mode` state and handlers either
-  way — only the render shape changes (`list`/`detail` are computed once,
-  then laid out in one or two columns depending on breakpoint).
+- **Guests** (`guests/page.tsx`) — below `lg:`, opening a household/guest
+  fully replaces the list (a full-screen swap, unchanged). At `lg:+`,
+  `detail` (whichever mode is open — view/edit/names/named-guest) renders
+  as an **inline expansion right under the row that opened it** (or under
+  "+ Add" for a new household), not in a separate pane elsewhere on screen.
+  A first attempt used a genuine left-list/right-detail split pane; that
+  broke on a long list — opening a household from partway down rendered
+  detail at the top of a shared scroll position, off the visible viewport,
+  so a click looked like it had done nothing. Inline expansion sidesteps
+  the whole scroll-position problem: detail always appears exactly where
+  you clicked, already in view. Same `Mode` state and handlers as the
+  full-screen-swap path — `isDesktop` (`useMediaQuery`, same hook the
+  Comparisons cards/table split already uses) only changes *where* `detail`
+  is placed, never the state.
 - **Plan → Contacts / Questions** — their card lists go
   `sm:grid-cols-2 lg:grid-cols-3`. Cheap: the cards were already
   self-contained, this is just the wrapping `<ul>`'s className.

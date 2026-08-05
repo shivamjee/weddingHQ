@@ -17,7 +17,7 @@
 // overwrites it. One writer path, no transaction, and drift heals on the next
 // write. See src/types/guestTotals.ts.
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
 import {
@@ -53,6 +53,7 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
   guestLogCol,
   guestTargetDoc,
@@ -121,6 +122,12 @@ export default function GuestsPage() {
   const { events } = useConfig();
 
   const [mode, setMode] = useState<Mode>({ kind: "list" });
+  // At `lg:+`, detail opens as an inline expansion right under the row you
+  // clicked (or under "+ Add" for a brand-new household), rather than a
+  // separate pane elsewhere on screen — see the household map and the
+  // return statement below. Below `lg:`, unchanged: a full-screen swap.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const openHouseholdId = mode.kind === "list" ? null : (mode.household?.id ?? null);
   const [filters, setFilters] = useState<GuestFilters>(NO_FILTERS);
   const [grouping, setGrouping] = useState<BreakdownKey>("side");
   const [shown, setShown] = useState(RENDER_PAGE);
@@ -323,10 +330,12 @@ export default function GuestsPage() {
   );
 
   // ---- modes ---------------------------------------------------------------
-  // Below `lg:` this is still a full-screen swap — exactly one of list/detail
-  // renders, matching the rest of the app. At `lg:+` the list stays visible
-  // and detail renders alongside it in a second column (CLAUDE.md § Responsive
-  // layout) — same Mode state and handlers, just a different render shape.
+  // Below `lg:` this is a full-screen swap — exactly one of list/detail
+  // renders, matching the rest of the app. At `lg:+`, `detail` instead renders
+  // inline, directly under the row (or "+ Add") that opened it — see the
+  // household map and the return statement below (CLAUDE.md § Responsive
+  // layout). Same Mode state and handlers either way, just a different
+  // render shape.
 
   let detail: ReactNode = null;
 
@@ -401,6 +410,13 @@ export default function GuestsPage() {
         </div>
         <SecondaryButton onClick={() => setMode({ kind: "form" })}>+ Add</SecondaryButton>
       </div>
+
+      {/* The one case with no row to expand under: a brand-new household.
+          Opens right where "+ Add" was clicked instead of the last row's
+          detail pane. */}
+      {isDesktop && mode.kind === "form" && !mode.household ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50/40 p-4">{detail}</div>
+      ) : null}
 
       <FormMessage error={writeError ?? error} />
 
@@ -582,13 +598,31 @@ export default function GuestsPage() {
           ) : (
             <ul className="flex flex-col gap-2">
               {visible.slice(0, shown).map((household) => (
-                <HouseholdCard
-                  key={household.id}
-                  household={household}
-                  plates={plates}
-                  sideLabel={sideLabel(household.side)}
-                  onView={() => setMode({ kind: "view", household })}
-                />
+                <Fragment key={household.id}>
+                  <HouseholdCard
+                    household={household}
+                    plates={plates}
+                    sideLabel={sideLabel(household.side)}
+                    onView={() => {
+                      // A second click on the already-open row collapses it
+                      // (desktop only — mobile has nothing to collapse back
+                      // into, it's a full-screen swap).
+                      if (isDesktop && mode.kind === "view" && mode.household.id === household.id) {
+                        setMode({ kind: "list" });
+                      } else {
+                        setMode({ kind: "view", household });
+                      }
+                    }}
+                  />
+                  {/* Detail loads as an extension of the row you clicked, not
+                      a separate pane elsewhere on screen — so it's always
+                      obvious whose detail you're looking at. */}
+                  {isDesktop && openHouseholdId === household.id ? (
+                    <li className="rounded-2xl border border-rose-200 bg-rose-50/40 p-4">
+                      {detail}
+                    </li>
+                  ) : null}
+                </Fragment>
               ))}
             </ul>
           )}
@@ -631,40 +665,13 @@ export default function GuestsPage() {
     </div>
   );
 
-  // Below `lg:`, exactly one of `list`/`detail` is visible (a full-screen
-  // swap). At `lg:+` the list stays put in a left column and `detail` (when
-  // there is one) opens beside it — the split pane this screen is the one
-  // genuine case for (CLAUDE.md § Responsive layout).
-  //
-  // The two columns scroll INDEPENDENTLY (`lg:overflow-y-auto` each, and
-  // `lg:overflow-hidden` on the row so only they scroll, not it). Without
-  // this they'd share `main`'s one scroll position: opening a household from
-  // partway down a long list left `detail` rendered at that same scroll
-  // offset, above the visible viewport, looking like nothing had happened. As
-  // a side effect this also means going back to the list restores exactly
-  // where you were in it, rather than resetting to the top.
-  return (
-    <div
-      className={
-        mode.kind === "list"
-          ? "flex flex-1 flex-col"
-          : "flex flex-1 flex-col lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch lg:gap-6 lg:overflow-hidden"
-      }
-    >
-      <div
-        className={
-          mode.kind === "list"
-            ? "flex flex-1 flex-col"
-            : "hidden lg:flex lg:h-full lg:min-h-0 lg:min-w-0 lg:flex-col lg:overflow-y-auto"
-        }
-      >
-        {list}
-      </div>
-      {mode.kind !== "list" ? (
-        <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:overflow-y-auto">{detail}</div>
-      ) : null}
-    </div>
-  );
+  // Below `lg:`, exactly one of `list`/`detail` is visible — a full-screen
+  // swap, matching the rest of the app. At `lg:+`, `list` is always what's
+  // on screen; `detail` is never rendered as a separate pane here — it's
+  // already inlined above, right under the row (or "+ Add") that opened it,
+  // which is what makes it obvious whose detail is showing (CLAUDE.md §
+  // Responsive layout).
+  return isDesktop ? list : mode.kind === "list" ? list : detail;
 }
 
 /** READ COST: a `<details>` renders its children eagerly, so the rows are
