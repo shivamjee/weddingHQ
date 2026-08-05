@@ -201,7 +201,7 @@ export default function BudgetPage() {
 
       {view === "both" ? (
         <>
-          <section className="flex flex-col gap-5 rounded-2xl border border-stone-200 bg-white p-4">
+          <section className="grid grid-cols-1 gap-5 rounded-2xl border border-stone-200 bg-white p-4 lg:grid-cols-2 lg:gap-8">
             <AllocationHealthBar
               health={health.a}
               segments={segments("a")}
@@ -304,38 +304,40 @@ function SideDetail({
         />
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-stone-800">By category</h2>
-        <ul className="flex flex-col gap-2">
-          {rows.map((row) => (
-            <AllocationRow
-              key={row.categoryId}
-              side={side}
-              categoryId={row.categoryId}
-              name={row.name}
-              colour={row.colour}
-              icon={row.icon}
-              allocatedPaise={row[side]}
-              allocations={allocations}
-              onSaved={onSaved}
-            />
-          ))}
-        </ul>
-      </section>
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <section className="flex flex-col gap-3">
+          <h2 className="text-base font-semibold text-stone-800">By category</h2>
+          <ul className="flex flex-col gap-2">
+            {rows.map((row) => (
+              <AllocationRow
+                key={row.categoryId}
+                side={side}
+                categoryId={row.categoryId}
+                name={row.name}
+                colour={row.colour}
+                icon={row.icon}
+                allocatedPaise={row[side]}
+                allocations={allocations}
+                onSaved={onSaved}
+              />
+            ))}
+          </ul>
+        </section>
 
-      <section className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-semibold text-stone-800">Where it goes</h2>
-          {hasEvents ? <GroupByToggle value={groupBy} onChange={setGroupBy} /> : null}
-        </div>
-        <AllocationChart
-          rows={chartRows}
-          labelA={sideLabel("a")}
-          labelB={sideLabel("b")}
-          only={side}
-          emptyMessage={chartEmptyMessage}
-        />
-      </section>
+        <section className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold text-stone-800">Where it goes</h2>
+            {hasEvents ? <GroupByToggle value={groupBy} onChange={setGroupBy} /> : null}
+          </div>
+          <AllocationChart
+            rows={chartRows}
+            labelA={sideLabel("a")}
+            labelB={sideLabel("b")}
+            only={side}
+            emptyMessage={chartEmptyMessage}
+          />
+        </section>
+      </div>
     </div>
   );
 }

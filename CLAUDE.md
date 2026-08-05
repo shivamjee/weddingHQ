@@ -4,7 +4,11 @@
 
 A private wedding planning web app for a small, closed group: me, my girlfriend, my parents, and my in-laws. Roughly 5–15 users total, all invited by me. Not a commercial product, not public-facing.
 
-Primary use is on phones. Desktop should work, but design mobile-first.
+Primary use is on phones — design mobile-first. But tablet (iPad) and desktop
+(laptop) are real, regular use, not an afterthought: they get their own
+genuinely considered layout — sidebar nav, multi-column, list+detail split
+where it earns its keep — not just a stretched phone view. See § Responsive
+layout below; it is authoritative on this.
 
 ## Stack (decided — do not re-litigate)
 
@@ -53,7 +57,12 @@ Do not suggest or drift toward these — they were considered and ruled out:
 
 ## Code and UX guidance
 
-- Mobile-first responsive layout.
+- Mobile-first responsive layout — see § Responsive layout for the
+  breakpoints, the sidebar-nav shell, and which screens get bespoke
+  desktop/tablet treatment vs. which stay single-column on purpose. When
+  building a new screen, default to single-column (mobile) and only add a
+  `lg:` grid/split if there's a genuine second thing to put beside the first —
+  don't grid-ize for its own sake.
 - Keep the UI simple and legible. Assume non-technical users of varying ages — large tap targets, clear labels, minimal jargon.
 - Keep Firebase config in environment variables (`NEXT_PUBLIC_FIREBASE_*`), set in both `.env.local` and the Vercel dashboard. Never commit real credentials.
 - Comment anything that has a cost or security implication so I can spot it later.
@@ -125,6 +134,65 @@ Rules of the road:
   admin → the `/tenants` picker).
 - Rule `get()`/`exists()` calls are **billed as document reads** (cached per request, per path).
   Negligible at this scale, but it is where tenancy costs anything at all.
+
+## Responsive layout (mobile / tablet / desktop — authoritative)
+
+Through Phase 3, the whole app was one hard `max-w-md` column at every
+viewport (`src/app/t/[tenantId]/layout.tsx`), documented in `PHASE1.md` as
+"the same layout, centred, max-width constrained. Don't build a separate
+desktop design." That was right when there was nothing yet to design for; it
+stopped being right once the app was in regular use from iPads and laptops,
+not just phones. This section supersedes that PHASE1 decision. (`PHASE1.md`
+itself is left unedited — it's a record of what shipped at the time, same as
+`PHASE2.md`/`PHASE3.md`.)
+
+**Breakpoints** (Tailwind defaults — there is no `tailwind.config`, so these
+are the framework's own `sm`/`md`/`lg`):
+
+- **Mobile** `< 768px` — unchanged: bottom tab bar, single column, `max-w-md`.
+- **Tablet** `768–1023px` (`md:`) — the sidebar replaces the bottom bar;
+  content widens but mostly stays single-column (a sidebar plus a 3-up grid
+  doesn't fit at 768px).
+- **Desktop** `≥ 1024px` (`lg:`) — the multi-column / split-pane treatments
+  below are active.
+
+**Shell** (`src/app/t/[tenantId]/layout.tsx`): below `md:`, `AppHeader` →
+scrollable content → `BottomTabBar`, capped at `max-w-md`, exactly as before.
+At `md:+`, `SidebarNav` (`src/components/nav/SidebarNav.tsx`) replaces the
+bottom bar as a persistent left column, and the content column is allowed to
+grow (`md:max-w-3xl lg:max-w-6xl`). Both nav components read the same `TABS`
+array from `src/components/nav/navItems.tsx` — add a tab there, not in either
+component, or the two navs will drift.
+
+**Screens with bespoke desktop/tablet treatment**, and why each one earns it:
+
+- **Home** (`home/page.tsx`) — the three summary cards (Budget/Guests/
+  Questions) become a `lg:grid-cols-3` dashboard instead of a stacked column.
+- **Budget** (`budget/page.tsx`) — the "both sides" health bars sit
+  `lg:grid-cols-2`; in a single side's detail view, the category list and the
+  "Where it goes" chart sit side by side (`lg:grid-cols-2`) instead of
+  stacked.
+- **Guests** (`guests/page.tsx`) — the one genuine list+detail split pane.
+  Below `lg:`, opening a household/guest still fully replaces the list (a
+  full-screen swap, unchanged). At `lg:+`, the list stays visible in a left
+  column and whichever detail mode is open (view/edit/names/named-guest)
+  renders beside it in a right column. Same `Mode` state and handlers either
+  way — only the render shape changes (`list`/`detail` are computed once,
+  then laid out in one or two columns depending on breakpoint).
+- **Plan → Contacts / Questions** — their card lists go
+  `sm:grid-cols-2 lg:grid-cols-3`. Cheap: the cards were already
+  self-contained, this is just the wrapping `<ul>`'s className.
+
+**Deliberately left single-column** (wider shell only, no grid/split): More,
+More → Setup, the `/tenants` picker, Landing, NotInvited. Short settings or
+choice screens — there's nothing on them to put in a second column. Don't
+add one just because the viewport is wide.
+
+**Comparisons** (`plan/comparisons/[comparisonId]/page.tsx`) needed no
+structural change — its existing `CardsView`/`TableView` split (cards on
+mobile, table on desktop, FEATURES.md §3.2) simply gets more real width now
+that the shell isn't clamped, so `TableView` needs its sideways scroll less
+often.
 
 ## Feature spec
 
@@ -339,6 +407,13 @@ screens:
   currently filtered households, lazily read only when the expander is opened. Tapping a row opens
   the same `GuestView`, minus Edit/Remove — it is a cross-household browse, and editing stays on the
   household the guest belongs to.
+
+**Responsive layout — tablet/desktop, layered across Phases 1–3, is COMPLETE.**
+Cross-cutting, not tied to one feature phase — see § Responsive layout above
+for the full, authoritative account (breakpoints, the sidebar shell, which
+screens got bespoke desktop treatment and which stayed single-column). This
+reverses the `PHASE1.md` call to keep one phone-width layout everywhere;
+`PHASE1.md` itself is left as the historical record of that original decision.
 
 Phase 1 — Foundation is **COMPLETE** (`PHASE1.md`, kept as a record): a deployed, installable,
 access-gated PWA shell — Google sign-in, Firestore rules + emulator tests, money helpers,

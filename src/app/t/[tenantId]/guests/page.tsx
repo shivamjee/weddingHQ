@@ -17,7 +17,7 @@
 // overwrites it. One writer path, no transaction, and drift heals on the next
 // write. See src/types/guestTotals.ts.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
 import {
@@ -323,21 +323,24 @@ export default function GuestsPage() {
   );
 
   // ---- modes ---------------------------------------------------------------
-  // Full-screen swaps rather than a modal, matching the rest of the app.
+  // Below `lg:` this is still a full-screen swap — exactly one of list/detail
+  // renders, matching the rest of the app. At `lg:+` the list stays visible
+  // and detail renders alongside it in a second column (CLAUDE.md § Responsive
+  // layout) — same Mode state and handlers, just a different render shape.
+
+  let detail: ReactNode = null;
 
   if (mode.kind === "guestView") {
-    return (
+    detail = (
       <GuestView
         guest={mode.guest}
         household={mode.household}
         onBack={() => setMode({ kind: "list" })}
       />
     );
-  }
-
-  if (mode.kind === "view") {
+  } else if (mode.kind === "view") {
     const household = mode.household;
-    return (
+    detail = (
       <HouseholdView
         household={household}
         plates={plates}
@@ -348,11 +351,9 @@ export default function GuestsPage() {
         onBack={() => setMode({ kind: "list" })}
       />
     );
-  }
-
-  if (mode.kind === "form") {
+  } else if (mode.kind === "form") {
     const editing = mode.household;
-    return (
+    detail = (
       <div className="flex flex-1 flex-col px-5 py-6">
         <HouseholdForm
           existing={editing}
@@ -365,11 +366,9 @@ export default function GuestsPage() {
         />
       </div>
     );
-  }
-
-  if (mode.kind === "names") {
+  } else if (mode.kind === "names") {
     const household = mode.household;
-    return (
+    detail = (
       <GuestNames
         tenantId={tenantId}
         uid={user?.uid ?? ""}
@@ -391,7 +390,7 @@ export default function GuestsPage() {
 
   const filtering = activeFilterCount(filters) > 0 || filters.search.trim().length > 0;
 
-  return (
+  const list = (
     <div className="flex flex-1 flex-col gap-5 px-5 py-6">
       <div className="flex items-start gap-3">
         <div className="flex-1">
@@ -629,6 +628,27 @@ export default function GuestsPage() {
           <ChangeLog tenantId={tenantId} />
         </>
       )}
+    </div>
+  );
+
+  // Below `lg:`, exactly one of `list`/`detail` is visible (a full-screen
+  // swap). At `lg:+` the list stays put in a left column and `detail` (when
+  // there is one) opens beside it — the split pane this screen is the one
+  // genuine case for (CLAUDE.md § Responsive layout).
+  return (
+    <div
+      className={
+        mode.kind === "list"
+          ? "flex flex-1 flex-col"
+          : "flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-6"
+      }
+    >
+      <div className={mode.kind === "list" ? "flex flex-1 flex-col" : "hidden lg:flex lg:min-w-0 lg:flex-col"}>
+        {list}
+      </div>
+      {mode.kind !== "list" ? (
+        <div className="flex min-w-0 flex-1 flex-col">{detail}</div>
+      ) : null}
     </div>
   );
 }

@@ -6,11 +6,10 @@
 // "highlight best" and an optional weighted score that stays visually secondary
 // to the raw numbers, exactly as the spec asks.
 //
-// LAYOUT NOTE: the app shell is a centered max-w-md column (CLAUDE.md UX), so
-// even on a desktop the table lives in a phone-width column and scrolls
-// sideways with a sticky first column. That keeps one layout for the whole app
-// rather than a second desktop design; if the table ever needs the full window,
-// that is a deliberate change to the shell, not something to special-case here.
+// LAYOUT NOTE: the shell's content column widens at `md:`/`lg:` (CLAUDE.md §
+// Responsive layout), so TableView gets real room on a tablet or laptop and
+// only falls back to the sideways scroll + sticky first column once there are
+// genuinely more criteria/options than fit.
 //
 // SECURITY: member-read and member-write, same as the rest of Plan.
 // READ COST: one bounded read of this comparison's options, plus a bounded read

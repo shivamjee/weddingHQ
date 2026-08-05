@@ -121,7 +121,7 @@ export default function HomePage() {
       {loading || configLoading ? (
         <p className="text-sm text-stone-400">Loading…</p>
       ) : (
-        <>
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:items-start lg:gap-4">
           {anyBudget ? (
             <section className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4">
               <div className="flex items-baseline justify-between gap-2">
@@ -222,7 +222,7 @@ export default function HomePage() {
               </p>
             </div>
           </section>
-        </>
+        </div>
       )}
     </div>
   );
