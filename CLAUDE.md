@@ -186,13 +186,29 @@ there, not in either component, or the two navs will drift.
   long list meant scrolling twice. `sticky` needs no scroll container of
   its own — it just stays pinned near the top of the viewport as the list
   (and the page — this app scrolls the *document*, not an inner container)
-  scrolls past it, the same mechanism `BottomTabBar` already uses. Same
+  scrolls past it, the same mechanism `BottomTabBar` already uses. A third bug
+  of the same shape shipped anyway: the shell's `<main>` (`layout.tsx`) had
+  `overflow-y-auto` left on it. `main` never had a definite height to clip
+  against either, so it never actually scrolled — but declaring `overflow`
+  on it still made it the nearest scrollport for every `sticky` descendant,
+  which then had a permanently-zero `scrollTop` to pin against and so never
+  pinned at all. Result: opening a household far down the list rendered the
+  detail card off the top of the viewport with nothing visibly happening.
+  Fixed by dropping `overflow-y-auto` from `main` — it was vestigial, nothing
+  in the codebase reads its `scrollTop`. **Any ancestor of a `sticky`
+  element declaring `overflow` (auto/hidden/scroll) hijacks its scrollport
+  this way, even if that ancestor itself never ends up scrolling.** Same
   `Mode` state and handlers as the full-screen-swap path — `isDesktop`
   (`useMediaQuery`, same hook the Comparisons cards/table split already
   uses) only changes *where* `detail` is placed, never the state.
 - **Plan → Contacts / Questions** — their card lists go
   `sm:grid-cols-2 lg:grid-cols-3`. Cheap: the cards were already
-  self-contained, this is just the wrapping `<ul>`'s className.
+  self-contained, this is just the wrapping `<ul>`'s className. Edit/Add
+  itself reuses the Guests split-pane wholesale: below `lg:` it still fully
+  replaces the list (`if (!isDesktop) return detail ?? list`), but at `lg:+`
+  the form opens in the same `lg:sticky lg:top-6` right column beside the
+  list instead of swapping the whole screen away — same `isDesktop` +
+  `list`/`detail` shape as `guests/page.tsx`, no new mechanism.
 
 **Deliberately left single-column** (wider shell only, no grid/split): More,
 More → Setup, the `/tenants` picker, Landing, NotInvited. Short settings or

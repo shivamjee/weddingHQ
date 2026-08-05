@@ -76,8 +76,19 @@ function TenantShell({ children }: { children: React.ReactNode }) {
           {/* No mx-auto and no max-width cap: either one leaves dead space
               between the sidebar and the content (centering inside leftover
               room, or capping width and stranding the rest). Content just
-              fills whatever's left beside the sidebar. */}
-          <main className="flex w-full flex-1 flex-col overflow-y-auto">
+              fills whatever's left beside the sidebar.
+
+              And no `overflow` here, deliberately. Nothing in the chain gives
+              <main> a definite height (html is h-full, body is min-h-full — a
+              floor, not a cap), so it never clips and never scrolls: the
+              document does. But declaring `overflow-y-auto` still made <main>
+              the nearest scrollport for every `position: sticky` descendant,
+              whose scrollTop is then permanently 0 — so those elements never
+              pinned and scrolled away with the page (this is why the Guests
+              desktop detail column looked like it never opened). BottomTabBar's
+              own `sticky bottom-0` works precisely because it sits outside
+              <main>. See CLAUDE.md § Responsive layout. */}
+          <main className="flex w-full flex-1 flex-col">
             {children}
           </main>
           <BottomTabBar />

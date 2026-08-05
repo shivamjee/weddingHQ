@@ -18,7 +18,7 @@
 // filters would need to move server-side and gain an index; at 5-15 people
 // planning one wedding, it will not.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   addDoc,
   deleteDoc,
@@ -36,6 +36,7 @@ import { useAuth } from "@/lib/auth/AuthProvider";
 import { useTenant } from "@/lib/tenants/TenantProvider";
 import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
   ChipRow,
   Field,
@@ -161,8 +162,15 @@ export default function QuestionsPage() {
       );
   }, [visible]);
 
+  // Below `lg:`, editing/adding still fully replaces the list — a phone has
+  // nowhere else to put a form. At `lg:+` it opens beside the list instead, in
+  // the same `lg:sticky lg:top-6` column Guests uses (CLAUDE.md § Responsive
+  // layout) — Edit no longer swaps the whole screen away on a wide viewport.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  let detail: ReactNode = null;
   if (editing || adding) {
-    return (
+    detail = (
       <div className="flex flex-1 flex-col px-5 py-6">
         <QuestionForm
           existing={editing ?? undefined}
@@ -184,7 +192,7 @@ export default function QuestionsPage() {
     );
   }
 
-  return (
+  const list = (
     <div className="flex flex-1 flex-col gap-4 px-5 py-6">
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -270,6 +278,15 @@ export default function QuestionsPage() {
           {loadingMore ? "Loading…" : "Load more"}
         </SecondaryButton>
       ) : null}
+    </div>
+  );
+
+  if (!isDesktop) return detail ?? list;
+  if (!detail) return list;
+  return (
+    <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+      {list}
+      <div className="lg:sticky lg:top-6">{detail}</div>
     </div>
   );
 }
