@@ -248,6 +248,61 @@ service cloud.firestore {
         allow delete: if isTenantMember(tenantId) || isAdmin();
       }
 
+      // ---- expenses (Phase 4 Step 2) ---------------------------------------
+      // Money that has actually moved (or is estimated/committed to). Member-
+      // writable including DELETE, like every other planning collection —
+      // there is no couple-only gate here, and a mistaken delete is
+      // recoverable by re-entering the expense, same as anywhere else in the
+      // app today.
+      //
+      // `shares` summing exactly to `amountPaise` is the money-integrity
+      // invariant (PHASE4.md § The rounding rule), but the rules language has
+      // no loop/reduce construct to sum an arbitrary-length list of maps —
+      // only fixed per-field checks are possible here. That invariant is
+      // enforced CLIENT-SIDE ONLY, by validateShares() in src/lib/expenses.ts,
+      // which every write path in the app goes through. Exactly the trade the
+      // `budgets` block above already makes for a category's event breakdown
+      // summing to its own ceiling.
+      match /expenses/{expenseId} {
+        function validExpense() {
+          let d = request.resource.data;
+          return d.get("description", "") is string
+            && d.get("status", "") in ["estimated", "committed", "paid"]
+            && d.get("categoryId", "") is string
+            && d.get("categoryId", "").size() > 0
+            && d.get("splitMode", "") in ["equal", "exact", "percentage", "single"]
+            // Money is integer paise, always (FEATURES.md §1.3).
+            && d.get("amountPaise", -1) is int
+            && d.get("amountPaise", -1) >= 0
+            && d.get("shares", []) is list
+            && d.get("shares", []).size() > 0;
+        }
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow create, update: if (isTenantMember(tenantId) || isAdmin()) && validExpense();
+        allow delete: if isTenantMember(tenantId) || isAdmin();
+      }
+
+      // ---- settlements (Phase 4 Step 5) -------------------------------------
+      // A transfer BETWEEN PEOPLE, settling a balance expenses created.
+      // src/lib/expenses.ts keeps this ledger structurally separate from any
+      // budget total (balances() never reads a `budgets`/aggregates field and
+      // expenseTotalsFrom() never takes a settlements argument) — this block
+      // only guards a settlement's own shape.
+      match /settlements/{settlementId} {
+        function validSettlement() {
+          let d = request.resource.data;
+          return d.get("fromUid", "") is string
+            && d.get("fromUid", "").size() > 0
+            && d.get("toUid", "") is string
+            && d.get("toUid", "").size() > 0
+            && d.get("fromUid", "a") != d.get("toUid", "b")
+            && d.get("amountPaise", -1) is int
+            && d.get("amountPaise", -1) >= 0;
+        }
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow write: if (isTenantMember(tenantId) || isAdmin()) && validSettlement();
+      }
+
       // ---- contacts (Phase 2 Step 3) --------------------------------------
       // MEMBER-writable, unlike the config above. Keeping the vendor list
       // current is collaborative: an aunt who gets a decorator's number should

@@ -575,6 +575,89 @@ describe("budgets — every member reads and writes; integrity is the guard", ()
   });
 });
 
+describe("expenses & settlements — member read/write, delete included; shape is the guard", () => {
+  const expense = (over: Record<string, unknown> = {}) => ({
+    description: "Decor deposit",
+    amountPaise: 1000000,
+    status: "committed",
+    categoryId: "decor",
+    eventId: null,
+    date: new Date(),
+    paidBy: null,
+    splitMode: "equal",
+    shares: [{ uid: T1_FAMILY.uid, amountPaise: 1000000 }],
+    notes: "",
+    receiptURL: null,
+    createdBy: T1_FAMILY.uid,
+    ...over,
+  });
+
+  const settlement = (over: Record<string, unknown> = {}) => ({
+    fromUid: T1_FAMILY.uid,
+    toUid: T1_COUPLE.uid,
+    amountPaise: 500000,
+    date: new Date(),
+    method: "UPI",
+    note: "",
+    createdBy: T1_FAMILY.uid,
+    ...over,
+  });
+
+  it("a family member reads, creates, updates and deletes an expense", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "expenses", "e1"), expense()));
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "expenses", "e1")));
+    await assertSucceeds(
+      setDoc(doc(db, "tenants", T1, "expenses", "e1"), expense({ status: "paid" })),
+    );
+    await assertSucceeds(deleteDoc(doc(db, "tenants", T1, "expenses", "e1")));
+  });
+
+  it("rejects an expense with a bad status, split mode, empty category, no shares, or a non-integer/negative amount", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e1"), expense({ status: "paid-ish" })));
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e2"), expense({ splitMode: "weird" })));
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e3"), expense({ amountPaise: 100.5 })));
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e4"), expense({ amountPaise: -1 })));
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e5"), expense({ categoryId: "" })));
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e6"), expense({ shares: [] })));
+  });
+
+  it("a stranger cannot read or write expenses", async () => {
+    const db = authed(STRANGER);
+    await assertFails(setDoc(doc(db, "tenants", T1, "expenses", "e1"), expense()));
+    await assertFails(getDocs(collection(db, "tenants", T1, "expenses")));
+  });
+
+  it("T1's couple cannot read or write T2's expenses", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(getDocs(collection(db, "tenants", T2, "expenses")));
+    await assertFails(setDoc(doc(db, "tenants", T2, "expenses", "e1"), expense()));
+  });
+
+  it("a family member creates and reads a settlement", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "settlements", "s1"), settlement()));
+    await assertSucceeds(getDoc(doc(db, "tenants", T1, "settlements", "s1")));
+  });
+
+  it("rejects a settlement that pays yourself or has a non-integer amount", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "settlements", "s1"), settlement({ toUid: T1_FAMILY.uid })),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "settlements", "s2"), settlement({ amountPaise: 12.5 })),
+    );
+  });
+
+  it("T1's couple cannot read or write T2's settlements", async () => {
+    const db = authed(T1_COUPLE);
+    await assertFails(getDocs(collection(db, "tenants", T2, "settlements")));
+    await assertFails(setDoc(doc(db, "tenants", T2, "settlements", "s1"), settlement()));
+  });
+});
+
 describe("contacts & questions — collaborative, so every member writes", () => {
   const contact = { name: "Taj Palace", organisation: "Taj", type: "vendor", phone: "9876543210" };
   const question = { text: "Is there a DJ curfew?", askWho: "Venue manager", status: "open" };

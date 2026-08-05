@@ -1,11 +1,9 @@
 # PHASE4.md — Money in motion
 
-> ## ⚠️ TO BE REVIEWED — NOT AGREED, DO NOT BUILD YET
->
-> Drafted at the end of the Phase 3 session from `FEATURES.md` §2.2–§2.7, without a working
-> session on it. It has **not** been read back, and § Open questions below lists decisions that
-> are genuinely unmade — several of them change the data model. Read this file, settle those,
-> and delete this banner before writing any code against it.
+> Reviewed and agreed. § Open questions below are resolved in the accompanying build plan
+> (`/Users/shivamjee/.claude/plans/ready-to-build-phase-greedy-thacker.md`), not by editing this
+> file in place — this file stays the original brief; the plan records what was decided on top
+> of it.
 
 Scope for Phase 4. Read `CLAUDE.md` (stack, hosting, **§ Multi-tenancy**, constraints) and
 `FEATURES.md` **§0, §1, §2** before starting. Phases 1, 1.5, 2, 3 and 3.1 are complete; their

@@ -19,33 +19,44 @@ import { useCallback, useState } from "react";
 import { getCountFromServer, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 import {
   BUDGET_TOTALS_PREFIX,
+  balancesDoc,
   budgetsCol,
+  expenseTotalsDoc,
   guestTargetDoc,
   guestTotalsDoc,
   questionsCol,
 } from "@/lib/paths";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { MAX_CATEGORIES, useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { allocationHealth, comparisonRows } from "@/lib/budget";
+import { projectedTotalPaise } from "@/lib/expenses";
 import { formatDate } from "@/lib/dates";
 import { formatINR, toPaise } from "@/lib/money";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
-import type { BudgetAllocationWithId, Side } from "@/types";
+import type { BudgetAllocationWithId, ExpenseTotals, Side } from "@/types";
 
 const MAX_BUDGET_DOCS = MAX_CATEGORIES * 2 + 2;
 
 export default function HomePage() {
   const { tenantId, tenant, sideLabel } = useTenant();
+  const { user } = useAuth();
   const { categories, loading: configLoading } = useConfig();
 
   const load = useCallback(async () => {
-    const [budgetSnap, openCount, guestSnap, targetSnap] = await Promise.all([
-      getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS))),
-      getCountFromServer(query(questionsCol(tenantId), where("status", "==", "open"))),
-      getDoc(guestTotalsDoc(tenantId)),
-      getDoc(guestTargetDoc(tenantId)),
-    ]);
+    const [budgetSnap, openCount, guestSnap, targetSnap, expenseTotalsSnap, balancesSnap] =
+      await Promise.all([
+        getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS))),
+        getCountFromServer(query(questionsCol(tenantId), where("status", "==", "open"))),
+        getDoc(guestTotalsDoc(tenantId)),
+        getDoc(guestTargetDoc(tenantId)),
+        // Two more single-document reads — the whole point of these
+        // aggregates is that Home never learns to load the expense list
+        // (PHASE4.md).
+        getDoc(expenseTotalsDoc(tenantId)),
+        getDoc(balancesDoc(tenantId)),
+      ]);
 
     const allocations: BudgetAllocationWithId[] = [];
     const totals: Record<Side, number> = { a: 0, b: 0 };
@@ -73,14 +84,24 @@ export default function HomePage() {
         projectedPaise: toPaise(Math.trunc(Number(overall?.projectedPaise ?? 0))),
       },
       guestTarget: Number.isFinite(target) && target > 0 ? target : null,
+      expenseTotals: expenseTotalsSnap.exists() ? (expenseTotalsSnap.data() as ExpenseTotals) : null,
+      myNetPaise: balancesSnap.exists()
+        ? toPaise(Math.trunc(Number(balancesSnap.data().byUid?.[user?.uid ?? ""] ?? 0)))
+        : toPaise(0),
     };
-  }, [tenantId]);
+  }, [tenantId, user?.uid]);
 
   const { data, loading } = useLoader(load, "Could not load your summary.");
 
   const allocations = data?.allocations ?? [];
   const totals = data?.totals ?? { a: 0, b: 0 };
   const rows = comparisonRows(categories, allocations);
+  const projectedPaise = data?.expenseTotals
+    ? toPaise(
+        projectedTotalPaise(data.expenseTotals.bySide.a) +
+          projectedTotalPaise(data.expenseTotals.bySide.b),
+      )
+    : null;
 
   const segments = (side: Side) =>
     rows.map((r) => ({
@@ -133,6 +154,12 @@ export default function HomePage() {
                   Open
                 </Link>
               </div>
+              {projectedPaise !== null ? (
+                <p className="text-sm text-stone-500">
+                  <span className="font-semibold text-stone-800">{formatINR(projectedPaise)}</span>{" "}
+                  projected of {formatINR(toPaise(totals.a + totals.b))}
+                </p>
+              ) : null}
               <AllocationHealthBar
                 health={allocationHealth(
                   totals.a,
@@ -224,6 +251,27 @@ export default function HomePage() {
           </section>
         </div>
       )}
+
+      {/* Never folded into the Budget card above — "are we within budget?"
+          and "who owes whom?" stay two different numbers everywhere in this
+          app (PHASE4.md). A full-width strip, not a fourth grid card: the
+          3-card grid is a deliberate layout (CLAUDE.md § Responsive layout). */}
+      {!loading && data && data.myNetPaise !== 0 ? (
+        <Link
+          href={tenantHref(tenantId, "/budget/balances")}
+          className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3"
+        >
+          <p className="text-sm text-stone-700">
+            {data.myNetPaise > 0 ? "You're owed" : "You owe"}{" "}
+            <span className="font-semibold text-stone-800">
+              {formatINR(toPaise(Math.abs(data.myNetPaise)))}
+            </span>
+          </p>
+          <span className="shrink-0 text-stone-300" aria-hidden>
+            &rsaquo;
+          </span>
+        </Link>
+      ) : null}
     </div>
   );
 }

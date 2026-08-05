@@ -287,7 +287,7 @@ correct enough at this scale. Render as plain sentences:
 ### 2.5 Aggregates
 
 ```
-aggregates/budgetTotals
+aggregates/expenseTotals
   bySideCategory   { ["a_decor"]: { estimatedPaise, committedPaise, paidPaise } }
   byEvent          { [eventId]: { estimatedPaise, committedPaise, paidPaise } }
   bySide           { a: {...}, b: {...} }
@@ -298,15 +298,28 @@ aggregates/balances
   updatedAt        timestamp
 ```
 
-Both updated inside a Firestore **transaction** on every expense/settlement create, update and
-delete — including status changes, which move money between the three buckets.
+**AS BUILT:** named `expenseTotals`, not `budgetTotals` as originally drafted here —
+`src/types/budget.ts` already used `BudgetTotals` for a side's typed ceiling (Phase 2), a
+different document.
+
+**AS BUILT:** maintained **recompute-and-overwrite**, not a Firestore transaction as originally
+specified above — the same trade `aggregates/guestTotals` already made in Phase 3 (§4.5 below),
+for the same reason: no `runTransaction` exists anywhere in this codebase, and it isn't needed at
+this app's scale (5-15 users). Both documents are recomputed from the full expenses/settlements
+lists (bounded `limit(500)` reads, never paginated — see CLAUDE.md's Phase 4 section) and
+`setDoc`'d after every expense or settlement create, update and delete, including status changes.
+One writer function, `writeExpenseAggregates()` in `src/lib/aggregateWriter.ts`, called from the
+Expenses screen, the Balances screen, and the recalculate button below — not three separate
+writer paths.
 
 Note `bySideCategory` is keyed on side and category, per §2.2. Splitting a ₹3L expense updates
 two keys, not one.
 
 Provide a couple-only **"recalculate totals"** button that rebuilds both docs from scratch.
 Drift will happen; build the repair tool now. Comment it as deliberately expensive and bound it
-with pagination.
+with pagination. **AS BUILT:** since recompute-and-overwrite already rebuilds both documents from
+scratch on every normal save, the button is that same writer function invoked by hand — no
+separate rebuild code path.
 
 ### 2.6 Budget analytics
 

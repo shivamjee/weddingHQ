@@ -46,3 +46,7 @@ export type {
   GuestLogEntry,
   GuestLogEntryWithId,
 } from "./guestTotals";
+export type { Expense, ExpenseWithId, ExpenseStatus, SplitMode, Share } from "./expense";
+export { EXPENSE_STATUSES, EXPENSE_STATUS_LABELS, SPLIT_MODES, SPLIT_MODE_LABELS } from "./expense";
+export type { Settlement, SettlementWithId } from "./settlement";
+export type { ExpenseTotals, ExpenseTotalsSlice, Balances } from "./expenseTotals";

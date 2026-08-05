@@ -70,8 +70,8 @@
     "semantic_hash": "7aaebcb5c65b5821c8e7af2bb9cf4c9f"
   },
   "src/app/t/[tenantId]/budget/page.tsx": {
-    "mtime": 1785955522.0336485,
-    "ast_hash": "0229831d0d00dae73fe05312f3e81570",
+    "mtime": 1785963448.7314785,
+    "ast_hash": "8ae7695bfc00909a2ace970b88efefe7",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/home/page.tsx": {
-    "mtime": 1785955522.0360427,
-    "ast_hash": "413947afceffb354988007850859b7d3",
+    "mtime": 1785963579.1980662,
+    "ast_hash": "4fcc5442c7f91860e4b1dba1241057ba",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/layout.tsx": {
@@ -250,8 +250,8 @@
     "semantic_hash": "40d5db19238a717de92cb2b08d26a6d3"
   },
   "src/lib/budget.test.ts": {
-    "mtime": 1785788989.1302452,
-    "ast_hash": "a7c59a73fd3201d64b41dcbdd4de1598",
+    "mtime": 1785964693.9854739,
+    "ast_hash": "707640b3448545e3cec4073dac55d97c",
     "semantic_hash": ""
   },
   "src/lib/budget.ts": {
@@ -305,8 +305,8 @@
     "semantic_hash": "1e03b7198cd18897ac52d9b4aa1230e3"
   },
   "src/lib/paths.ts": {
-    "mtime": 1785799935.9156253,
-    "ast_hash": "97f284d67b88a6b2e4afd5b8250b9cb0",
+    "mtime": 1785962539.4554992,
+    "ast_hash": "864c22d2fc462c2f51c4f1e3d3b14a12",
     "semantic_hash": ""
   },
   "src/lib/phone.test.ts": {
@@ -380,8 +380,8 @@
     "semantic_hash": ""
   },
   "src/types/index.ts": {
-    "mtime": 1785799924.1530771,
-    "ast_hash": "4b606ae58087f19ed276aa7629b164b6",
+    "mtime": 1785962598.201778,
+    "ast_hash": "7a627adf1c0e02b1d57b609267bffa85",
     "semantic_hash": ""
   },
   "src/types/membership.ts": {
@@ -410,8 +410,8 @@
     "semantic_hash": "a0eaeaf7b2f0cd47ba4d6611970aacef"
   },
   "tests/rules/firestore.rules.test.ts": {
-    "mtime": 1785800171.819987,
-    "ast_hash": "4bd2e747a4efaaa9ab6792b82bbcd985",
+    "mtime": 1785962867.8281717,
+    "ast_hash": "326eea35b2d0f9ab092b76a0dbc33c7a",
     "semantic_hash": ""
   },
   "tsconfig.json": {
@@ -435,13 +435,13 @@
     "semantic_hash": "9e09241799026ac05be315a2f0b50055"
   },
   "CLAUDE.md": {
-    "mtime": 1785960643.1299279,
-    "ast_hash": "e87b544886fed7d2463bba82ebb5308a",
+    "mtime": 1785963814.0487502,
+    "ast_hash": "f0d5aee086375f48562d3634cf3d9819",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1785808802.1867738,
-    "ast_hash": "86ccb56982bc965e2e768743d62d5710",
+    "mtime": 1785965256.7519462,
+    "ast_hash": "d0a9cd0f872bd0dccf183b93219b2f2a",
     "semantic_hash": ""
   },
   "PHASE1.5.md": {
@@ -605,8 +605,8 @@
     "semantic_hash": ""
   },
   "PHASE4.md": {
-    "mtime": 1785808950.1022394,
-    "ast_hash": "8a205fea8479d384cf47b29484451030",
+    "mtime": 1785962531.783697,
+    "ast_hash": "42bd8f5ce187f68c4cd6f6290070527d",
     "semantic_hash": ""
   },
   "src/components/nav/SidebarNav.tsx": {
@@ -617,6 +617,61 @@
   "src/components/nav/navItems.tsx": {
     "mtime": 1785955522.0443459,
     "ast_hash": "953d385d0516505b1cee60aa8a84bb77",
+    "semantic_hash": ""
+  },
+  "src/app/t/[tenantId]/budget/balances/page.tsx": {
+    "mtime": 1785963689.4226723,
+    "ast_hash": "0fbe52ddd8cfc40d30fd32b23a4e4bd9",
+    "semantic_hash": ""
+  },
+  "src/app/t/[tenantId]/budget/expenses/page.tsx": {
+    "mtime": 1785963686.2071774,
+    "ast_hash": "050fbb920355eced2b81c2895e0544af",
+    "semantic_hash": ""
+  },
+  "src/components/expenses/ExpenseForm.tsx": {
+    "mtime": 1785963693.323181,
+    "ast_hash": "5b26b0eb4622393816968ccde8b686f1",
+    "semantic_hash": ""
+  },
+  "src/components/expenses/ExpenseView.tsx": {
+    "mtime": 1785963160.0574636,
+    "ast_hash": "7daa2b0d303569f81290db753dd92e30",
+    "semantic_hash": ""
+  },
+  "src/components/expenses/SplitEditor.tsx": {
+    "mtime": 1785963105.282929,
+    "ast_hash": "26038416755141b3e11b0562098bfb3f",
+    "semantic_hash": ""
+  },
+  "src/lib/aggregateWriter.ts": {
+    "mtime": 1785963171.9082155,
+    "ast_hash": "4fd3014b84b21abf734b14955acc603c",
+    "semantic_hash": ""
+  },
+  "src/lib/expenses.test.ts": {
+    "mtime": 1785963322.2228663,
+    "ast_hash": "6f00a5c2c0b661c2d1c72f8e8da0b51b",
+    "semantic_hash": ""
+  },
+  "src/lib/expenses.ts": {
+    "mtime": 1785962737.684373,
+    "ast_hash": "e050abf4038e2e48ef00ad731a2caa2c",
+    "semantic_hash": ""
+  },
+  "src/types/expense.ts": {
+    "mtime": 1785962573.0921507,
+    "ast_hash": "ccd3983942e51fb4a6582056d1614907",
+    "semantic_hash": ""
+  },
+  "src/types/expenseTotals.ts": {
+    "mtime": 1785962593.2628112,
+    "ast_hash": "e5cea0c33a8810941bbadef060a4a026",
+    "semantic_hash": ""
+  },
+  "src/types/settlement.ts": {
+    "mtime": 1785962578.1524057,
+    "ast_hash": "1701538b415c7b04de840e22a0166e8d",
     "semantic_hash": ""
   }
 }

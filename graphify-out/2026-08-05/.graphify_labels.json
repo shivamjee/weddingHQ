@@ -1,6 +1,5 @@
 {
   "0": "App Root & Layout",
-  "1": "Tenant Shell & More Tab",
   "2": "Budget Page & Home",
   "3": "Tenant Config & Firestore Paths",
   "4": "Deploy & Hosting Config",
@@ -90,7 +89,7 @@
   "90": "Landing.tsx",
   "91": "AuthProvider.tsx",
   "92": "PHASE4.md — Money in motion",
-  "94": "AuthProvider.tsx",
   "96": "Step 2: tiers + tier ladder",
+  "98": "PWA (installable web app)",
   "100": "Vercel (frontend hosting)"
 }

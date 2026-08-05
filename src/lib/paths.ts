@@ -146,6 +146,30 @@ export const guestTotalsDoc = (tenantId: string): DocumentReference =>
 export const guestLogCol = (tenantId: string): CollectionReference =>
   collection(db, "tenants", tenantId, "guestLog");
 
+// ---- expenses & settlements (Phase 4) --------------------------------------
+// Auto-ids, like contacts/households: nothing keys off an expense's or
+// settlement's id.
+
+export const expensesCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "expenses");
+
+export const expenseDoc = (tenantId: string, expenseId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "expenses", expenseId);
+
+export const settlementsCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "settlements");
+
+export const settlementDoc = (tenantId: string, settlementId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "settlements", settlementId);
+
+/** tenants/{t}/aggregates/expenseTotals — see src/types/expenseTotals.ts. */
+export const expenseTotalsDoc = (tenantId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "aggregates", "expenseTotals");
+
+/** tenants/{t}/aggregates/balances — see src/types/expenseTotals.ts. */
+export const balancesDoc = (tenantId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "aggregates", "balances");
+
 /** The venue capacity the tier ladder measures against. A plain `settings` doc —
  *  no new builder needed, but named here so callers don't retype the doc id. */
 export const GUEST_TARGET_SETTINGS_ID = "guestTarget";

@@ -451,10 +451,42 @@ weddings. It replaced the `allowlist` collection with `memberships`, moved all w
 `tenants/{tenantId}/…`, changed sides from `"shivam"/"swara"` to `"a"/"b"` with tenant labels, and
 added the global admin role. **Phase 2 builds on that shape** — see § Multi-tenancy above.
 
-**Phase 4 — Money in motion is NEXT and NOT STARTED.** The brief is `PHASE4.md`, which is
-**marked TO BE REVIEWED** — it was drafted from `FEATURES.md` §2.2–§2.7 at the end of the Phase 3
-session and has not been read back or agreed. Read it and settle its open questions before writing
-any code against it. Nothing in this repo implements expenses yet.
+**Phase 4 — Money in motion is COMPLETE**, code-wise. Brief: `PHASE4.md` (banner removed, now
+marked reviewed and agreed). The 7 "Open questions" it listed were settled in one session and are
+recorded at the top of the build plan rather than by editing PHASE4.md's own body: aggregates are
+**recompute-and-overwrite** (same trade as `aggregates/guestTotals`, not transactional — this
+codebase has no `runTransaction` anywhere and doesn't need one at this scale); expenses are **one
+bounded `limit(500)` read, no pagination** (that's what makes recompute-and-overwrite valid — it
+needs the writer to hold the full list); a **paid** expense is member-deletable like everything
+else (no couple-only gate, no append-only log); an `estimated` expense is a distinct line
+consuming against a category's `budgets` ceiling, never the same thing as the allocation itself;
+the aggregate is named `ExpenseTotals` (`aggregates/expenseTotals`) to avoid colliding with
+`src/types/budget.ts`'s existing `BudgetTotals`; and `shares` summing to `amountPaise` is
+enforced **client-side only** (`validateShares()` in `src/lib/expenses.ts`) — the rules language
+has no reduce/loop to sum a list of maps, exactly the same limitation the `budgets` block already
+documents for its own cross-document ceiling.
+
+One placement decision PHASE4.md itself never made: there is no new bottom tab. Budget gained two
+subroutes — `/budget/expenses` (the CRUD list) and `/budget/balances` (settle-up) — same pattern
+Plan already uses for Contacts/Questions/Comparisons.
+
+Shipped: `src/lib/expenses.ts` (pure — `splitShares`, `validateShares`, `consumptionBySideCategory`,
+`expenseTotalsFrom`, `balances`, `simplifyDebts`) with named regression tests for the
+`paidBy`≠`shares` worked example, exact-sum rounding across every split mode, and "a settlement
+never appears in a budget total"; `expenses`/`settlements` collections with rules shape-validation
+and emulator tests (member/non-member/cross-tenant, mirroring the `budgets` block); the expense
+entry form per §2.7 (amount first, status a segmented control, chips, last-used defaults, live
+budget-impact line); Budget's per-category consumption view (paid/committed/estimated/remaining,
+sorted by percent consumed descending) and projected-total header; the Balances screen (simplified
+transfers, Settle up); Home's projected total and the caller's own net-balance strip (reads
+`aggregates/*` only, never the expense list); and a couple-only "Recalculate totals" button, which
+collapses into the same recompute-and-overwrite writer every save already uses.
+
+**[MANUAL] — not yet done:** deploy the updated rules —
+`npx firebase deploy --only firestore:rules --project weddinghq-d125b` (needs `npx firebase login`
+first). No indexes were needed yet (`firestore.indexes.json` stays empty until a query actually
+requires one). No new Firebase console setup, no new environment variables, no new host wiring —
+this phase never touched hosting or auth.
 
 Still out of scope until their own phase: tasks and run sheets (Phase 5+); receipts, Firebase
 Storage, RSVP and AI expense categorisation (Phase 6). The categoriser will reuse

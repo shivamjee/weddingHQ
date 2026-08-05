@@ -18,8 +18,14 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState, type ReactNode } from "react";
-import { getDocs, limit, query, serverTimestamp, setDoc } from "firebase/firestore";
-import { BUDGET_TOTALS_PREFIX, budgetDoc, budgetTotalsDoc, budgetsCol } from "@/lib/paths";
+import { getDoc, getDocs, limit, query, serverTimestamp, setDoc } from "firebase/firestore";
+import {
+  BUDGET_TOTALS_PREFIX,
+  budgetDoc,
+  budgetTotalsDoc,
+  budgetsCol,
+  expenseTotalsDoc,
+} from "@/lib/paths";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
@@ -32,6 +38,7 @@ import {
   type ComparisonRow,
   type EventSlice,
 } from "@/lib/budget";
+import { projectedTotalPaise } from "@/lib/expenses";
 import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise, type Paise } from "@/lib/money";
 import { AllocationChart, SidesLegend } from "@/components/budget/AllocationChart";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
@@ -43,7 +50,13 @@ import {
   SecondaryButton,
   TextInput,
 } from "@/components/ui/form";
-import type { BudgetAllocationWithId, Side } from "@/types";
+import type { BudgetAllocationWithId, ExpenseTotals, ExpenseTotalsSlice, Side } from "@/types";
+
+const ZERO_SLICE: ExpenseTotalsSlice = {
+  estimatedPaise: toPaise(0),
+  committedPaise: toPaise(0),
+  paidPaise: toPaise(0),
+};
 
 /** READ COST (CLAUDE.md §3): one document per (side, category), plus an optional
  *  one per (side, category, event) breakdown, plus one totals doc per side. A
@@ -59,6 +72,9 @@ const MAX_BUDGET_DOCS = 300;
 interface BudgetData {
   allocations: BudgetAllocationWithId[];
   totals: Record<Side, number>;
+  /** null before the first expense is ever recorded — Phase 4 hasn't started
+   *  yet for this wedding, not an error. */
+  expenseTotals: ExpenseTotals | null;
 }
 
 type View = Side | "both";
@@ -75,7 +91,12 @@ export default function BudgetPage() {
   const [groupBy, setGroupBy] = useState<GroupBy>("category");
 
   const load = useCallback(async (): Promise<BudgetData> => {
-    const snap = await getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS)));
+    const [snap, expenseTotalsSnap] = await Promise.all([
+      getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS))),
+      // One extra document read — the whole point of the aggregate is that
+      // this screen never loads the expense list itself (PHASE4.md).
+      getDoc(expenseTotalsDoc(tenantId)),
+    ]);
     const allocations: BudgetAllocationWithId[] = [];
     const totals: Record<Side, number> = { a: 0, b: 0 };
 
@@ -97,13 +118,20 @@ export default function BudgetPage() {
         } as BudgetAllocationWithId);
       }
     }
-    return { allocations, totals };
+    return {
+      allocations,
+      totals,
+      expenseTotals: expenseTotalsSnap.exists() ? (expenseTotalsSnap.data() as ExpenseTotals) : null,
+    };
   }, [tenantId]);
 
   const { data, loading, error, reload } = useLoader(load, "Could not load the budget.");
 
   const allocations = useMemo(() => data?.allocations ?? [], [data]);
   const totals = data?.totals ?? { a: 0, b: 0 };
+  const expenseTotals = data?.expenseTotals ?? null;
+  const projectedA = expenseTotals ? projectedTotalPaise(expenseTotals.bySide.a) : 0;
+  const projectedB = expenseTotals ? projectedTotalPaise(expenseTotals.bySide.b) : 0;
 
   const rows = useMemo(() => comparisonRows(categories, allocations), [categories, allocations]);
   const eventRows = useMemo(
@@ -189,6 +217,35 @@ export default function BudgetPage() {
 
       <FormMessage error={error} />
 
+      <section className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <p className="text-xs font-medium text-stone-500">Projected spend</p>
+            <p className="text-2xl font-semibold text-stone-800">
+              {formatINR(toPaise(projectedA + projectedB))}
+            </p>
+            <p className="text-xs text-stone-400">
+              Estimated + committed + paid, against{" "}
+              {totals.a + totals.b > 0 ? formatINR(toPaise(totals.a + totals.b)) : "no budget set"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href={tenantHref(tenantId, "/budget/expenses")}
+              className="min-h-[44px] rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700"
+            >
+              Expenses
+            </Link>
+            <Link
+              href={tenantHref(tenantId, "/budget/balances")}
+              className="min-h-[44px] rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700"
+            >
+              Balances
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <ChipRow<View>
         options={[
           { value: "both", label: "Both sides" },
@@ -246,6 +303,7 @@ export default function BudgetPage() {
           setGroupBy={setGroupBy}
           hasEvents={events.length > 0}
           allocations={allocations}
+          expenseTotals={expenseTotals}
           onSaved={reload}
         />
       )}
@@ -267,6 +325,7 @@ function SideDetail({
   setGroupBy,
   hasEvents,
   allocations,
+  expenseTotals,
   onSaved,
 }: {
   side: Side;
@@ -278,6 +337,7 @@ function SideDetail({
   setGroupBy: (g: GroupBy) => void;
   hasEvents: boolean;
   allocations: BudgetAllocationWithId[];
+  expenseTotals: ExpenseTotals | null;
   onSaved: () => void;
 }) {
   const { sideLabel } = useTenant();
@@ -338,7 +398,83 @@ function SideDetail({
           />
         </section>
       </div>
+
+      {expenseTotals ? (
+        <ConsumptionSection side={side} rows={rows} expenseTotals={expenseTotals} />
+      ) : null}
     </div>
+  );
+}
+
+/** Per-category paid/committed/estimated/remaining, one row per category for
+ *  THIS side — FEATURES.md §2.6, "sorted by percent consumed, descending":
+ *  overruns belong at the top, not in alphabetical order. Only rendered once
+ *  a wedding has recorded at least one expense (`expenseTotals` non-null) —
+ *  before that there is nothing to show that the allocation rows above
+ *  don't already say. */
+function ConsumptionSection({
+  side,
+  rows,
+  expenseTotals,
+}: {
+  side: Side;
+  rows: CategoryComparisonRow[];
+  expenseTotals: ExpenseTotals;
+}) {
+  const sorted = useMemo(() => {
+    return rows
+      .map((row) => {
+        const slice = expenseTotals.bySideCategory[`${side}_${row.categoryId}`] ?? ZERO_SLICE;
+        const ceiling = row[side];
+        const spent = projectedTotalPaise(slice);
+        const pct = ceiling > 0 ? (spent / ceiling) * 100 : spent > 0 ? Infinity : 0;
+        return { row, slice, ceiling, spent, pct };
+      })
+      .filter((x) => x.spent > 0 || x.ceiling > 0)
+      .sort((a, b) => b.pct - a.pct);
+  }, [rows, expenseTotals, side]);
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-base font-semibold text-stone-800">Spending by category</h2>
+      <ul className="flex flex-col gap-2">
+        {sorted.map(({ row, slice, ceiling, spent }) => {
+          const over = ceiling > 0 && spent > ceiling;
+          const pct = (field: keyof ExpenseTotalsSlice) =>
+            ceiling > 0 ? Math.min((slice[field] / ceiling) * 100, 100) : 0;
+          return (
+            <li
+              key={row.categoryId}
+              className="flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white p-3"
+            >
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex min-w-0 items-center gap-2 font-medium text-stone-800">
+                  <OptionMark colour={row.colour} icon={row.icon} />
+                  <span className="truncate">{row.name}</span>
+                </span>
+                <span className={`shrink-0 ${over ? "font-semibold text-rose-600" : "text-stone-600"}`}>
+                  {formatINR(toPaise(spent))}
+                  {ceiling > 0 ? ` of ${formatINR(toPaise(ceiling))}` : ""}
+                </span>
+              </div>
+              <div className="flex h-2 overflow-hidden rounded-full bg-stone-100">
+                <div className="bg-emerald-500" style={{ width: `${pct("paidPaise")}%` }} />
+                <div className="bg-amber-400" style={{ width: `${pct("committedPaise")}%` }} />
+                <div className="bg-stone-300" style={{ width: `${pct("estimatedPaise")}%` }} />
+              </div>
+              {over ? (
+                <p className="text-xs text-rose-600">Over by {formatINR(toPaise(spent - ceiling))}</p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-stone-400">
+        Solid green is paid, amber is committed, light is estimated.
+      </p>
+    </section>
   );
 }
 
