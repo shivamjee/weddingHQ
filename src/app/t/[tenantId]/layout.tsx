@@ -69,15 +69,21 @@ function TenantShell({ children }: { children: React.ReactNode }) {
   // read the rules would reject.
   return (
     <ConfigProvider tenantId={tenantId}>
-      <div className="mx-auto flex w-full max-w-md flex-1 border-stone-200 sm:border-x md:max-w-none md:border-x-0">
+      {/* `lg:h-dvh` anchors this shell to the viewport at desktop — without a
+          definite height somewhere in the chain, `main`'s `overflow-y-auto`
+          below is inert (body is `min-h-full`, a floor not a cap, so the
+          whole document just grows instead of `main` clipping and scrolling
+          internally). Scoped to `lg:` only: below that the app still relies
+          on the document scrolling, same as it always has. */}
+      <div className="mx-auto flex w-full max-w-md flex-1 border-stone-200 sm:border-x md:max-w-none md:border-x-0 lg:h-dvh">
         <SidebarNav />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
           <AppHeader />
           {/* No mx-auto here: that would center the capped column inside the
               leftover space next to the sidebar, growing an empty gap between
               nav and content as the window widens. Flush against the sidebar,
               max-width just caps how far it stretches on very wide screens. */}
-          <main className="flex w-full max-w-none flex-1 flex-col overflow-y-auto md:max-w-3xl lg:max-w-6xl">
+          <main className="flex w-full max-w-none flex-1 flex-col overflow-y-auto md:max-w-3xl lg:max-w-6xl lg:min-h-0">
             {children}
           </main>
           <BottomTabBar />
