@@ -73,7 +73,11 @@ function TenantShell({ children }: { children: React.ReactNode }) {
         <SidebarNav />
         <div className="flex min-w-0 flex-1 flex-col">
           <AppHeader />
-          <main className="mx-auto flex w-full max-w-none flex-1 flex-col overflow-y-auto md:max-w-3xl lg:max-w-6xl">
+          {/* No mx-auto here: that would center the capped column inside the
+              leftover space next to the sidebar, growing an empty gap between
+              nav and content as the window widens. Flush against the sidebar,
+              max-width just caps how far it stretches on very wide screens. */}
+          <main className="flex w-full max-w-none flex-1 flex-col overflow-y-auto md:max-w-3xl lg:max-w-6xl">
             {children}
           </main>
           <BottomTabBar />
