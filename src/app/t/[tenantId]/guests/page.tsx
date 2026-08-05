@@ -635,19 +635,33 @@ export default function GuestsPage() {
   // swap). At `lg:+` the list stays put in a left column and `detail` (when
   // there is one) opens beside it — the split pane this screen is the one
   // genuine case for (CLAUDE.md § Responsive layout).
+  //
+  // The two columns scroll INDEPENDENTLY (`lg:overflow-y-auto` each, and
+  // `lg:overflow-hidden` on the row so only they scroll, not it). Without
+  // this they'd share `main`'s one scroll position: opening a household from
+  // partway down a long list left `detail` rendered at that same scroll
+  // offset, above the visible viewport, looking like nothing had happened. As
+  // a side effect this also means going back to the list restores exactly
+  // where you were in it, rather than resetting to the top.
   return (
     <div
       className={
         mode.kind === "list"
           ? "flex flex-1 flex-col"
-          : "flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-6"
+          : "flex flex-1 flex-col lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-stretch lg:gap-6 lg:overflow-hidden"
       }
     >
-      <div className={mode.kind === "list" ? "flex flex-1 flex-col" : "hidden lg:flex lg:min-w-0 lg:flex-col"}>
+      <div
+        className={
+          mode.kind === "list"
+            ? "flex flex-1 flex-col"
+            : "hidden lg:flex lg:h-full lg:min-h-0 lg:min-w-0 lg:flex-col lg:overflow-y-auto"
+        }
+      >
         {list}
       </div>
       {mode.kind !== "list" ? (
-        <div className="flex min-w-0 flex-1 flex-col">{detail}</div>
+        <div className="flex min-w-0 flex-1 flex-col lg:h-full lg:min-h-0 lg:overflow-y-auto">{detail}</div>
       ) : null}
     </div>
   );

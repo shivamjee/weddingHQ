@@ -10,6 +10,7 @@
   "8": "Phase 2 Firestore Collections",
   "9": "Path Builder Helpers",
   "10": "AI Comparison Route",
+  "11": "contacts/page.tsx",
   "12": "Comparison Views & Criteria Editor",
   "13": "FEATURES Collections & Aggregates",
   "14": "FEATURES AI & Money Rules",
@@ -90,5 +91,6 @@
   "89": "TenantProvider.tsx",
   "90": "Landing.tsx",
   "91": "AuthProvider.tsx",
-  "92": "PHASE4.md — Money in motion"
+  "92": "PHASE4.md — Money in motion",
+  "94": "AuthProvider.tsx"
 }
