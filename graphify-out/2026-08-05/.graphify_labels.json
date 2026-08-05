@@ -10,6 +10,7 @@
   "8": "Phase 2 Firestore Collections",
   "9": "Path Builder Helpers",
   "10": "AI Comparison Route",
+  "11": "contacts/page.tsx",
   "12": "Comparison Views & Criteria Editor",
   "13": "FEATURES Collections & Aggregates",
   "14": "FEATURES AI & Money Rules",
@@ -90,5 +91,15 @@
   "89": "TenantProvider.tsx",
   "90": "Landing.tsx",
   "91": "AuthProvider.tsx",
-  "92": "PHASE4.md — Money in motion"
+  "92": "PHASE4.md — Money in motion",
+  "93": "[tenantId]/layout.tsx",
+  "94": "AuthProvider.tsx",
+  "95": "useAuth",
+  "96": "Step 2: tiers + tier ladder",
+  "97": "Landing.tsx",
+  "98": "Phase 2 security rules table (per collection)",
+  "99": "Step 5b: AI assist for comparisons",
+  "100": "Vercel (frontend hosting)",
+  "101": "Budget analytics (§2.6)",
+  "102": "Step 2: per-side budget allocations + allocation health"
 }
