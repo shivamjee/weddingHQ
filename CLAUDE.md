@@ -175,18 +175,21 @@ there, not in either component, or the two navs will drift.
   stacked.
 - **Guests** (`guests/page.tsx`) — below `lg:`, opening a household/guest
   fully replaces the list (a full-screen swap, unchanged). At `lg:+`,
-  `detail` (whichever mode is open — view/edit/names/named-guest) renders
-  as an **inline expansion right under the row that opened it** (or under
-  "+ Add" for a new household), not in a separate pane elsewhere on screen.
-  A first attempt used a genuine left-list/right-detail split pane; that
-  broke on a long list — opening a household from partway down rendered
-  detail at the top of a shared scroll position, off the visible viewport,
-  so a click looked like it had done nothing. Inline expansion sidesteps
-  the whole scroll-position problem: detail always appears exactly where
-  you clicked, already in view. Same `Mode` state and handlers as the
-  full-screen-swap path — `isDesktop` (`useMediaQuery`, same hook the
-  Comparisons cards/table split already uses) only changes *where* `detail`
-  is placed, never the state.
+  `detail` (whichever mode is open — view/edit/names/named-guest) opens in a
+  **`lg:sticky lg:top-6` column beside the list**, in a
+  `lg:grid-cols-[minmax(0,1fr)_380px]` row. Two earlier attempts got this
+  wrong: a genuine left-list/right-detail split pane with independent
+  scrolling broke because nothing in the shell had a definite height for
+  `overflow-y-auto` to clip against (`body` is `min-h-full`, a floor not a
+  cap); an inline expansion directly under the clicked row worked but put
+  the row you clicked and its detail in the same scrolling column, so a
+  long list meant scrolling twice. `sticky` needs no scroll container of
+  its own — it just stays pinned near the top of the viewport as the list
+  (and the page — this app scrolls the *document*, not an inner container)
+  scrolls past it, the same mechanism `BottomTabBar` already uses. Same
+  `Mode` state and handlers as the full-screen-swap path — `isDesktop`
+  (`useMediaQuery`, same hook the Comparisons cards/table split already
+  uses) only changes *where* `detail` is placed, never the state.
 - **Plan → Contacts / Questions** — their card lists go
   `sm:grid-cols-2 lg:grid-cols-3`. Cheap: the cards were already
   self-contained, this is just the wrapping `<ul>`'s className.

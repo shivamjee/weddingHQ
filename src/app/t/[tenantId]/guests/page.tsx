@@ -17,7 +17,7 @@
 // overwrites it. One writer path, no transaction, and drift heals on the next
 // write. See src/types/guestTotals.ts.
 
-import { Fragment, useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
 import {
@@ -122,12 +122,9 @@ export default function GuestsPage() {
   const { events } = useConfig();
 
   const [mode, setMode] = useState<Mode>({ kind: "list" });
-  // At `lg:+`, detail opens as an inline expansion right under the row you
-  // clicked (or under "+ Add" for a brand-new household), rather than a
-  // separate pane elsewhere on screen — see the household map and the
+  // At `lg:+`, detail opens in a sticky column beside the list — see the
   // return statement below. Below `lg:`, unchanged: a full-screen swap.
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const openHouseholdId = mode.kind === "list" ? null : (mode.household?.id ?? null);
   const [filters, setFilters] = useState<GuestFilters>(NO_FILTERS);
   const [grouping, setGrouping] = useState<BreakdownKey>("side");
   const [shown, setShown] = useState(RENDER_PAGE);
@@ -331,11 +328,10 @@ export default function GuestsPage() {
 
   // ---- modes ---------------------------------------------------------------
   // Below `lg:` this is a full-screen swap — exactly one of list/detail
-  // renders, matching the rest of the app. At `lg:+`, `detail` instead renders
-  // inline, directly under the row (or "+ Add") that opened it — see the
-  // household map and the return statement below (CLAUDE.md § Responsive
-  // layout). Same Mode state and handlers either way, just a different
-  // render shape.
+  // renders, matching the rest of the app. At `lg:+`, `detail` instead opens
+  // in a sticky column beside the list — see the return statement below
+  // (CLAUDE.md § Responsive layout). Same Mode state and handlers either
+  // way, just a different render shape.
 
   let detail: ReactNode = null;
 
@@ -410,13 +406,6 @@ export default function GuestsPage() {
         </div>
         <SecondaryButton onClick={() => setMode({ kind: "form" })}>+ Add</SecondaryButton>
       </div>
-
-      {/* The one case with no row to expand under: a brand-new household.
-          Opens right where "+ Add" was clicked instead of the last row's
-          detail pane. */}
-      {isDesktop && mode.kind === "form" && !mode.household ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/40 p-4">{detail}</div>
-      ) : null}
 
       <FormMessage error={writeError ?? error} />
 
@@ -598,31 +587,22 @@ export default function GuestsPage() {
           ) : (
             <ul className="flex flex-col gap-2">
               {visible.slice(0, shown).map((household) => (
-                <Fragment key={household.id}>
-                  <HouseholdCard
-                    household={household}
-                    plates={plates}
-                    sideLabel={sideLabel(household.side)}
-                    onView={() => {
-                      // A second click on the already-open row collapses it
-                      // (desktop only — mobile has nothing to collapse back
-                      // into, it's a full-screen swap).
-                      if (isDesktop && mode.kind === "view" && mode.household.id === household.id) {
-                        setMode({ kind: "list" });
-                      } else {
-                        setMode({ kind: "view", household });
-                      }
-                    }}
-                  />
-                  {/* Detail loads as an extension of the row you clicked, not
-                      a separate pane elsewhere on screen — so it's always
-                      obvious whose detail you're looking at. */}
-                  {isDesktop && openHouseholdId === household.id ? (
-                    <li className="rounded-2xl border border-rose-200 bg-rose-50/40 p-4">
-                      {detail}
-                    </li>
-                  ) : null}
-                </Fragment>
+                <HouseholdCard
+                  key={household.id}
+                  household={household}
+                  plates={plates}
+                  sideLabel={sideLabel(household.side)}
+                  onView={() => {
+                    // A second click on the already-open row closes the
+                    // side panel (desktop only — mobile has nothing to close
+                    // back into, it's a full-screen swap).
+                    if (isDesktop && mode.kind === "view" && mode.household.id === household.id) {
+                      setMode({ kind: "list" });
+                    } else {
+                      setMode({ kind: "view", household });
+                    }
+                  }}
+                />
               ))}
             </ul>
           )}
@@ -666,12 +646,20 @@ export default function GuestsPage() {
   );
 
   // Below `lg:`, exactly one of `list`/`detail` is visible — a full-screen
-  // swap, matching the rest of the app. At `lg:+`, `list` is always what's
-  // on screen; `detail` is never rendered as a separate pane here — it's
-  // already inlined above, right under the row (or "+ Add") that opened it,
-  // which is what makes it obvious whose detail is showing (CLAUDE.md §
-  // Responsive layout).
-  return isDesktop ? list : mode.kind === "list" ? list : detail;
+  // swap, matching the rest of the app. At `lg:+`, `detail` opens beside the
+  // list in a `sticky` right column: not independently scrolled, it just
+  // stays pinned near the top of the viewport as the list (and the page —
+  // this app scrolls the document, not an inner container) scrolls past it.
+  // Same mechanism the bottom tab bar already uses for the same reason
+  // (CLAUDE.md § Responsive layout).
+  if (!isDesktop) return mode.kind === "list" ? list : detail;
+  if (mode.kind === "list") return list;
+  return (
+    <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+      {list}
+      <div className="lg:sticky lg:top-6">{detail}</div>
+    </div>
+  );
 }
 
 /** READ COST: a `<details>` renders its children eagerly, so the rows are
