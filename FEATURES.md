@@ -295,6 +295,7 @@ expenses at once, so there is no per-expense "settled" flag.
 aggregates/expenseTotals
   bySideCategory   { ["a_decor"]: { estimatedPaise, committedPaise, paidPaise } }
   byEvent          { [eventId]: { estimatedPaise, committedPaise, paidPaise } }
+  bySideEvent      { ["a_sangeet"]: { estimatedPaise, committedPaise, paidPaise } }
   bySide           { a: {...}, b: {...} }
   updatedAt        timestamp
 
@@ -319,6 +320,12 @@ writer paths.
 
 Note `bySideCategory` is keyed on side and category, per §2.2. Splitting a ₹3L expense updates
 two keys, not one.
+
+**AS BUILT (Phase 4.2 QA round):** `bySideEvent`, keyed like `bySideCategory` but on side and
+event, added so Budget's per-side "Spending by event" view has a real per-side number — `byEvent`
+alone is combined across both sides and can't answer "how much has Shivam's side spent on the
+Sangeet". Derived from `shares` the same way `bySideCategory` is, via `consumptionBySideEvent()`
+in `src/lib/expenses.ts`.
 
 Provide a couple-only **"recalculate totals"** button that rebuilds both docs from scratch.
 Drift will happen; build the repair tool now. Comment it as deliberately expensive and bound it

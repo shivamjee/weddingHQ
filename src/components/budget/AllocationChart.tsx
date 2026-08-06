@@ -19,9 +19,10 @@
 // distinction never rests on colour alone.
 
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { OptionMark } from "@/components/ui/form";
 import { FALLBACK_COLOUR } from "@/lib/colours";
 import { formatCompact, formatINR, toPaise } from "@/lib/money";
-import type { ComparisonRow } from "@/lib/budget";
+import type { CategoryComparisonRow, ComparisonRow } from "@/lib/budget";
 
 /** Opacity for side B's bars. Solid vs. clearly-lighter reads at a glance and
  *  survives a greyscale print; the labels carry the real meaning regardless. */
@@ -36,12 +37,20 @@ export function AllocationChart({
   /** Shown when there is nothing to chart yet — the category and event
    *  groupings are empty for different reasons, so callers say which. */
   emptyMessage = "Nothing allocated yet.",
+  /** Per-category actual spend, keyed by categoryId (Phase 4.1 round 2).
+   *  When present, each bar becomes a bullet graph — a light track sized to
+   *  the budget ceiling with a solid overlay sized to what's actually been
+   *  spent — instead of the plain Recharts budget-only bars below. Omitted
+   *  by callers grouping by event: `expenseTotals.byEvent` has no per-side
+   *  breakdown, so there's nothing honest to overlay there. */
+  spentByCategory,
 }: {
   rows: ComparisonRow[];
   labelA: string;
   labelB: string;
   only?: "a" | "b";
   emptyMessage?: string;
+  spentByCategory?: Record<string, { a: number; b: number }>;
 }) {
   // EVERY row keeps its place, including ones with nothing against them. A
   // named axis entry with no bar is the signal "nobody has budgeted for
@@ -56,6 +65,27 @@ export function AllocationChart({
       <p className="rounded-2xl border border-dashed border-stone-300 px-4 py-6 text-center text-sm text-stone-400">
         {emptyMessage}
       </p>
+    );
+  }
+
+  if (spentByCategory) {
+    // Only ever passed alongside category-grouped rows (see the prop
+    // comment) — event grouping never sets it, so this cast is a caller
+    // contract, not a guess.
+    const categoryRows = visible as CategoryComparisonRow[];
+    return (
+      <div className="flex flex-col gap-4">
+        {categoryRows.map((row) => (
+          <CategoryBulletRow
+            key={row.categoryId}
+            row={row}
+            spent={spentByCategory[row.categoryId] ?? { a: 0, b: 0 }}
+            only={only}
+            labelA={labelA}
+            labelB={labelB}
+          />
+        ))}
+      </div>
     );
   }
 
@@ -180,6 +210,97 @@ export function SidesLegend({ labelA, labelB }: { labelA: string; labelB: string
         {labelB} (lighter)
       </span>
       <span className="text-stone-400">Each category keeps its own colour.</span>
+    </div>
+  );
+}
+
+/** One category's row in bullet-bar mode: the name, then one bullet bar per
+ *  visible side. Same solid-vs-lighter side convention as the Recharts bars
+ *  above (`SIDE_B_OPACITY`), just built from plain divs — the same choice
+ *  AllocationHealthBar already made for a single stacked strip, extended to
+ *  one bar per category. */
+function CategoryBulletRow({
+  row,
+  spent,
+  only,
+  labelA,
+  labelB,
+}: {
+  row: CategoryComparisonRow;
+  spent: { a: number; b: number };
+  only?: "a" | "b";
+  labelA: string;
+  labelB: string;
+}) {
+  const colour = row.colour || FALLBACK_COLOUR;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2 text-sm">
+        <OptionMark colour={row.colour} icon={row.icon} className="h-2.5 w-2.5" />
+        <span className="min-w-0 flex-1 truncate font-medium text-stone-700">{row.name}</span>
+      </div>
+      {!only || only === "a" ? (
+        <BulletBar
+          sideLabel={labelA}
+          colour={colour}
+          opacity={1}
+          ceilingPaise={row.a}
+          spentPaise={spent.a}
+        />
+      ) : null}
+      {!only || only === "b" ? (
+        <BulletBar
+          sideLabel={labelB}
+          colour={colour}
+          opacity={SIDE_B_OPACITY}
+          ceilingPaise={row.b}
+          spentPaise={spent.b}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/** A light track sized to the budget ceiling with a solid overlay sized to
+ *  actual spend — both scaled to whichever is larger, same over-budget
+ *  handling as AllocationHealthBar's marker (an overshoot extends past the
+ *  ceiling instead of clipping invisibly at the end). */
+function BulletBar({
+  sideLabel,
+  colour,
+  opacity,
+  ceilingPaise,
+  spentPaise,
+}: {
+  sideLabel: string;
+  colour: string;
+  opacity: number;
+  ceilingPaise: number;
+  spentPaise: number;
+}) {
+  const scale = Math.max(ceilingPaise, spentPaise, 1);
+  const trackPct = Math.min((ceilingPaise / scale) * 100, 100);
+  const spentPct = Math.min((spentPaise / scale) * 100, 100);
+  const over = ceilingPaise > 0 && spentPaise > ceilingPaise;
+
+  return (
+    <div
+      className="relative h-3 w-full overflow-hidden rounded-full bg-stone-100"
+      title={`${sideLabel}: ${formatINR(toPaise(spentPaise))} spent of ${
+        ceilingPaise > 0 ? formatINR(toPaise(ceilingPaise)) : "no budget set"
+      }`}
+    >
+      <div
+        className="absolute inset-y-0 left-0 rounded-full"
+        style={{ width: `${trackPct}%`, backgroundColor: colour, opacity: opacity * 0.3 }}
+      />
+      <div
+        className="absolute inset-y-0 left-0 rounded-full"
+        style={{ width: `${spentPct}%`, backgroundColor: colour, opacity }}
+      />
+      {over ? (
+        <div className="absolute inset-y-0 w-0.5 bg-stone-900" style={{ left: `${trackPct}%` }} />
+      ) : null}
     </div>
   );
 }

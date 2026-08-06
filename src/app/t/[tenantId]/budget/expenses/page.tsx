@@ -281,13 +281,14 @@ export default function ExpensesPage() {
 
       {canInvite ? (
         <div className="flex flex-col gap-1">
-          <SecondaryButton
-            className="self-start"
+          <button
+            type="button"
             onClick={() => void recalculateTotals()}
             disabled={recalculating}
+            className="self-start shrink-0 whitespace-nowrap rounded-full border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-600 transition-colors hover:border-stone-400 disabled:opacity-50"
           >
             {recalculating ? "Rebuilding…" : "Recalculate totals"}
-          </SecondaryButton>
+          </button>
           {recalculateMessage ? <p className="text-xs text-stone-500">{recalculateMessage}</p> : null}
         </div>
       ) : null}

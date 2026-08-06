@@ -305,7 +305,7 @@ export function PrimaryButton({
   return (
     <button
       {...props}
-      className={`min-h-[48px] rounded-full bg-rose-500 px-5 text-base font-semibold text-white transition-opacity disabled:opacity-40 ${props.className ?? ""}`}
+      className={`min-h-[48px] shrink-0 whitespace-nowrap rounded-full bg-rose-500 px-5 text-base font-semibold text-white transition-opacity disabled:opacity-40 ${props.className ?? ""}`}
     >
       {children}
     </button>
@@ -319,7 +319,7 @@ export function SecondaryButton({
   return (
     <button
       {...props}
-      className={`min-h-[48px] rounded-full border border-stone-300 px-5 text-base font-medium text-stone-700 transition-colors hover:border-stone-400 disabled:opacity-40 ${props.className ?? ""}`}
+      className={`min-h-[48px] shrink-0 whitespace-nowrap rounded-full border border-stone-300 px-5 text-base font-medium text-stone-700 transition-colors hover:border-stone-400 disabled:opacity-40 ${props.className ?? ""}`}
     >
       {children}
     </button>

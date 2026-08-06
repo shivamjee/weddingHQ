@@ -35,6 +35,7 @@ import { projectedTotalPaise } from "@/lib/expenses";
 import { formatDate } from "@/lib/dates";
 import { formatINR, toPaise } from "@/lib/money";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
+import { SpendDonut } from "@/components/budget/SpendDonut";
 import type { BudgetAllocationWithId, ExpenseTotals, Side } from "@/types";
 
 const MAX_BUDGET_DOCS = MAX_CATEGORIES * 2 + 2;
@@ -146,7 +147,7 @@ export default function HomePage() {
           {anyBudget ? (
             <section className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="text-base font-semibold text-stone-800">Budget</h2>
+                <h2 className="text-base font-semibold text-stone-800">Budget &amp; Expenses</h2>
                 <Link
                   href={tenantHref(tenantId, "/budget")}
                   className="text-sm font-medium text-rose-600"
@@ -155,10 +156,13 @@ export default function HomePage() {
                 </Link>
               </div>
               {projectedPaise !== null ? (
-                <p className="text-sm text-stone-500">
-                  <span className="font-semibold text-stone-800">{formatINR(projectedPaise)}</span>{" "}
-                  projected of {formatINR(toPaise(totals.a + totals.b))}
-                </p>
+                <div className="flex items-center gap-3">
+                  <SpendDonut spentPaise={projectedPaise} budgetPaise={totals.a + totals.b} size={64} />
+                  <p className="text-sm text-stone-500">
+                    <span className="font-semibold text-stone-800">{formatINR(projectedPaise)}</span> of{" "}
+                    {formatINR(toPaise(totals.a + totals.b))} budget
+                  </p>
+                </div>
               ) : null}
               <AllocationHealthBar
                 health={allocationHealth(

@@ -523,6 +523,45 @@ money screens:
   per-person. The "only Shivam and Swara" read was a data artifact of only 2 people having signed
   into the tenant, not a code limitation.
 
+**Phase 4.2 — Budget/Home visual QA, layered on top of Phase 4.1, is COMPLETE.** A second real-usage
+round, focused on the Budget screen's design rather than navigation:
+- **Budget vs. expenses got a real pictorial split.** `SpendDonut` (`src/components/budget/SpendDonut.tsx`)
+  is a small two-segment ring — green for spent, light grey for remaining, rose only when over
+  budget — shared by Home's "Budget & Expenses" card (renamed from "Budget") and Budget's own
+  Expenses card. On Budget, the side chips (Both sides/Shivam/Swara) moved **above** the Expenses
+  card and that card now reads per the selected view instead of always summing both sides.
+- **"Side by side" gained bullet bars.** Each category's bar is now a light track sized to the
+  budget ceiling with a solid category-coloured overlay sized to actual spend (paid + committed +
+  estimated) — a classic budget-vs-actual bullet graph, built as plain divs in
+  `AllocationChart.tsx` (`spentByCategory` prop) rather than fighting Recharts for an overlay it
+  wasn't designed for, same reasoning `AllocationHealthBar` already documents for its own strip.
+  Deliberately category-only — `expenseTotals.byEvent` has no per-side breakdown, so the "By
+  event" toggle that used to sit on this chart was **removed** rather than shown against numbers
+  that don't actually exist per side.
+- **Per-side detail simplified.** "Where it goes" (the old single-side Recharts chart) is gone;
+  "Spending by category" is the only chart per side now, and it gained its own **Category/Event
+  toggle** (independent of the removed one above) backed by a genuinely new aggregate field,
+  `ExpenseTotals.bySideEvent` (keyed `"{side}_{eventId}"`, mirroring `bySideCategory` —
+  `consumptionBySideEvent()` in `src/lib/expenses.ts`). Old aggregate docs written before this
+  field existed default to `{}` at read time and self-heal on the next expense/settlement write or
+  "Recalculate totals" — same pattern already used for missing `eventId` elsewhere in this file.
+  On `lg:+`, "By category" and "Spending by category" now sit side by side
+  (`lg:grid-cols-2`, only rendered as a pair once there's an `expenseTotals` doc to show; a lone
+  "By category" stays single-column, per CLAUDE.md § Responsive layout's own rule against
+  grid-izing a section with nothing to sit beside it).
+- **"By category" is now a collapsible `Expander`** (the same native `<details>` primitive Guests'
+  "More details" already uses) — collapsed by default under `lg:` (1024px, the same breakpoint the
+  two-column split above uses) so a long category list doesn't stand between the top of the phone
+  screen and "Spending by category"; open by default at `lg:+`, where the two already sit side by
+  side and there's nothing to scroll past.
+- **Two button-sizing fixes**, both root-caused to the shared components rather than patched per
+  screen: `PrimaryButton`/`SecondaryButton` (`src/components/ui/form.tsx`) gained `shrink-0
+  whitespace-nowrap` — without it, a button squeezed into a `justify-between` row (Balances'
+  "Settle up") could shrink until its label wrapped, ballooning a rounded-full pill into a
+  misshapen blob on a narrow phone. Expenses' "Recalculate totals" — a couple-only admin action,
+  not a primary CTA — was downsized from a full `SecondaryButton` to a small bordered pill
+  (`text-xs`, tighter padding) so it reads as secondary rather than competing with real actions.
+
 **Phase 5 — Tasks, timeline and run sheets is NEXT and NOT STARTED.** The brief is `PHASE5.md`,
 **marked TO BE REVIEWED** — drafted at the end of the Phase 4 session from `FEATURES.md` §6, §7,
 §8 and §9.2, not yet read back or agreed. Settle its open questions before writing code against it,

@@ -46,6 +46,10 @@ export interface ExpenseTotals {
   bySideCategory: Record<string, ExpenseTotalsSlice>;
   /** Keyed by event id. An event with no expenses yet is simply absent. */
   byEvent: Record<string, ExpenseTotalsSlice>;
+  /** Keyed `"{side}_{eventId}"`, mirroring `bySideCategory` — added Phase 4.1
+   *  round 3 so Budget's per-side "Spending by event" toggle has a real
+   *  per-side number to show, rather than the combined `byEvent` figure. */
+  bySideEvent: Record<string, ExpenseTotalsSlice>;
   bySide: Record<Side, ExpenseTotalsSlice>;
   updatedAt: Timestamp;
 }

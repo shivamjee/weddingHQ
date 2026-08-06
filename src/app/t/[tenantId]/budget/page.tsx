@@ -29,28 +29,37 @@ import {
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useConfig } from "@/lib/tenants/ConfigProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
   allocationHealth,
   comparisonRows,
   eventBreakdown,
   eventComparisonRows,
   type CategoryComparisonRow,
-  type ComparisonRow,
+  type EventComparisonRow,
   type EventSlice,
 } from "@/lib/budget";
 import { projectedTotalPaise } from "@/lib/expenses";
 import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise, type Paise } from "@/lib/money";
 import { AllocationChart, SidesLegend } from "@/components/budget/AllocationChart";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
+import { SpendDonut } from "@/components/budget/SpendDonut";
 import {
   ChipRow,
+  Expander,
   FormMessage,
   OptionMark,
   PrimaryButton,
   SecondaryButton,
   TextInput,
 } from "@/components/ui/form";
-import type { BudgetAllocationWithId, ExpenseTotals, ExpenseTotalsSlice, Side } from "@/types";
+import type {
+  BudgetAllocationWithId,
+  EventWithId,
+  ExpenseTotals,
+  ExpenseTotalsSlice,
+  Side,
+} from "@/types";
 
 const ZERO_SLICE: ExpenseTotalsSlice = {
   estimatedPaise: toPaise(0),
@@ -78,17 +87,18 @@ interface BudgetData {
 }
 
 type View = Side | "both";
-/** How the two "Side by side" / "Where it goes" charts group their rows. Lives
- *  once at the page level rather than per-chart — the two charts are never
- *  visible at once (they're behind the "both" / one-side `view` toggle above),
- *  so one shared choice is simpler than asking twice. */
+/** How "Spending by category"/"Spending by event" groups its rows — one
+ *  side at a time, inside `ConsumptionSection`. NOT used by the "both sides"
+ *  Side by side chart any more: `expenseTotals.byEvent` has no per-side
+ *  breakdown, and combining that with per-category bullet bars read as two
+ *  different charts wearing one toggle, so "Side by side" stays
+ *  category-only and this type/toggle live purely per-side now. */
 type GroupBy = "category" | "event";
 
 export default function BudgetPage() {
   const { tenantId, canWrite, sideLabel } = useTenant();
-  const { categories, events, loading: configLoading } = useConfig();
+  const { categories, loading: configLoading } = useConfig();
   const [view, setView] = useState<View>("both");
-  const [groupBy, setGroupBy] = useState<GroupBy>("category");
 
   const load = useCallback(async (): Promise<BudgetData> => {
     const [snap, expenseTotalsSnap] = await Promise.all([
@@ -133,19 +143,25 @@ export default function BudgetPage() {
   const projectedA = expenseTotals ? projectedTotalPaise(expenseTotals.bySide.a) : 0;
   const projectedB = expenseTotals ? projectedTotalPaise(expenseTotals.bySide.b) : 0;
 
+  const currentProjected = view === "both" ? projectedA + projectedB : view === "a" ? projectedA : projectedB;
+  const currentTotal = view === "both" ? totals.a + totals.b : totals[view];
+
   const rows = useMemo(() => comparisonRows(categories, allocations), [categories, allocations]);
-  const eventRows = useMemo(
-    () => eventComparisonRows(events, allocations),
-    [events, allocations],
-  );
-  // Grouping by event is meaningless with no events to group by — fall back to
-  // category rather than showing an empty chart behind a toggle nobody can see
-  // the point of. The ChipRow below is hidden in that case too.
-  const chartRows: ComparisonRow[] = groupBy === "event" && events.length > 0 ? eventRows : rows;
-  const chartEmptyMessage =
-    groupBy === "event"
-      ? "Nothing itemised by event yet — expand a category below to add one."
-      : "Nothing allocated yet.";
+
+  // Per-category, per-side spend for the "Side by side" bullet bars.
+  const spentByCategory = useMemo(() => {
+    if (!expenseTotals) return undefined;
+    const map: Record<string, { a: number; b: number }> = {};
+    for (const row of rows) {
+      const sliceA = expenseTotals.bySideCategory[`a_${row.categoryId}`];
+      const sliceB = expenseTotals.bySideCategory[`b_${row.categoryId}`];
+      map[row.categoryId] = {
+        a: sliceA ? projectedTotalPaise(sliceA) : 0,
+        b: sliceB ? projectedTotalPaise(sliceB) : 0,
+      };
+    }
+    return map;
+  }, [expenseTotals, rows]);
 
   const health = useMemo(
     () => ({
@@ -217,17 +233,30 @@ export default function BudgetPage() {
 
       <FormMessage error={error} />
 
+      <ChipRow<View>
+        options={[
+          { value: "both", label: "Both sides" },
+          { value: "a", label: sideLabel("a") },
+          { value: "b", label: sideLabel("b") },
+        ]}
+        value={view}
+        onChange={(v) => v && setView(v)}
+      />
+
       <section className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <p className="text-xs font-medium text-stone-500">Expenses</p>
-            <p className="text-2xl font-semibold text-stone-800">
-              {formatINR(toPaise(projectedA + projectedB))}
-            </p>
-            <p className="text-xs text-stone-400">
-              Paid + committed + estimated, against{" "}
-              {totals.a + totals.b > 0 ? formatINR(toPaise(totals.a + totals.b)) : "no budget set"}
-            </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {expenseTotals ? (
+              <SpendDonut spentPaise={currentProjected} budgetPaise={currentTotal} size={56} />
+            ) : null}
+            <div>
+              <p className="text-xs font-medium text-stone-500">Expenses</p>
+              <p className="text-2xl font-semibold text-stone-800">{formatINR(toPaise(currentProjected))}</p>
+              <p className="text-xs text-stone-400">
+                Paid + committed + estimated, against{" "}
+                {currentTotal > 0 ? formatINR(toPaise(currentTotal)) : "no budget set"}
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Link
@@ -246,16 +275,6 @@ export default function BudgetPage() {
         </div>
       </section>
 
-      <ChipRow<View>
-        options={[
-          { value: "both", label: "Both sides" },
-          { value: "a", label: sideLabel("a") },
-          { value: "b", label: sideLabel("b") },
-        ]}
-        value={view}
-        onChange={(v) => v && setView(v)}
-      />
-
       {view === "both" ? (
         <>
           <h2 className="text-base font-semibold text-stone-800">Budget — planned allocations</h2>
@@ -273,23 +292,18 @@ export default function BudgetPage() {
           </section>
 
           <section className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <h2 className="text-base font-semibold text-stone-800">Side by side</h2>
-                <p className="mt-0.5 text-sm text-stone-500">
-                  {groupBy === "event"
-                    ? "The same events, both sides' itemised amounts against each other."
-                    : "The same categories, both sides' plans against each other."}
-                </p>
-              </div>
-              {events.length > 0 ? <GroupByToggle value={groupBy} onChange={setGroupBy} /> : null}
+            <div>
+              <h2 className="text-base font-semibold text-stone-800">Side by side</h2>
+              <p className="mt-0.5 text-sm text-stone-500">
+                The same categories, both sides' plans against each other.
+              </p>
             </div>
             <SidesLegend labelA={sideLabel("a")} labelB={sideLabel("b")} />
             <AllocationChart
-              rows={chartRows}
+              rows={rows}
               labelA={sideLabel("a")}
               labelB={sideLabel("b")}
-              emptyMessage={chartEmptyMessage}
+              spentByCategory={spentByCategory}
             />
           </section>
         </>
@@ -298,11 +312,6 @@ export default function BudgetPage() {
           side={view}
           totalPaise={totals[view]}
           rows={rows}
-          chartRows={chartRows}
-          chartEmptyMessage={chartEmptyMessage}
-          groupBy={groupBy}
-          setGroupBy={setGroupBy}
-          hasEvents={events.length > 0}
           allocations={allocations}
           expenseTotals={expenseTotals}
           onSaved={reload}
@@ -320,11 +329,6 @@ function SideDetail({
   side,
   totalPaise,
   rows,
-  chartRows,
-  chartEmptyMessage,
-  groupBy,
-  setGroupBy,
-  hasEvents,
   allocations,
   expenseTotals,
   onSaved,
@@ -332,16 +336,17 @@ function SideDetail({
   side: Side;
   totalPaise: number;
   rows: CategoryComparisonRow[];
-  chartRows: ComparisonRow[];
-  chartEmptyMessage: string;
-  groupBy: GroupBy;
-  setGroupBy: (g: GroupBy) => void;
-  hasEvents: boolean;
   allocations: BudgetAllocationWithId[];
   expenseTotals: ExpenseTotals | null;
   onSaved: () => void;
 }) {
   const { sideLabel } = useTenant();
+  const { events } = useConfig();
+  // Same lg: breakpoint as the two-column split below: collapsed by default
+  // on a phone, where "By category" otherwise stands between the page top
+  // and "Spending by category"; open by default once there's room for both
+  // side by side.
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const health = allocationHealth(
     totalPaise,
     allocations.filter((x) => x.side === side),
@@ -354,6 +359,26 @@ function SideDetail({
     allocatedPaise: r[side],
   }));
 
+  const byCategory = (
+    <Expander summary="By category" defaultOpen={isDesktop}>
+      <ul className="flex flex-col gap-2">
+        {rows.map((row) => (
+          <AllocationRow
+            key={row.categoryId}
+            side={side}
+            categoryId={row.categoryId}
+            name={row.name}
+            colour={row.colour}
+            icon={row.icon}
+            allocatedPaise={row[side]}
+            allocations={allocations}
+            onSaved={onSaved}
+          />
+        ))}
+      </ul>
+    </Expander>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4">
@@ -365,113 +390,116 @@ function SideDetail({
         />
       </section>
 
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
-        <section className="flex flex-col gap-3">
-          <h2 className="text-base font-semibold text-stone-800">By category</h2>
-          <ul className="flex flex-col gap-2">
-            {rows.map((row) => (
-              <AllocationRow
-                key={row.categoryId}
-                side={side}
-                categoryId={row.categoryId}
-                name={row.name}
-                colour={row.colour}
-                icon={row.icon}
-                allocatedPaise={row[side]}
-                allocations={allocations}
-                onSaved={onSaved}
-              />
-            ))}
-          </ul>
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-base font-semibold text-stone-800">Where it goes</h2>
-            {hasEvents ? <GroupByToggle value={groupBy} onChange={setGroupBy} /> : null}
-          </div>
-          <AllocationChart
-            rows={chartRows}
-            labelA={sideLabel("a")}
-            labelB={sideLabel("b")}
-            only={side}
-            emptyMessage={chartEmptyMessage}
-          />
-        </section>
-      </div>
-
       {expenseTotals ? (
-        <ConsumptionSection side={side} rows={rows} expenseTotals={expenseTotals} />
-      ) : null}
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+          {byCategory}
+          <ConsumptionSection
+            side={side}
+            rows={rows}
+            events={events}
+            allocations={allocations}
+            expenseTotals={expenseTotals}
+          />
+        </div>
+      ) : (
+        byCategory
+      )}
     </div>
   );
 }
 
-/** Per-category paid/committed/estimated/remaining, one row per category for
- *  THIS side — FEATURES.md §2.6, "sorted by percent consumed, descending":
- *  overruns belong at the top, not in alphabetical order. Only rendered once
- *  a wedding has recorded at least one expense (`expenseTotals` non-null) —
- *  before that there is nothing to show that the allocation rows above
- *  don't already say. */
+/** Per-category (or, toggled, per-event) paid/committed/estimated/remaining,
+ *  one row for THIS side — FEATURES.md §2.6, "sorted by percent consumed,
+ *  descending": overruns belong at the top, not in alphabetical order. Only
+ *  rendered once a wedding has recorded at least one expense (`expenseTotals`
+ *  non-null) — before that there is nothing to show that the allocation rows
+ *  above don't already say.
+ *
+ *  Event mode reads `expenseTotals.bySideEvent` (mirrors `bySideCategory`,
+ *  not the combined `byEvent`) and `eventComparisonRows()` for that side's
+ *  per-event ceiling — same data shape as the category branch, just a
+ *  different id and a different source row list. */
 function ConsumptionSection({
   side,
   rows,
+  events,
+  allocations,
   expenseTotals,
 }: {
   side: Side;
   rows: CategoryComparisonRow[];
+  events: readonly EventWithId[];
+  allocations: BudgetAllocationWithId[];
   expenseTotals: ExpenseTotals;
 }) {
+  const [view, setView] = useState<GroupBy>("category");
+  const byEvent = view === "event" && events.length > 0;
+
+  const eventRows = useMemo(() => eventComparisonRows(events, allocations), [events, allocations]);
+
   const sorted = useMemo(() => {
-    return rows
+    const activeRows: (CategoryComparisonRow | EventComparisonRow)[] = byEvent ? eventRows : rows;
+    // `bySideEvent` is absent on aggregate docs written before this field
+    // existed — self-heals on the next expense/settlement write or
+    // "Recalculate totals", same as `eventId` elsewhere in this file.
+    const sliceMap = byEvent ? (expenseTotals.bySideEvent ?? {}) : expenseTotals.bySideCategory;
+    return activeRows
       .map((row) => {
-        const slice = expenseTotals.bySideCategory[`${side}_${row.categoryId}`] ?? ZERO_SLICE;
+        const id = "eventId" in row ? row.eventId : row.categoryId;
+        const slice = sliceMap[`${side}_${id}`] ?? ZERO_SLICE;
         const ceiling = row[side];
         const spent = projectedTotalPaise(slice);
         const pct = ceiling > 0 ? (spent / ceiling) * 100 : spent > 0 ? Infinity : 0;
-        return { row, slice, ceiling, spent, pct };
+        return { id, row, slice, ceiling, spent, pct };
       })
       .filter((x) => x.spent > 0 || x.ceiling > 0)
       .sort((a, b) => b.pct - a.pct);
-  }, [rows, expenseTotals, side]);
-
-  if (sorted.length === 0) return null;
+  }, [byEvent, eventRows, rows, expenseTotals, side]);
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold text-stone-800">Spending by category</h2>
-      <ul className="flex flex-col gap-2">
-        {sorted.map(({ row, slice, ceiling, spent }) => {
-          const over = ceiling > 0 && spent > ceiling;
-          const pct = (field: keyof ExpenseTotalsSlice) =>
-            ceiling > 0 ? Math.min((slice[field] / ceiling) * 100, 100) : 0;
-          return (
-            <li
-              key={row.categoryId}
-              className="flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white p-3"
-            >
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="flex min-w-0 items-center gap-2 font-medium text-stone-800">
-                  <OptionMark colour={row.colour} icon={row.icon} />
-                  <span className="truncate">{row.name}</span>
-                </span>
-                <span className={`shrink-0 ${over ? "font-semibold text-rose-600" : "text-stone-600"}`}>
-                  {formatINR(toPaise(spent))}
-                  {ceiling > 0 ? ` of ${formatINR(toPaise(ceiling))}` : ""}
-                </span>
-              </div>
-              <div className="flex h-2 overflow-hidden rounded-full bg-stone-100">
-                <div className="bg-emerald-500" style={{ width: `${pct("paidPaise")}%` }} />
-                <div className="bg-amber-400" style={{ width: `${pct("committedPaise")}%` }} />
-                <div className="bg-stone-300" style={{ width: `${pct("estimatedPaise")}%` }} />
-              </div>
-              {over ? (
-                <p className="text-xs text-rose-600">Over by {formatINR(toPaise(spent - ceiling))}</p>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base font-semibold text-stone-800">
+          Spending by {byEvent ? "event" : "category"}
+        </h2>
+        {events.length > 0 ? <GroupByToggle value={view} onChange={setView} /> : null}
+      </div>
+      {sorted.length === 0 ? (
+        <p className="text-sm text-stone-400">Nothing spent here yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {sorted.map(({ id, row, slice, ceiling, spent }) => {
+            const over = ceiling > 0 && spent > ceiling;
+            const pct = (field: keyof ExpenseTotalsSlice) =>
+              ceiling > 0 ? Math.min((slice[field] / ceiling) * 100, 100) : 0;
+            return (
+              <li
+                key={id}
+                className="flex flex-col gap-1.5 rounded-2xl border border-stone-200 bg-white p-3"
+              >
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 font-medium text-stone-800">
+                    <OptionMark colour={row.colour} icon={row.icon} />
+                    <span className="truncate">{row.name}</span>
+                  </span>
+                  <span className={`shrink-0 ${over ? "font-semibold text-rose-600" : "text-stone-600"}`}>
+                    {formatINR(toPaise(spent))}
+                    {ceiling > 0 ? ` of ${formatINR(toPaise(ceiling))}` : ""}
+                  </span>
+                </div>
+                <div className="flex h-2 overflow-hidden rounded-full bg-stone-100">
+                  <div className="bg-emerald-500" style={{ width: `${pct("paidPaise")}%` }} />
+                  <div className="bg-amber-400" style={{ width: `${pct("committedPaise")}%` }} />
+                  <div className="bg-stone-300" style={{ width: `${pct("estimatedPaise")}%` }} />
+                </div>
+                {over ? (
+                  <p className="text-xs text-rose-600">Over by {formatINR(toPaise(spent - ceiling))}</p>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <p className="text-xs text-stone-400">
         Solid green is paid, amber is committed, light is estimated.
       </p>

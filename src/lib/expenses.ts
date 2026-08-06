@@ -144,6 +144,34 @@ export function consumptionBySideCategory(
 }
 
 /**
+ * Consumption per (side, event), keyed `"{side}_{eventId}"` — same shares-
+ * based derivation as `consumptionBySideCategory`, just bucketed by event
+ * instead of category. An expense with no `eventId` (a non-event cost)
+ * contributes to no bucket here, same as it's absent from `byEvent` below.
+ */
+export function consumptionBySideEvent(
+  expenses: readonly ExpenseForTotals[],
+  sideByUid: Record<string, Side>,
+): Record<string, ExpenseTotalsSlice> {
+  const buckets = new Map<string, MutableSlice>();
+  for (const e of expenses) {
+    if (!e.eventId) continue;
+    const field = bucketField(e.status);
+    for (const share of e.shares) {
+      const side = sideByUid[share.uid];
+      if (!side) continue;
+      const key = `${side}_${e.eventId}`;
+      const slice = buckets.get(key) ?? newSlice();
+      slice[field] += share.amountPaise;
+      buckets.set(key, slice);
+    }
+  }
+  const result: Record<string, ExpenseTotalsSlice> = {};
+  for (const [key, slice] of buckets) result[key] = brandSlice(slice);
+  return result;
+}
+
+/**
  * The full `aggregates/expenseTotals` document (minus `updatedAt`, stamped
  * by the caller with `serverTimestamp()` — same shape as
  * `guestTotalsFrom()` in src/lib/guests.ts). `byEvent` and `bySide` use
@@ -151,13 +179,22 @@ export function consumptionBySideCategory(
  * `validateShares` guarantees `sum(shares) === amountPaise`, the two are
  * always equal, and neither dimension needs the side-per-uid lookup.
  * `bySide` is rolled up FROM `bySideCategory` (never recomputed separately)
- * so the two can never drift apart.
+ * so the two can never drift apart. `bySideEvent`, unlike `byEvent`, DOES go
+ * through the side-per-uid lookup — it exists specifically so a single
+ * side's view can show a per-event breakdown, which `byEvent` (combined
+ * across both sides) can't answer.
  */
 export function expenseTotalsFrom(
   expenses: readonly ExpenseForTotals[],
   sideByUid: Record<string, Side>,
-): { bySideCategory: Record<string, ExpenseTotalsSlice>; byEvent: Record<string, ExpenseTotalsSlice>; bySide: Record<Side, ExpenseTotalsSlice> } {
+): {
+  bySideCategory: Record<string, ExpenseTotalsSlice>;
+  byEvent: Record<string, ExpenseTotalsSlice>;
+  bySideEvent: Record<string, ExpenseTotalsSlice>;
+  bySide: Record<Side, ExpenseTotalsSlice>;
+} {
   const bySideCategory = consumptionBySideCategory(expenses, sideByUid);
+  const bySideEvent = consumptionBySideEvent(expenses, sideByUid);
 
   const eventBuckets = new Map<string, MutableSlice>();
   for (const e of expenses) {
@@ -182,6 +219,7 @@ export function expenseTotalsFrom(
   return {
     bySideCategory,
     byEvent,
+    bySideEvent,
     bySide: { a: brandSlice(bySide.a), b: brandSlice(bySide.b) },
   };
 }
