@@ -24,9 +24,9 @@ import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { writeExpenseAggregates } from "@/lib/aggregateWriter";
 import { balances, simplifyDebts, type Transfer } from "@/lib/expenses";
-import { dateInputValue, toTimestamp } from "@/lib/dates";
+import { dateInputValue, formatDate, toTimestamp } from "@/lib/dates";
 import { expensesCol, membershipsCol, settlementsCol } from "@/lib/paths";
-import { formatINR, toPaise } from "@/lib/money";
+import { formatINR, paiseToRupeeInput, parseRupeeInput, toPaise } from "@/lib/money";
 import type { ExpenseWithId, MembershipWithId, SettlementWithId, Side } from "@/types";
 
 const MAX_EXPENSES = 500;
@@ -104,7 +104,7 @@ export default function BalancesPage() {
   return (
     <div className="flex flex-1 flex-col gap-5 px-5 py-6">
       <PageHeader
-        backHref={tenantHref(tenantId, "/budget")}
+        backHref={tenantHref(tenantId, "/budget/expenses")}
         title="Balances"
         subtitle="Who owes whom — never the same number as budget health."
       />
@@ -147,6 +147,32 @@ export default function BalancesPage() {
           onConfirm={recordSettlement}
         />
       ) : null}
+
+      {settlements.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-base font-semibold text-stone-800">Settled</h2>
+          <ul className="flex flex-col gap-2">
+            {[...settlements]
+              .sort((a, b) => b.date.toMillis() - a.date.toMillis())
+              .map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-4"
+                >
+                  <p className="min-w-0 text-sm text-stone-700">
+                    <span className="font-medium text-stone-800">{nameFor(s.fromUid)}</span>
+                    {" → "}
+                    <span className="font-medium text-stone-800">{nameFor(s.toUid)}</span>
+                    {" · "}
+                    {formatINR(toPaise(s.amountPaise))}
+                    {s.method ? ` · ${s.method}` : ""}
+                  </p>
+                  <span className="shrink-0 text-xs text-stone-400">{formatDate(s.date)}</span>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -162,17 +188,25 @@ function SettleForm({
   onCancel: () => void;
   onConfirm: (transfer: Transfer, dateText: string, method: string, note: string) => Promise<void>;
 }) {
+  const [amountText, setAmountText] = useState(paiseToRupeeInput(toPaise(transfer.amountPaise)));
   const [dateText, setDateText] = useState(dateInputValue(Timestamp.now()));
   const [method, setMethod] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const parsedAmount = parseRupeeInput(amountText);
+  const overAmount = parsedAmount !== null && parsedAmount > transfer.amountPaise;
+
   async function submit() {
+    if (parsedAmount === null || parsedAmount <= 0) {
+      setError("Enter an amount greater than zero.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await onConfirm(transfer, dateText, method, note);
+      await onConfirm({ ...transfer, amountPaise: parsedAmount }, dateText, method, note);
     } catch (err) {
       console.error("[balances] settlement save failed:", err);
       setError("Could not record that settlement.");
@@ -192,6 +226,18 @@ function SettleForm({
         Settle {nameFor(transfer.fromUid)} → {nameFor(transfer.toUid)}:{" "}
         {formatINR(toPaise(transfer.amountPaise))}
       </p>
+      <Field label="Amount, in rupees">
+        <TextInput
+          inputMode="decimal"
+          value={amountText}
+          onChange={(e) => setAmountText(e.target.value)}
+        />
+      </Field>
+      {overAmount ? (
+        <p className="text-xs text-amber-600">
+          This is more than the {formatINR(toPaise(transfer.amountPaise))} owed.
+        </p>
+      ) : null}
       <Field label="Date">
         <TextInput type="date" value={dateText} onChange={(e) => setDateText(e.target.value)} />
       </Field>

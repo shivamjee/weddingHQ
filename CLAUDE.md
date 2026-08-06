@@ -488,8 +488,57 @@ first). No indexes were needed yet (`firestore.indexes.json` stays empty until a
 requires one). No new Firebase console setup, no new environment variables, no new host wiring —
 this phase never touched hosting or auth.
 
-Still out of scope until their own phase: tasks and run sheets (Phase 5+); receipts, Firebase
-Storage, RSVP and AI expense categorisation (Phase 6). The categoriser will reuse
+**Phase 4.1 — QA fixes, layered on top of Phase 4, is COMPLETE.** From real usage of the three
+money screens:
+- **Budget page no longer reads as "money already spent."** The top summary card was renamed
+  "Projected spend" → **Expenses**, its caption now says "Paid + committed + estimated" instead of
+  implying pure projection, and the page subtitle no longer claims "nothing here is money spent
+  yet" (false once an expense exists). A **"Budget — planned allocations"** heading now sits above
+  the allocation health bars in the "both sides" view, so that section reads as a distinct block
+  from the Expenses card above it rather than a continuation of it. Deliberately NOT changed: the
+  "both sides" view still shows no combined paid/committed/estimated breakdown — that stays one tap
+  away, inside a single side's tab (`ConsumptionSection`) — a scope call made explicitly, not an
+  oversight.
+- **Expenses gained a real back link to Budget** (`PageHeader`, same component Balances already
+  used) — the list header was previously a bare, unlinked `<h1>`. **"Recalculate totals" restyled**
+  from unstyled gray text (looked disabled) to a real `SecondaryButton`.
+- **Balances' back link now chains through Expenses** (`/budget/expenses`, not `/budget`) —
+  Balances is reachable from both screens, and Expenses had no way back to Budget until this round,
+  so the fix makes it a real Balances → Expenses → Budget chain rather than adding `?from=` query
+  plumbing for a 5–15 person app. Accepted tradeoff: entering Balances directly from Budget and
+  hitting Back now lands on Expenses, one hop further out, not lost.
+- **Settlements gained a history list.** `settlements` were being written and read (for balance
+  math) but never displayed anywhere — a "Settled" section on the Balances screen now lists them,
+  reusing data already in memory (zero extra reads). Deliberately NOT built: linking a settlement
+  back to "this expense is now settled" — a settlement nets a *balance*, Splitwise-style, and can
+  span or partially cover several expenses at once, so there is no clean expense-level flag to set.
+- **Settle up now takes a partial (or larger) amount.** `SettleForm` previously had no amount
+  field at all — it silently recorded the full simplified-transfer amount every time. It now has
+  an editable amount, defaulting to the full transfer, with a non-blocking warning (not a refusal)
+  if the typed amount exceeds what's owed — overpaying is a legitimate real cash movement (e.g.
+  pre-paying toward a future expense), not something to gate.
+- One thing checked and confirmed already correct, no code change: `paidBy`/`shares` were never
+  limited to the two sides — `members` on the Expenses form is built from every `memberships` doc
+  with a stamped `uid`, i.e. every invited person who's signed in, already Splitwise-style
+  per-person. The "only Shivam and Swara" read was a data artifact of only 2 people having signed
+  into the tenant, not a code limitation.
+
+**Phase 5 — Tasks, timeline and run sheets is NEXT and NOT STARTED.** The brief is `PHASE5.md`,
+**marked TO BE REVIEWED** — drafted at the end of the Phase 4 session from `FEATURES.md` §6, §7,
+§8 and §9.2, not yet read back or agreed. Settle its open questions before writing code against it,
+the same way Phase 4's were settled (answers recorded in the build plan, not by rewriting the
+brief). Nothing in this repo implements tasks or run sheets yet.
+
+Its first open question is a real conflict between the two spec files, flagged rather than silently
+resolved: this file has always said "tasks and run sheets (Phase 5+)", while `FEATURES.md` §10
+defined Phase 5 as *"Day-of"* alone — leaving tasks and the planning timeline (§6, §7.1) assigned
+to no phase at all. The two halves have opposite readiness (tasks are useful now, run sheets are
+useless until dates and vendors lock, roughly a month out), so whether they ship together is the
+decision that sets the phase's scope.
+
+Still out of scope until their own phase: receipts, Firebase Storage, RSVP, seating and AI expense
+categorisation (Phase 6); email/push task reminders (Phase 6, `FEATURES.md` §9.2 — Vercel Cron plus
+a free email provider, deliberately **not** web push). The categoriser will reuse
 `src/lib/ai/provider.ts` and the route-handler pattern Phase 2 established rather than building a
 second AI integration.
 

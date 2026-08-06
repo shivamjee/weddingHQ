@@ -92,11 +92,10 @@
   "90": "Landing.tsx",
   "91": "AuthProvider.tsx",
   "92": "PHASE4.md — Money in motion",
-  "93": "TenantProvider.tsx",
   "94": "Landing.tsx",
   "95": "tenants/page.tsx",
-  "96": "Step 2: tiers + tier ladder",
   "97": "AuthProvider.tsx",
-  "98": "PWA (installable web app)",
-  "100": "Vercel (frontend hosting)"
+  "100": "Vercel (frontend hosting)",
+  "102": "ConfigProvider.tsx",
+  "103": "AI assist on comparisons (§3.3)"
 }

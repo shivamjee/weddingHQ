@@ -70,8 +70,8 @@
     "semantic_hash": "7aaebcb5c65b5821c8e7af2bb9cf4c9f"
   },
   "src/app/t/[tenantId]/budget/page.tsx": {
-    "mtime": 1785963448.7314785,
-    "ast_hash": "8ae7695bfc00909a2ace970b88efefe7",
+    "mtime": 1785983094.2266798,
+    "ast_hash": "658efbd2fc12f8b6d6a9f9657c030ccc",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
@@ -435,13 +435,13 @@
     "semantic_hash": "9e09241799026ac05be315a2f0b50055"
   },
   "CLAUDE.md": {
-    "mtime": 1785963814.0487502,
-    "ast_hash": "f0d5aee086375f48562d3634cf3d9819",
+    "mtime": 1785983676.9387183,
+    "ast_hash": "e65b602c8a4c76f3080d380415d8b1aa",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1785965256.7519462,
-    "ast_hash": "d0a9cd0f872bd0dccf183b93219b2f2a",
+    "mtime": 1785983687.433203,
+    "ast_hash": "e30ff2291319e748c5bc38ee7ad3521f",
     "semantic_hash": ""
   },
   "PHASE1.5.md": {
@@ -620,13 +620,13 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/budget/balances/page.tsx": {
-    "mtime": 1785963689.4226723,
-    "ast_hash": "0fbe52ddd8cfc40d30fd32b23a4e4bd9",
+    "mtime": 1785983136.1499584,
+    "ast_hash": "f2305853148363ad820d53df819f6acb",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/budget/expenses/page.tsx": {
-    "mtime": 1785963686.2071774,
-    "ast_hash": "050fbb920355eced2b81c2895e0544af",
+    "mtime": 1785983107.8714867,
+    "ast_hash": "ea556f35f09d5d4b7ad0d2600d1fad04",
     "semantic_hash": ""
   },
   "src/components/expenses/ExpenseForm.tsx": {
@@ -672,6 +672,11 @@
   "src/types/settlement.ts": {
     "mtime": 1785962578.1524057,
     "ast_hash": "1701538b415c7b04de840e22a0166e8d",
+    "semantic_hash": ""
+  },
+  "PHASE5.md": {
+    "mtime": 1785979033.0721495,
+    "ast_hash": "dbf97cc166c796ce2092504c61ad87ee",
     "semantic_hash": ""
   }
 }

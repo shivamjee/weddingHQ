@@ -25,6 +25,7 @@ import {
   where,
 } from "firebase/firestore";
 import { ChipRow, FormMessage, OptionMark, PrimaryButton, SecondaryButton } from "@/components/ui/form";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ExpenseForm, type ExpenseDraft } from "@/components/expenses/ExpenseForm";
 import { ExpenseView } from "@/components/expenses/ExpenseView";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -250,17 +251,16 @@ export default function ExpensesPage() {
 
   const list = (
     <div className="flex flex-1 flex-col gap-5 px-5 py-6">
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold text-stone-800">Expenses</h1>
-          <p className="mt-1 text-sm text-stone-500">
-            Money moving — estimated, committed and paid. Not the same as a budget allocation.
-          </p>
-        </div>
-        {canWrite ? (
-          <SecondaryButton onClick={() => setMode({ kind: "form" })}>+ Add</SecondaryButton>
-        ) : null}
-      </div>
+      <PageHeader
+        backHref={tenantHref(tenantId, "/budget")}
+        title="Expenses"
+        subtitle="Money moving — estimated, committed and paid. Not the same as a budget allocation."
+        action={
+          canWrite ? (
+            <SecondaryButton onClick={() => setMode({ kind: "form" })}>+ Add</SecondaryButton>
+          ) : undefined
+        }
+      />
 
       <FormMessage error={error} />
 
@@ -281,14 +281,13 @@ export default function ExpensesPage() {
 
       {canInvite ? (
         <div className="flex flex-col gap-1">
-          <button
-            type="button"
+          <SecondaryButton
+            className="self-start"
             onClick={() => void recalculateTotals()}
             disabled={recalculating}
-            className="self-start min-h-[44px] px-2 py-3 text-xs font-medium text-stone-400 hover:text-stone-600 disabled:opacity-50"
           >
             {recalculating ? "Rebuilding…" : "Recalculate totals"}
-          </button>
+          </SecondaryButton>
           {recalculateMessage ? <p className="text-xs text-stone-500">{recalculateMessage}</p> : null}
         </div>
       ) : null}

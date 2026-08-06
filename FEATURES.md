@@ -282,7 +282,12 @@ correct enough at this scale. Render as plain sentences:
 
 > Shivam → Swara's dad: ₹1,50,000   [Settle up]
 
-"Settle up" pre-fills a settlement record.
+"Settle up" pre-fills a settlement record with the simplified transfer's amount, editable — a
+partial or larger payment is a legitimate real transfer, not an error, so typing over the
+suggested amount only warns (doesn't block) if it exceeds what's owed. Past settlements are listed
+on the Balances screen itself (a "Settled" section, chronological) — settlements are never tied
+back to a specific expense; they net a *balance*, and one settlement can cover or span several
+expenses at once, so there is no per-expense "settled" flag.
 
 ### 2.5 Aggregates
 
@@ -894,13 +899,18 @@ and marginal cost at entry. CSV import/export. Pulled ahead of expenses delibera
 per-plate is usually the largest line in the whole wedding, so it's the input that tells you
 whether the budget is realistic at all. The brief is in `PHASE3.md`.
 
-**Phase 4 — Money in motion**
+**Phase 4 — Money in motion** *(COMPLETE)*
 Expense entry with the three states, splits, aggregates, balances, settle-up, the full analytics
-set in §2.6. Build when deposits and real payments start, roughly six months out. The brief is
-`PHASE4.md` — **drafted, not yet reviewed**; settle its open questions before building.
+set in §2.6. The brief is `PHASE4.md`, now reviewed and built; the decisions settled on top of it
+are recorded in CLAUDE.md's Phase 4 section.
 
-**Phase 5 — Day-of**
-Run sheets, offline caching, today view. Useless until dates and vendors are locked.
+**Phase 5 — Tasks, timeline and run sheets**
+Tasks (§6) and the planning timeline (§7.1) — useful now. Run sheets, offline caching and the today
+view (§7.2) — useless until dates and vendors are locked, realistically the final month. The brief
+is `PHASE5.md` — **drafted, not yet reviewed**; settle its open questions before building. Its
+first open question is whether those two halves, which have opposite readiness, belong in one
+phase: §6 and §7.1 are unassigned to any phase in this list, which was an oversight here rather
+than a decision.
 
 **Phase 6 — Deferred**
 AI expense categorisation (§9.1 — reuses the provider module §3.3 introduced in Phase 2), email

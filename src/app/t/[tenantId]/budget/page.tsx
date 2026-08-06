@@ -211,7 +211,7 @@ export default function BudgetPage() {
       <div>
         <h1 className="text-xl font-semibold text-stone-800">Budget</h1>
         <p className="mt-1 text-sm text-stone-500">
-          What each side plans to spend. Nothing here is money spent yet.
+          What each side plans to spend, and what&rsquo;s actually gone out.
         </p>
       </div>
 
@@ -220,12 +220,12 @@ export default function BudgetPage() {
       <section className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <p className="text-xs font-medium text-stone-500">Projected spend</p>
+            <p className="text-xs font-medium text-stone-500">Expenses</p>
             <p className="text-2xl font-semibold text-stone-800">
               {formatINR(toPaise(projectedA + projectedB))}
             </p>
             <p className="text-xs text-stone-400">
-              Estimated + committed + paid, against{" "}
+              Paid + committed + estimated, against{" "}
               {totals.a + totals.b > 0 ? formatINR(toPaise(totals.a + totals.b)) : "no budget set"}
             </p>
           </div>
@@ -258,6 +258,7 @@ export default function BudgetPage() {
 
       {view === "both" ? (
         <>
+          <h2 className="text-base font-semibold text-stone-800">Budget — planned allocations</h2>
           <section className="grid grid-cols-1 gap-5 rounded-2xl border border-stone-200 bg-white p-4 lg:grid-cols-2 lg:gap-8">
             <AllocationHealthBar
               health={health.a}
