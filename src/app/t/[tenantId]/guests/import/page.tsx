@@ -54,7 +54,7 @@ const BATCH_SIZE = 400;
 export default function ImportGuestsPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { tenantId, sideLabel } = useTenant();
+  const { tenantId, sideLabel, canSeeBothSides, side: mySide } = useTenant();
   const { events } = useConfig();
 
   const [headers, setHeaders] = useState<string[]>([]);
@@ -62,7 +62,7 @@ export default function ImportGuestsPage() {
   const [mapping, setMapping] = useState<(CsvField | null)[]>([]);
   const [existing, setExisting] = useState<HouseholdWithId[]>([]);
   const [eventIds, setEventIds] = useState<string[]>([]);
-  const [defaultSide, setDefaultSide] = useState<Side>("a");
+  const [defaultSide, setDefaultSide] = useState<Side>(mySide ?? "a");
   const [fileName, setFileName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -264,12 +264,14 @@ export default function ImportGuestsPage() {
               Households invited to nothing are counted as people but project no cost, so pick the
               events now if you can.
             </p>
-            <ChipRow<Side>
-              label="Side, when the file doesn't say"
-              options={SIDES.map((s) => ({ value: s, label: sideLabel(s) }))}
-              value={defaultSide}
-              onChange={(v) => v && setDefaultSide(v)}
-            />
+            {canSeeBothSides ? (
+              <ChipRow<Side>
+                label="Side, when the file doesn't say"
+                options={SIDES.map((s) => ({ value: s, label: sideLabel(s) }))}
+                value={defaultSide}
+                onChange={(v) => v && setDefaultSide(v)}
+              />
+            ) : null}
           </section>
         </>
       ) : null}

@@ -361,3 +361,37 @@ export function FormMessage({
   if (success) return <p className="text-sm text-emerald-700">{success}</p>;
   return null;
 }
+
+/** A single labelled checkbox at the 44px tap-target size. Promoted out of
+ *  HouseholdForm (its original, and still only, private caller) so GuestNames'
+ *  multi-select rows can reuse it. */
+export function Checkbox({
+  label,
+  checked,
+  onChange,
+  className = "",
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  /** Extra classes on the wrapping `<label>`. Needed for a blank `label`
+   *  (a checkbox used alone, not beside its own text): with nothing to give
+   *  the label real width, the whole clickable area shrinks to the 20px
+   *  input itself, well under the 44px tap target every other control here
+   *  gets — pass e.g. `"w-11 justify-center"` to reserve the box explicitly. */
+  className?: string;
+}) {
+  return (
+    <label
+      className={`flex min-h-[44px] cursor-pointer items-center gap-3 text-sm text-stone-700 ${className}`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-5 w-5 accent-rose-500"
+      />
+      {label}
+    </label>
+  );
+}

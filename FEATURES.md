@@ -82,6 +82,12 @@ of `memberships/{tenantId}__{callerEmail}`.
 > — may write `memberships`, i.e. invite or remove people. That is also the privilege-escalation
 > boundary, so it stays the one thing still gated. See `CLAUDE.md` § Multi-tenancy for the current
 > `canWrite` / `canInvite` split.
+>
+> Phase 4.3 adds `canSeeBothSides` (couple/admin only) alongside them — family sees only their own
+> side's Budget/Guests/Home views. This is a **view filter, not a rules boundary**: `canWrite` and
+> `canInvite` are enforced by both the UI and `firestore.rules`, but `canSeeBothSides` has no rules
+> counterpart, since the rules still let any member read both sides and the `guestTotals`/
+> `expenseTotals` aggregates each carry both sides' numbers in one document.
 
 Bootstrap problem: the first tenant, its first `couple` membership, and the first `isAdmin` flag
 are created by hand in the Firestore console, since nobody can sign in to create them. Covered in
@@ -565,6 +571,7 @@ households/{householdId}
   address             string        // optional until invitations are printed
   primaryPhone        string
   email               string?       // Phase 3.1; absent on older docs, read as ?? ""
+  gift                { family, male, female, kids: number }?  // Phase 4.3; absent on older docs, read as all-zero
   notes               string
   createdBy           uid
   createdAt           timestamp
@@ -602,6 +609,11 @@ including other weddings. Securing that means a `match /{path=**}/guests/{guestI
 ordinary rules block and keeps isolation a path prefix.
 
 Moving a person between households also becomes a field update rather than a delete-and-recreate.
+**Built in Phase 4.3**: `GuestNames` supports multi-selecting names and moving them to an existing
+or brand-new household; the head counts on both households adjust automatically (never derived
+from `guests` documents in the everyday case — this is the one deliberate exception, since a move
+has to carry real heads with it), and a source household emptied by the move is deleted rather than
+left as a zero-count card.
 
 **Counts are the planning number; names are optional detail. They are deliberately NOT derived
 from each other.**
@@ -688,7 +700,11 @@ exactly that slice.
 (child plates price differently).
 
 **Room block.** Households needing accommodation, with people, rooms and nights. Hotels want this
-number early and it's a large budget line — feed it into the cost projection.
+number early and it's a large budget line — feed it into the cost projection. Room-nights is
+**rooms × nights, summed across households** (a household needing accommodation but with no room
+count entered counts as one room rather than zero, so a blank field doesn't erase real demand) —
+fixed in Phase 4.3, which had shipped as nights alone (undercounting whenever more than one room
+was needed).
 
 ### 4.5 Aggregates
 
@@ -698,6 +714,7 @@ aggregates/guestTotals
   bySide         { a: {...}, b: {...} }
   byEvent        { [eventId]: {adults, children, projectedPaise} }
   roomsNeeded    number
+  nightsNeeded   number   // rooms × nights, summed per household (Phase 4.3 fix — see below)
   updatedAt      timestamp
 ```
 

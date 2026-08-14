@@ -49,6 +49,17 @@ export function householdHeads(h: { adultCount: number; childCount: number }): n
   return count(h.adultCount) + count(h.childCount);
 }
 
+/** Adult/child split for a set of NAMED guests being moved to another
+ *  household — the one place this module reads `ageGroup` off a `guests`
+ *  document, because a move has to carry real heads with it. Infants count
+ *  as children, matching GuestNames' own reconcile rule. */
+export function movedCounts(
+  guests: readonly { ageGroup: "adult" | "child" | "infant" }[],
+): { adultCount: number; childCount: number } {
+  const adultCount = guests.filter((g) => g.ageGroup === "adult").length;
+  return { adultCount, childCount: guests.length - adultCount };
+}
+
 /**
  * What one household is projected to cost: planned heads × the sum of the
  * per-plate estimates for the events they are actually invited to.
@@ -70,6 +81,29 @@ export function householdCostPaise(h: PlannedHousehold, plates: PlateByEventId):
   return toPaise(householdHeads(h) * perHead);
 }
 
+/** Gift planning totals, one bucket per recipient category. A household with
+ *  no `gift` field contributes zeros, not `NaN` — same rule as every other
+ *  optional count in this module. */
+export interface GiftCounts {
+  family: number;
+  male: number;
+  female: number;
+  kids: number;
+  total: number;
+}
+
+/** A household's gift counts, or all zeros if it has none. */
+export function giftCounts(h: {
+  gift?: { family: number; male: number; female: number; kids: number };
+}): GiftCounts {
+  const g = h.gift;
+  const family = count(g?.family);
+  const male = count(g?.male);
+  const female = count(g?.female);
+  const kids = count(g?.kids);
+  return { family, male, female, kids, total: family + male + female + kids };
+}
+
 /** Every number the Guests screen puts on the screen, for whatever set of
  *  households it was handed. A filtered view is `summarise(filterHouseholds(…))`,
  *  which is how "every count respects the active filters" stays true by
@@ -86,6 +120,7 @@ export interface GuestSummary {
   roomsNeeded: number;
   nightsNeeded: number;
   travelHouseholds: number;
+  gifts: GiftCounts;
 }
 
 type Summarisable = PlannedHousehold & {
@@ -93,6 +128,7 @@ type Summarisable = PlannedHousehold & {
   travelNeeded?: boolean;
   roomsNeeded?: number | null;
   nightsNeeded?: number | null;
+  gift?: { family: number; male: number; female: number; kids: number };
 };
 
 export function summarise(
@@ -106,6 +142,10 @@ export function summarise(
   let rooms = 0;
   let nights = 0;
   let travel = 0;
+  let giftFamily = 0;
+  let giftMale = 0;
+  let giftFemale = 0;
+  let giftKids = 0;
 
   for (const h of households) {
     adults += count(h.adultCount);
@@ -115,10 +155,18 @@ export function summarise(
     if (h.accommodationNeeded) {
       accommodationHouseholds += 1;
       rooms += count(h.roomsNeeded);
-      // Nights are summed, not maxed: the hotel bills room-nights, so two
-      // households at 3 nights each is six room-nights of demand, not three.
-      nights += count(h.nightsNeeded);
+      // A hotel bills room-nights: 2 rooms for 3 nights is 6, not 3 — so this
+      // is rooms × nights, summed across households, not nights alone. A
+      // household that needs accommodation but hasn't said how many rooms
+      // counts as one room rather than zero, so a blank field doesn't
+      // silently erase real demand.
+      nights += Math.max(1, count(h.roomsNeeded)) * count(h.nightsNeeded);
     }
+    const g = giftCounts(h);
+    giftFamily += g.family;
+    giftMale += g.male;
+    giftFemale += g.female;
+    giftKids += g.kids;
   }
 
   return {
@@ -131,6 +179,13 @@ export function summarise(
     roomsNeeded: rooms,
     nightsNeeded: nights,
     travelHouseholds: travel,
+    gifts: {
+      family: giftFamily,
+      male: giftMale,
+      female: giftFemale,
+      kids: giftKids,
+      total: giftFamily + giftMale + giftFemale + giftKids,
+    },
   };
 }
 

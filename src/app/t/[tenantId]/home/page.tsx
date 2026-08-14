@@ -41,7 +41,7 @@ import type { BudgetAllocationWithId, ExpenseTotals, Side } from "@/types";
 const MAX_BUDGET_DOCS = MAX_CATEGORIES * 2 + 2;
 
 export default function HomePage() {
-  const { tenantId, tenant, sideLabel } = useTenant();
+  const { tenantId, tenant, sideLabel, canSeeBothSides, side: mySide } = useTenant();
   const { user } = useAuth();
   const { categories, loading: configLoading } = useConfig();
 
@@ -73,17 +73,25 @@ export default function HomePage() {
     const overall = guestSnap.exists()
       ? (guestSnap.data().overall as { people?: number; households?: number; projectedPaise?: number })
       : null;
+    const bySide = guestSnap.exists()
+      ? (guestSnap.data().bySide as
+          | Record<Side, { people?: number; households?: number; projectedPaise?: number }>
+          | undefined)
+      : undefined;
     const target = targetSnap.exists() ? Number(targetSnap.data().targetHeads) : 0;
+
+    const slice = (s?: { people?: number; households?: number; projectedPaise?: number } | null) => ({
+      people: Number(s?.people ?? 0),
+      households: Number(s?.households ?? 0),
+      projectedPaise: toPaise(Math.trunc(Number(s?.projectedPaise ?? 0))),
+    });
 
     return {
       allocations,
       totals,
       openQuestions: openCount.data().count,
-      guests: {
-        people: Number(overall?.people ?? 0),
-        households: Number(overall?.households ?? 0),
-        projectedPaise: toPaise(Math.trunc(Number(overall?.projectedPaise ?? 0))),
-      },
+      guestOverall: slice(overall),
+      guestBySide: { a: slice(bySide?.a), b: slice(bySide?.b) },
       guestTarget: Number.isFinite(target) && target > 0 ? target : null,
       expenseTotals: expenseTotalsSnap.exists() ? (expenseTotalsSnap.data() as ExpenseTotals) : null,
       myNetPaise: balancesSnap.exists()
@@ -97,12 +105,16 @@ export default function HomePage() {
   const allocations = data?.allocations ?? [];
   const totals = data?.totals ?? { a: 0, b: 0 };
   const rows = comparisonRows(categories, allocations);
+  const projectedA = data?.expenseTotals ? projectedTotalPaise(data.expenseTotals.bySide.a) : 0;
+  const projectedB = data?.expenseTotals ? projectedTotalPaise(data.expenseTotals.bySide.b) : 0;
+  // Family sees only their own side's numbers here (a view filter, not a
+  // rules boundary — useTenant().canSeeBothSides). The couple/admin default
+  // to both sides combined, as before.
+  const budgetSide: Side = mySide ?? "a";
   const projectedPaise = data?.expenseTotals
-    ? toPaise(
-        projectedTotalPaise(data.expenseTotals.bySide.a) +
-          projectedTotalPaise(data.expenseTotals.bySide.b),
-      )
+    ? toPaise(canSeeBothSides ? projectedA + projectedB : budgetSide === "a" ? projectedA : projectedB)
     : null;
+  const budgetTotalPaise = canSeeBothSides ? totals.a + totals.b : totals[budgetSide];
 
   const segments = (side: Side) =>
     rows.map((r) => ({
@@ -113,6 +125,10 @@ export default function HomePage() {
     }));
 
   const anyBudget = totals.a > 0 || totals.b > 0 || allocations.length > 0;
+
+  const guests = canSeeBothSides
+    ? data?.guestOverall
+    : (data?.guestBySide?.[budgetSide] ?? data?.guestOverall);
 
   // "Now", captured ONCE per mount via a lazy initialiser rather than read
   // during render. Date.now() in a render body is impure — it would give a
@@ -157,29 +173,33 @@ export default function HomePage() {
               </div>
               {projectedPaise !== null ? (
                 <div className="flex items-center gap-3">
-                  <SpendDonut spentPaise={projectedPaise} budgetPaise={totals.a + totals.b} size={64} />
+                  <SpendDonut spentPaise={projectedPaise} budgetPaise={toPaise(budgetTotalPaise)} size={64} />
                   <p className="text-sm text-stone-500">
                     <span className="font-semibold text-stone-800">{formatINR(projectedPaise)}</span> of{" "}
-                    {formatINR(toPaise(totals.a + totals.b))} budget
+                    {formatINR(toPaise(budgetTotalPaise))} budget
                   </p>
                 </div>
               ) : null}
-              <AllocationHealthBar
-                health={allocationHealth(
-                  totals.a,
-                  allocations.filter((x) => x.side === "a"),
-                )}
-                segments={segments("a")}
-                label={`${sideLabel("a")}'s side`}
-              />
-              <AllocationHealthBar
-                health={allocationHealth(
-                  totals.b,
-                  allocations.filter((x) => x.side === "b"),
-                )}
-                segments={segments("b")}
-                label={`${sideLabel("b")}'s side`}
-              />
+              {canSeeBothSides || budgetSide === "a" ? (
+                <AllocationHealthBar
+                  health={allocationHealth(
+                    totals.a,
+                    allocations.filter((x) => x.side === "a"),
+                  )}
+                  segments={segments("a")}
+                  label={`${sideLabel("a")}'s side`}
+                />
+              ) : null}
+              {canSeeBothSides || budgetSide === "b" ? (
+                <AllocationHealthBar
+                  health={allocationHealth(
+                    totals.b,
+                    allocations.filter((x) => x.side === "b"),
+                  )}
+                  segments={segments("b")}
+                  label={`${sideLabel("b")}'s side`}
+                />
+              ) : null}
             </section>
           ) : (
             <SummaryLink
@@ -189,7 +209,7 @@ export default function HomePage() {
             />
           )}
 
-          {data && data.guests.people > 0 ? (
+          {guests && guests.people > 0 ? (
             <section className="flex flex-col gap-3 rounded-2xl border border-stone-200 bg-white p-4">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-base font-semibold text-stone-800">Guests</h2>
@@ -202,8 +222,10 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-2xl font-semibold text-stone-800">
-                  {data.guests.people}
-                  {data.guestTarget ? (
+                  {guests.people}
+                  {/* settings/guestTarget is a whole-wedding number — meaningless
+                      against one side, so only shown in the "both sides" view. */}
+                  {canSeeBothSides && data?.guestTarget ? (
                     <span className="text-base font-normal text-stone-500">
                       {" "}
                       of {data.guestTarget}
@@ -211,13 +233,12 @@ export default function HomePage() {
                   ) : null}
                 </p>
                 <p className="mt-0.5 text-sm text-stone-500">
-                  {data.guests.households}{" "}
-                  {data.guests.households === 1 ? "household" : "households"} ·{" "}
-                  {formatINR(data.guests.projectedPaise)} projected
+                  {guests.households} {guests.households === 1 ? "household" : "households"} ·{" "}
+                  {formatINR(guests.projectedPaise)} projected
                 </p>
-                {data.guestTarget && data.guests.people > data.guestTarget ? (
+                {canSeeBothSides && data?.guestTarget && guests.people > data.guestTarget ? (
                   <p className="mt-1 text-sm text-rose-700">
-                    {data.guests.people - data.guestTarget} over the target.
+                    {guests.people - data.guestTarget} over the target.
                   </p>
                 ) : null}
               </div>

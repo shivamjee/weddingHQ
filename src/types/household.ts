@@ -68,6 +68,11 @@ export interface Household {
    *  link on the household card — there is no email anywhere else in the guest
    *  data model, since named guests inherit the household's contact info. */
   email?: string;
+  /** Gift planning counts by recipient bucket. Optional for the same reason
+   *  as `email` — documents written before this field existed have no such
+   *  field; read via `giftCounts()` in src/lib/guests.ts, which treats a
+   *  missing gift as all zeros rather than `NaN`. */
+  gift?: { family: number; male: number; female: number; kids: number };
   notes: string;
   createdBy: string; // uid
   createdAt: Timestamp;

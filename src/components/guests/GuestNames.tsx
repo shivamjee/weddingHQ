@@ -13,7 +13,7 @@
 // aggregates/guestTotals — which is exactly why that document has one writer and
 // cannot drift.
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   addDoc,
   deleteDoc,
@@ -24,13 +24,25 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { ChipRow, Field, FormMessage, PrimaryButton, SecondaryButton, TextInput } from "@/components/ui/form";
+import {
+  Checkbox,
+  ChipRow,
+  Field,
+  FormMessage,
+  PrimaryButton,
+  SecondaryButton,
+  TextInput,
+} from "@/components/ui/form";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { GuestView } from "@/components/guests/GuestView";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { guestDoc, guestsCol } from "@/lib/paths";
 import { householdHeads } from "@/lib/guests";
 import { AGE_GROUPS, AGE_GROUP_LABELS, type AgeGroup, type GuestWithId, type HouseholdWithId } from "@/types";
+
+/** Where a selection of names is going. `"new"` asks the caller (the Guests
+ *  screen, which owns every household write) to create the household first. */
+export type MoveTarget = { kind: "existing"; id: string } | { kind: "new"; name: string };
 
 /** READ COST: bounded per CLAUDE.md §3. A household of more than 50 named people
  *  is a coach party, not an invitation; the screen under-reports rather than
@@ -41,16 +53,25 @@ export function GuestNames({
   tenantId,
   uid,
   household,
+  households,
   onBack,
   onReconcile,
+  onMove,
 }: {
   tenantId: string;
   uid: string;
   household: HouseholdWithId;
+  /** Every other household, for the "move to" picker. Already in memory on
+   *  the Guests screen. */
+  households: readonly HouseholdWithId[];
   onBack: () => void;
   /** Writes the household's counts. Only ever called from the explicit
    *  "use these numbers" button below. */
   onReconcile: (counts: { adultCount: number; childCount: number }) => Promise<void>;
+  /** Moves the selected named guests to `target`, adjusting both households'
+   *  head counts. Owned by the Guests screen, same writer-path rule as
+   *  `onReconcile`. */
+  onMove: (guests: GuestWithId[], target: MoveTarget) => Promise<void>;
 }) {
   const householdId = household.id;
 
@@ -74,6 +95,35 @@ export function GuestNames({
   const [viewing, setViewing] = useState<GuestWithId | null>(null);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moving, setMoving] = useState(false);
+  const [moveBusy, setMoveBusy] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function move(target: MoveTarget) {
+    setMoveBusy(true);
+    setMoveError(null);
+    try {
+      await onMove(guests.filter((g) => selected.has(g.id)), target);
+      setSelected(new Set());
+      setMoving(false);
+      reload();
+    } catch (err) {
+      console.error("[guests] move failed:", err);
+      setMoveError("Could not move those names.");
+    } finally {
+      setMoveBusy(false);
+    }
+  }
 
   const planned = householdHeads(household);
   // Infants are counted with children: a caterer bills by cover far more often
@@ -144,6 +194,19 @@ export function GuestNames({
     );
   }
 
+  if (moving) {
+    return (
+      <MoveScreen
+        count={selected.size}
+        households={households.filter((h) => h.id !== householdId)}
+        busy={moveBusy}
+        error={moveError}
+        onMove={(target) => void move(target)}
+        onCancel={() => setMoving(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-1 flex-col gap-4 px-5 py-6">
       <PageHeader
@@ -178,6 +241,30 @@ export function GuestNames({
 
       <FormMessage error={saveError ?? error} />
 
+      {selected.size > 0 ? (
+        <div className="flex items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm">
+          <span className="font-medium text-stone-700">
+            {selected.size} selected
+          </span>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setMoving(true)}
+              className="min-h-[44px] font-medium text-rose-600"
+            >
+              Move
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="min-h-[44px] text-stone-500"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="text-sm text-stone-400">Loading…</p>
       ) : guests.length === 0 ? (
@@ -193,11 +280,20 @@ export function GuestNames({
       ) : (
         <ul className="flex flex-col gap-2">
           {guests.map((guest) => (
-            <li key={guest.id}>
+            <li
+              key={guest.id}
+              className="flex items-center gap-1 rounded-2xl border border-stone-200 bg-white pl-2 pr-4"
+            >
+              <Checkbox
+                label=""
+                checked={selected.has(guest.id)}
+                onChange={() => toggleSelected(guest.id)}
+                className="w-11 shrink-0 justify-center"
+              />
               <button
                 type="button"
                 onClick={() => setViewing(guest)}
-                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-left"
+                className="flex min-w-0 flex-1 items-center justify-between gap-3 py-4 text-left"
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-stone-800">{guest.name}</p>
@@ -218,6 +314,95 @@ export function GuestNames({
       <PrimaryButton type="button" onClick={onBack} className="self-center">
         Done
       </PrimaryButton>
+    </div>
+  );
+}
+
+/** Search-then-pick screen for where selected names go: an existing
+ *  household or a brand new one. Reused for every "move" — no separate flow
+ *  for the new-household case, since typing a name and hitting Save is the
+ *  same shape either way. */
+function MoveScreen({
+  count,
+  households,
+  busy,
+  error,
+  onMove,
+  onCancel,
+}: {
+  count: number;
+  households: readonly HouseholdWithId[];
+  busy: boolean;
+  error: string | null;
+  onMove: (target: MoveTarget) => void;
+  onCancel: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [newName, setNewName] = useState("");
+
+  const matches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return households;
+    return households.filter((h) => h.name.toLowerCase().includes(q));
+  }, [households, search]);
+
+  return (
+    <div className="flex flex-1 flex-col gap-4 px-5 py-6">
+      <PageHeader
+        title={`Move ${count} ${count === 1 ? "name" : "names"}`}
+        onBack={onCancel}
+      />
+
+      <FormMessage error={error} />
+
+      {/* Starting a new household is the common case for a split — differing
+          room needs — so it leads rather than the search below. */}
+      <div className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4">
+        <Field label="Start a new household">
+          <TextInput
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="Household name…"
+            autoFocus
+          />
+        </Field>
+        <PrimaryButton
+          type="button"
+          disabled={!newName.trim() || busy}
+          onClick={() => onMove({ kind: "new", name: newName.trim() })}
+        >
+          {busy ? "Moving…" : "＋ New household"}
+        </PrimaryButton>
+      </div>
+
+      <Field label="Or move to an existing household">
+        <TextInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Household name…"
+        />
+      </Field>
+
+      <ul className="flex flex-col gap-2">
+        {matches.map((h) => (
+          <li key={h.id}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onMove({ kind: "existing", id: h.id })}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-left"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium text-stone-800">{h.name}</p>
+                <p className="text-sm text-stone-500">{h.relationship || "—"}</p>
+              </div>
+            </button>
+          </li>
+        ))}
+        {matches.length === 0 ? (
+          <p className="px-1 text-sm text-stone-400">No households match “{search}”.</p>
+        ) : null}
+      </ul>
     </div>
   );
 }

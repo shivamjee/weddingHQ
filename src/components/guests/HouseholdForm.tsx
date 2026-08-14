@@ -21,6 +21,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  Checkbox,
   ChipMultiRow,
   ChipRow,
   Expander,
@@ -78,7 +79,7 @@ export function HouseholdForm({
   onCancel: () => void;
   onDelete?: () => Promise<void>;
 }) {
-  const { sideLabel, side: mySide } = useTenant();
+  const { sideLabel, side: mySide, canSeeBothSides } = useTenant();
   const { events } = useConfig();
 
   const [name, setName] = useState(existing?.name ?? "");
@@ -104,6 +105,10 @@ export function HouseholdForm({
   const [address, setAddress] = useState(existing?.address ?? "");
   const [phone, setPhone] = useState(existing?.primaryPhone ?? "");
   const [email, setEmail] = useState(existing?.email ?? "");
+  const [giftFamily, setGiftFamily] = useState(String(existing?.gift?.family ?? ""));
+  const [giftMale, setGiftMale] = useState(String(existing?.gift?.male ?? ""));
+  const [giftFemale, setGiftFemale] = useState(String(existing?.gift?.female ?? ""));
+  const [giftKids, setGiftKids] = useState(String(existing?.gift?.kids ?? ""));
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   const [busy, setBusy] = useState(false);
@@ -153,6 +158,12 @@ export function HouseholdForm({
         address: address.trim(),
         primaryPhone: phone.trim(),
         email: email.trim(),
+        gift: {
+          family: parseCount(giftFamily),
+          male: parseCount(giftMale),
+          female: parseCount(giftFemale),
+          kids: parseCount(giftKids),
+        },
         notes: notes.trim(),
       });
     } catch (err) {
@@ -207,12 +218,17 @@ export function HouseholdForm({
         </p>
       ) : null}
 
-      <ChipRow<Side>
-        label="Side"
-        options={SIDES.map((s) => ({ value: s, label: sideLabel(s) }))}
-        value={side}
-        onChange={(v) => v && setSide(v)}
-      />
+      {/* Family (a view filter, not a rules boundary — useTenant().canSeeBothSides)
+          only ever sees their own side, so locking this here stops them
+          creating a household they then can't find. */}
+      {canSeeBothSides ? (
+        <ChipRow<Side>
+          label="Side"
+          options={SIDES.map((s) => ({ value: s, label: sideLabel(s) }))}
+          value={side}
+          onChange={(v) => v && setSide(v)}
+        />
+      ) : null}
 
       <ChipRow<Tier>
         label="Tier"
@@ -338,6 +354,37 @@ export function HouseholdForm({
           <TextArea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
         </Field>
 
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Gifts — family">
+            <TextInput
+              value={giftFamily}
+              onChange={(e) => setGiftFamily(e.target.value)}
+              inputMode="numeric"
+            />
+          </Field>
+          <Field label="Gifts — male">
+            <TextInput
+              value={giftMale}
+              onChange={(e) => setGiftMale(e.target.value)}
+              inputMode="numeric"
+            />
+          </Field>
+          <Field label="Gifts — female">
+            <TextInput
+              value={giftFemale}
+              onChange={(e) => setGiftFemale(e.target.value)}
+              inputMode="numeric"
+            />
+          </Field>
+          <Field label="Gifts — kids">
+            <TextInput
+              value={giftKids}
+              onChange={(e) => setGiftKids(e.target.value)}
+              inputMode="numeric"
+            />
+          </Field>
+        </div>
+
         <Field label="Notes">
           <TextArea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
@@ -372,26 +419,3 @@ export function HouseholdForm({
   );
 }
 
-/** A real checkbox, at a 44px tap target. Chips are for choosing between
- *  options; a single yes/no reads better as what it is. */
-function Checkbox({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm text-stone-700">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-5 w-5 accent-rose-500"
-      />
-      {label}
-    </label>
-  );
-}

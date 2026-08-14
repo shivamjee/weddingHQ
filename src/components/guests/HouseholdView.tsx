@@ -10,7 +10,7 @@ import { ActionLink, OptionMark, PrimaryButton, SecondaryButton } from "@/compon
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatINR } from "@/lib/money";
 import { formatPhone, mailtoHref, telHref, whatsappHref } from "@/lib/phone";
-import { householdCostPaise, householdHeads, type PlateByEventId } from "@/lib/guests";
+import { giftCounts, householdCostPaise, householdHeads, type PlateByEventId } from "@/lib/guests";
 import { HOUSEHOLD_STATUS_LABELS, TIER_LABELS, type HouseholdWithId } from "@/types";
 
 export function HouseholdView({
@@ -32,6 +32,7 @@ export function HouseholdView({
 }) {
   const heads = householdHeads(household);
   const cost = householdCostPaise(household, plates);
+  const gifts = giftCounts(household);
   const tel = telHref(household.primaryPhone);
   const wa = whatsappHref(household.primaryPhone);
   const mail = mailtoHref(household.email ?? "");
@@ -83,6 +84,19 @@ export function HouseholdView({
           <Row label="Accommodation">
             Needed{household.roomsNeeded ? ` · ${household.roomsNeeded} rooms` : ""}
             {household.nightsNeeded ? ` · ${household.nightsNeeded} nights` : ""}
+          </Row>
+        ) : null}
+
+        {gifts.total > 0 ? (
+          <Row label="Gifts">
+            {[
+              gifts.family > 0 ? `${gifts.family} family` : null,
+              gifts.male > 0 ? `${gifts.male} male` : null,
+              gifts.female > 0 ? `${gifts.female} female` : null,
+              gifts.kids > 0 ? `${gifts.kids} kids` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </Row>
         ) : null}
 

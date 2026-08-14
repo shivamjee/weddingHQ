@@ -20,6 +20,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import Papa from "papaparse";
+import { SplitPane } from "@/components/ui/SplitPane";
 import {
   addDoc,
   deleteDoc,
@@ -42,7 +43,7 @@ import {
   SecondaryButton,
 } from "@/components/ui/form";
 import { GuestBars, type GuestBarRow } from "@/components/guests/GuestBars";
-import { GuestNames } from "@/components/guests/GuestNames";
+import { GuestNames, type MoveTarget } from "@/components/guests/GuestNames";
 import { GuestView } from "@/components/guests/GuestView";
 import { HouseholdCard } from "@/components/guests/HouseholdCard";
 import { HouseholdView } from "@/components/guests/HouseholdView";
@@ -55,6 +56,7 @@ import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useLoader } from "@/lib/hooks/useLoader";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import {
+  guestDoc,
   guestLogCol,
   guestTargetDoc,
   guestTotalsDoc,
@@ -67,6 +69,7 @@ import {
   breakdownBy,
   filterHouseholds,
   guestTotalsFrom,
+  movedCounts,
   platesByEvent,
   relationshipOptions,
   summarise,
@@ -118,15 +121,20 @@ interface Loaded {
 
 export default function GuestsPage() {
   const { user } = useAuth();
-  const { tenantId, sideLabel } = useTenant();
+  const { tenantId, sideLabel, canSeeBothSides, side: mySide } = useTenant();
   const { events } = useConfig();
 
   const [mode, setMode] = useState<Mode>({ kind: "list" });
   // At `lg:+`, detail opens in a sticky column beside the list — see the
   // return statement below. Below `lg:`, unchanged: a full-screen swap.
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const [filters, setFilters] = useState<GuestFilters>(NO_FILTERS);
-  const [grouping, setGrouping] = useState<BreakdownKey>("side");
+  // Family sees only their own side (a view filter, not a rules boundary —
+  // useTenant().canSeeBothSides): the Side filter starts pinned to it, and
+  // stays pinned through "Clear" below.
+  const [filters, setFilters] = useState<GuestFilters>(
+    canSeeBothSides ? NO_FILTERS : { ...NO_FILTERS, side: mySide },
+  );
+  const [grouping, setGrouping] = useState<BreakdownKey>(canSeeBothSides ? "side" : "invitedBy");
   const [shown, setShown] = useState(RENDER_PAGE);
   const [writeError, setWriteError] = useState<string | null>(null);
   // Held outside the loader so saving a target doesn't force a re-read of 300
@@ -286,6 +294,125 @@ export default function GuestsPage() {
     [tenantId, user, households, writeAggregate, writeLog, reload],
   );
 
+  // Splits selected named guests off into another (or a brand new) household,
+  // moving their head counts with them — the whole point is that their room
+  // needs differ, so accommodation fields are deliberately NOT copied onto a
+  // new target. Same writer path as saveHousehold/removeHousehold: one
+  // aggregate rewrite, one log entry, one reload.
+  const moveGuests = useCallback(
+    async (source: HouseholdWithId, guests: GuestWithId[], target: MoveTarget) => {
+      if (!user || guests.length === 0) return;
+      const { adultCount: movedAdults, childCount: movedChildren } = movedCounts(guests);
+
+      let targetHousehold: HouseholdWithId;
+      if (target.kind === "existing") {
+        const found = households.find((h) => h.id === target.id);
+        if (!found) throw new Error("target household not found");
+        targetHousehold = {
+          ...found,
+          adultCount: found.adultCount + movedAdults,
+          childCount: found.childCount + movedChildren,
+        };
+        await updateDoc(householdDoc(tenantId, targetHousehold.id), {
+          adultCount: targetHousehold.adultCount,
+          childCount: targetHousehold.childCount,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        const ref = await addDoc(householdsCol(tenantId), {
+          name: target.name,
+          side: source.side,
+          invitedBy: source.invitedBy,
+          tier: source.tier,
+          status: source.status,
+          relationship: source.relationship,
+          eventIds: source.eventIds,
+          adultCount: movedAdults,
+          childCount: movedChildren,
+          // Deliberately not carried over — the whole reason for a split is
+          // that these differ from the source household.
+          travelNeeded: false,
+          accommodationNeeded: false,
+          roomsNeeded: null,
+          nightsNeeded: null,
+          address: "",
+          primaryPhone: "",
+          email: "",
+          notes: "",
+          createdBy: user.uid,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        targetHousehold = {
+          id: ref.id,
+          name: target.name,
+          side: source.side,
+          invitedBy: source.invitedBy,
+          tier: source.tier,
+          status: source.status,
+          relationship: source.relationship,
+          eventIds: source.eventIds,
+          adultCount: movedAdults,
+          childCount: movedChildren,
+          travelNeeded: false,
+          accommodationNeeded: false,
+          roomsNeeded: null,
+          nightsNeeded: null,
+          address: "",
+          primaryPhone: "",
+          email: "",
+          notes: "",
+          createdBy: user.uid,
+        } as HouseholdWithId;
+      }
+
+      const updatedSource: HouseholdWithId = {
+        ...source,
+        adultCount: Math.max(0, source.adultCount - movedAdults),
+        childCount: Math.max(0, source.childCount - movedChildren),
+      };
+      // Moving everyone out leaves an empty household behind — delete it
+      // rather than leave a zero-head card in the list.
+      const sourceEmptied = updatedSource.adultCount + updatedSource.childCount === 0;
+      if (sourceEmptied) {
+        await deleteDoc(householdDoc(tenantId, source.id));
+      } else {
+        await updateDoc(householdDoc(tenantId, source.id), {
+          adultCount: updatedSource.adultCount,
+          childCount: updatedSource.childCount,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      await Promise.all(
+        guests.map((g) => updateDoc(guestDoc(tenantId, g.id), { householdId: targetHousehold.id })),
+      );
+
+      const next = sourceEmptied
+        ? households.filter((h) => h.id !== source.id)
+        : households.map((h) => (h.id === source.id ? updatedSource : h));
+      const withTarget = next.map((h) => (h.id === targetHousehold.id ? targetHousehold : h));
+      const finalList = withTarget.some((h) => h.id === targetHousehold.id)
+        ? withTarget
+        : [...withTarget, targetHousehold];
+      await writeAggregate(finalList);
+      await writeLog(
+        sourceEmptied ? "removed" : "updated",
+        source.name,
+        sourceEmptied ? null : source.id,
+        source.adultCount + source.childCount,
+      );
+      await writeLog("updated", targetHousehold.name, targetHousehold.id, movedAdults + movedChildren);
+      reload();
+      // Stay on the Names screen with the source household's fresh (lower)
+      // planned count so the drift banner reflects reality — unless the move
+      // emptied it out entirely, in which case there is no household left to
+      // show and we fall back to the list.
+      setMode(sourceEmptied ? { kind: "list" } : { kind: "names", household: updatedSource });
+    },
+    [tenantId, user, households, writeAggregate, writeLog, reload],
+  );
+
   const removeHousehold = useCallback(
     async (household: HouseholdWithId) => {
       await deleteDoc(householdDoc(tenantId, household.id));
@@ -378,6 +505,7 @@ export default function GuestsPage() {
         tenantId={tenantId}
         uid={user?.uid ?? ""}
         household={household}
+        households={households}
         onBack={() => setMode({ kind: "list" })}
         onReconcile={async (counts) => {
           await updateDoc(householdDoc(tenantId, household.id), {
@@ -389,6 +517,7 @@ export default function GuestsPage() {
           setMode({ kind: "list" });
           reload();
         }}
+        onMove={(guests, target) => moveGuests(household, guests, target)}
       />
     );
   }
@@ -449,8 +578,14 @@ export default function GuestsPage() {
             />
 
             <FilterPanel
-              activeCount={activeFilterCount(filters)}
-              onClear={() => setFilters((f) => ({ ...NO_FILTERS, search: f.search }))}
+              activeCount={activeFilterCount(filters) - (!canSeeBothSides && filters.side ? 1 : 0)}
+              onClear={() =>
+                setFilters((f) => ({
+                  ...NO_FILTERS,
+                  search: f.search,
+                  side: canSeeBothSides ? null : mySide,
+                }))
+              }
             >
               <ChipRow<Tier>
                 label="Tier"
@@ -459,13 +594,15 @@ export default function GuestsPage() {
                 onChange={(tier) => setFilters((f) => ({ ...f, tier }))}
                 allowClear
               />
-              <ChipRow<Side>
-                label="Side"
-                options={SIDES.map((s) => ({ value: s, label: sideLabel(s) }))}
-                value={filters.side}
-                onChange={(side) => setFilters((f) => ({ ...f, side }))}
-                allowClear
-              />
+              {canSeeBothSides ? (
+                <ChipRow<Side>
+                  label="Side"
+                  options={SIDES.map((s) => ({ value: s, label: sideLabel(s) }))}
+                  value={filters.side}
+                  onChange={(side) => setFilters((f) => ({ ...f, side }))}
+                  allowClear
+                />
+              ) : null}
               <ChipRow<HouseholdStatus>
                 label="Status"
                 options={HOUSEHOLD_STATUSES.map((s) => ({
@@ -555,6 +692,13 @@ export default function GuestsPage() {
                 {summary.nightsNeeded} room-nights) · {summary.travelHouseholds} need travel
               </p>
             ) : null}
+            {summary.gifts.total > 0 ? (
+              <p className="mt-1 text-sm text-stone-500">
+                {summary.gifts.total} {summary.gifts.total === 1 ? "gift" : "gifts"} planned (
+                {summary.gifts.family} family, {summary.gifts.male} male, {summary.gifts.female}{" "}
+                female, {summary.gifts.kids} kids)
+              </p>
+            ) : null}
           </section>
 
           <NamedGuestsBrowser
@@ -566,7 +710,7 @@ export default function GuestsPage() {
           <Expander summary="Breakdown">
             <ChipRow<BreakdownKey>
               options={[
-                { value: "side", label: "By side" },
+                ...(canSeeBothSides ? [{ value: "side" as const, label: "By side" }] : []),
                 { value: "invitedBy", label: "Whose guests" },
                 { value: "tier", label: "By tier" },
                 { value: "event", label: "By event" },
@@ -647,19 +791,11 @@ export default function GuestsPage() {
 
   // Below `lg:`, exactly one of `list`/`detail` is visible — a full-screen
   // swap, matching the rest of the app. At `lg:+`, `detail` opens beside the
-  // list in a `sticky` right column: not independently scrolled, it just
-  // stays pinned near the top of the viewport as the list (and the page —
-  // this app scrolls the document, not an inner container) scrolls past it.
-  // Same mechanism the bottom tab bar already uses for the same reason
-  // (CLAUDE.md § Responsive layout).
+  // list in `SplitPane`'s own-scrollport sticky column (CLAUDE.md §
+  // Responsive layout).
   if (!isDesktop) return mode.kind === "list" ? list : detail;
   if (mode.kind === "list") return list;
-  return (
-    <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
-      {list}
-      <div className="lg:sticky lg:top-6">{detail}</div>
-    </div>
-  );
+  return <SplitPane list={list} detail={detail} />;
 }
 
 /** READ COST: a `<details>` renders its children eagerly, so the rows are

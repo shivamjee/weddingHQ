@@ -1,16 +1,16 @@
-# Graph Report - wedding_app  (2026-08-06)
+# Graph Report - wedding_app  (2026-08-13)
 
 ## Corpus Check
-- 128 files · ~110,145 words
+- 129 files · ~114,098 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 945 nodes · 2451 edges · 100 communities (38 shown, 62 thin omitted)
+- 951 nodes · 2476 edges · 99 communities (36 shown, 63 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.68)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e632f006`
+- Built from commit: `a7a7c89d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -109,7 +109,6 @@
 - tenantHref
 - Vercel (frontend hosting)
 - ConfigProvider.tsx
-- AI assist on comparisons (§3.3)
 
 ## God Nodes (most connected - your core abstractions)
 1. `toPaise()` - 56 edges
@@ -120,8 +119,8 @@
 6. `useConfig()` - 34 edges
 7. `tenantHref()` - 31 edges
 8. `Paise` - 30 edges
-9. `useLoader()` - 24 edges
-10. `GuestsPage()` - 22 edges
+9. `GuestsPage()` - 24 edges
+10. `useLoader()` - 24 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Next.js breaking-changes warning` --semantically_similar_to--> `Next.js (App Router)`  [INFERRED] [semantically similar]
@@ -143,23 +142,23 @@
 - **Changing hostname / adding a domain checklist** — claude_vercel, claude_google_cloud_console_oauth_client, claude_authdomain_same_origin_proxy, claude_wedding_hq_ten_vercel_app [EXTRACTED 1.00]
 - **AI comparison-assist route-handler pattern** — phase2_ai_route_handler, phase2_gemini_api_key, phase2_verifycaller, phase2_zod_schema_validation, phase2_src_lib_ai_provider_ts [EXTRACTED 1.00]
 
-## Communities (100 total, 62 thin omitted)
+## Communities (99 total, 63 thin omitted)
 
 ### Community 0 - "App Root & Layout"
-Cohesion: 0.09
-Nodes (40): GET(), POST(), RequestBody, SuggestedCriterion, SuggestedValue, Suggestion, CardsView(), computeWinners() (+32 more)
+Cohesion: 0.06
+Nodes (66): GET(), POST(), RequestBody, Mode, AiAssistSheet(), SuggestedCriterion, SuggestedValue, Suggestion (+58 more)
 
 ### Community 1 - "useAuth"
 Cohesion: 0.09
 Nodes (21): Build order, Definition of done, Navigation mapping, New data models, Offline — the open architectural question, Open questions — settle these before building, Out of scope — do not build (later phases), PHASE5.md — Tasks, timeline and run sheets (+13 more)
 
 ### Community 2 - "Budget Page & Home"
-Cohesion: 0.06
-Nodes (97): BalancesPage(), Loaded, SettleForm(), ExpenseRow(), Loaded, Mode, STATUS_DOT, AllocationRow() (+89 more)
+Cohesion: 0.08
+Nodes (54): ExpenseRow(), AllocationRow(), AmountEditor(), BudgetData, BudgetPage(), ConsumptionSection(), EventAmountRow(), GroupBy (+46 more)
 
 ### Community 3 - "Tenant Config & Firestore Paths"
-Cohesion: 0.12
-Nodes (20): CategoriesSection(), CategoryForm(), CategoryRow(), EventRow(), EventsSection(), reorder(), ColourPicker(), IconPicker() (+12 more)
+Cohesion: 0.16
+Nodes (21): CategoriesSection(), CategoryForm(), EventsSection(), SetupPage(), ComparisonsPage(), NewComparisonForm(), ContactForm(), PlanLayout() (+13 more)
 
 ### Community 4 - "Deploy & Hosting Config"
 Cohesion: 0.05
@@ -186,12 +185,12 @@ Cohesion: 0.22
 Nodes (9): scripts, build, dev, dev:https, lint, start, test, test:rules (+1 more)
 
 ### Community 10 - "AI Comparison Route"
-Cohesion: 0.07
-Nodes (44): ViewProps, AuthContextValue, ConfigContextValue, LoadedConfig, LoadedTenant, Category, CategoryWithId, Comparison (+36 more)
+Cohesion: 0.24
+Nodes (11): categoriesCol(), eventsCol(), byOrder(), ConfigContext, ConfigContextValue, ConfigProvider(), LoadedConfig, Category (+3 more)
 
 ### Community 11 - "contacts/page.tsx"
-Cohesion: 0.09
-Nodes (48): ExpensesPage(), SideDetail(), ComparisonDetailPage(), Mode, ContactsPage(), FilterRows(), QuestionsPage(), STATUS_STYLES (+40 more)
+Cohesion: 0.10
+Nodes (36): ComparisonDetailPage(), ContactCard(), ContactsPage(), QuestionsPage(), STATUS_STYLES, GuestNames(), GuestView(), HouseholdView() (+28 more)
 
 ### Community 12 - "Comparison Views & Criteria Editor"
 Cohesion: 0.50
@@ -226,24 +225,20 @@ Cohesion: 0.29
 Nodes (6): plugins, printWidth, semi, singleQuote, trailingComma, prettier-plugin-tailwindcss
 
 ### Community 23 - "Admin Grant Process"
-Cohesion: 0.33
-Nodes (6): First tenant tenants/shivam-swara, Granting admin (console-only process), users/{uid}.isAdmin global admin flag, Owner account shivamjee@rocketmail.com, users/{uid} global identity collection, Admin grant is console-only
-
-### Community 24 - "Rejected Backend Options"
-Cohesion: 0.16
-Nodes (7): TenantShell(), BottomTabBar(), strokeProps, TabIcon, TABS, SidebarNav(), rememberLastTenant()
+Cohesion: 0.06
+Nodes (75): BalancesPage(), Loaded, SettleForm(), ExpensesPage(), Loaded, Mode, STATUS_DOT, fetchMembers() (+67 more)
 
 ### Community 25 - "colours.ts"
-Cohesion: 0.22
-Nodes (10): Home(), fetchAllTenants(), fetchTenantNames(), NewWeddingForm(), SignOutLink(), TenantsPage(), LoadingScreen(), NotInvited() (+2 more)
+Cohesion: 0.25
+Nodes (8): fetchAllTenants(), fetchTenantNames(), NewWeddingForm(), SignOutLink(), TenantsPage(), tenantDoc(), tenantsCol(), TenantProvider()
 
 ### Community 26 - "Guests Page & Empty State"
-Cohesion: 0.05
-Nodes (86): ImportGuestsPage(), ChangeLogRows(), GuestsPage(), Loaded, LOG_VERB, Mode, ContactCard(), GuestView() (+78 more)
+Cohesion: 0.06
+Nodes (77): ImportGuestsPage(), ChangeLogRows(), GuestsPage(), Loaded, LOG_VERB, Mode, MoveTarget, HouseholdCard() (+69 more)
 
 ### Community 88 - "MembershipsProvider.tsx"
-Cohesion: 0.25
-Nodes (14): fetchMembers(), InviteForm(), MorePage(), RemoveButton(), NewComparisonForm(), ContactForm(), QuestionCard(), QuestionForm() (+6 more)
+Cohesion: 0.11
+Nodes (23): Turning the AI assist on (manual steps), GEMINI_API_KEY (server-only secret), Phase 2 — Decision support (complete), src/app/api/ai/compare/route.ts, AI assist on comparisons (§3.3), AI expense categorisation (§9.1), comparisons/{id}/options/{optionId} (§3.2), comparisons/{comparisonId} (§3.2) (+15 more)
 
 ### Community 92 - "PHASE4.md — Money in motion"
 Cohesion: 0.08
@@ -254,48 +249,44 @@ Cohesion: 0.27
 Nodes (6): Landing(), subscribeToNothing(), SignInButton(), LastTenant, readLastTenant(), readLastTenantName()
 
 ### Community 94 - "TenantProvider.tsx"
-Cohesion: 0.31
-Nodes (8): tenantDoc(), MembershipsContextValue, TenantContext, TenantContextValue, TenantProvider(), Role, Membership, MembershipWithId
+Cohesion: 0.18
+Nodes (15): LoadedTenant, TenantContext, TenantContextValue, Role, Side, GuestLogAction, GuestLogEntry, GuestLogEntryWithId (+7 more)
 
 ### Community 95 - "tenants/page.tsx"
-Cohesion: 0.16
-Nodes (13): geistMono, geistSans, metadata, viewport, ServiceWorkerRegistrar(), AuthContext, AuthProvider(), POPUP_FALLBACK_CODES (+5 more)
+Cohesion: 0.20
+Nodes (14): Home(), TenantShell(), InviteForm(), QuestionCard(), LoadingScreen(), AppHeader(), NotInvited(), useAuth() (+6 more)
 
 ### Community 96 - "tenantHref"
 Cohesion: 0.33
-Nodes (6): SetupPage(), ComparisonsPage(), PlanLayout(), SECTIONS, WeddingCard(), tenantHref()
+Nodes (6): First tenant tenants/shivam-swara, Granting admin (console-only process), users/{uid}.isAdmin global admin flag, Owner account shivamjee@rocketmail.com, users/{uid} global identity collection, Admin grant is console-only
 
 ### Community 100 - "Vercel (frontend hosting)"
 Cohesion: 0.18
 Nodes (12): Next.js breaking-changes warning, Firebase Authentication, Google Cloud Console OAuth 2.0 Web client, Next.js (App Router), Changing hostname / adding a domain checklist, PWA (installable web app), Rejected: native iOS/Android apps (React Native), Rejected: self-hosting + dynamic DNS (+4 more)
 
 ### Community 102 - "ConfigProvider.tsx"
-Cohesion: 0.16
-Nodes (14): budgetDoc(), budgetTotalsDoc(), budgetAllocationId(), budgetTotalsId(), membershipId(), slugify(), slugifyTenantName(), uniqueSlugId() (+6 more)
-
-### Community 103 - "AI assist on comparisons (§3.3)"
-Cohesion: 0.11
-Nodes (23): Turning the AI assist on (manual steps), GEMINI_API_KEY (server-only secret), Phase 2 — Decision support (complete), src/app/api/ai/compare/route.ts, AI assist on comparisons (§3.3), AI expense categorisation (§9.1), comparisons/{id}/options/{optionId} (§3.2), comparisons/{comparisonId} (§3.2) (+15 more)
+Cohesion: 0.07
+Nodes (33): geistMono, geistSans, metadata, viewport, RemoveButton(), ServiceWorkerRegistrar(), AuthContext, AuthContextValue (+25 more)
 
 ## Knowledge Gaps
 - **264 isolated node(s):** `semi`, `singleQuote`, `trailingComma`, `printWidth`, `prettier-plugin-tailwindcss` (+259 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **62 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **63 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `useTenant()` connect `MembershipsProvider.tsx` to `tenantHref`, `App Root & Layout`, `Budget Page & Home`, `Tenant Config & Firestore Paths`, `contacts/page.tsx`, `Rejected Backend Options`, `Guests Page & Empty State`, `TenantProvider.tsx`?**
+- **Why does `useTenant()` connect `Tenant Config & Firestore Paths` to `App Root & Layout`, `Budget Page & Home`, `contacts/page.tsx`, `Admin Grant Process`, `Guests Page & Empty State`, `TenantProvider.tsx`, `tenants/page.tsx`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **Why does `toPaise()` connect `Budget Page & Home` to `App Root & Layout`, `contacts/page.tsx`, `Guests Page & Empty State`, `Tenant Config & Firestore Paths`?**
+- **Why does `toPaise()` connect `Budget Page & Home` to `App Root & Layout`, `Guests Page & Empty State`, `Admin Grant Process`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Why does `useAuth()` connect `MembershipsProvider.tsx` to `App Root & Layout`, `Budget Page & Home`, `contacts/page.tsx`, `Rejected Backend Options`, `colours.ts`, `Guests Page & Empty State`, `money.ts`, `TenantProvider.tsx`, `tenants/page.tsx`?**
+- **Why does `useAuth()` connect `tenants/page.tsx` to `App Root & Layout`, `Budget Page & Home`, `Tenant Config & Firestore Paths`, `ConfigProvider.tsx`, `contacts/page.tsx`, `Admin Grant Process`, `colours.ts`, `Guests Page & Empty State`, `money.ts`, `TenantProvider.tsx`?**
   _High betweenness centrality (0.013) - this node is a cross-community bridge._
 - **What connects `semi`, `singleQuote`, `trailingComma` to the rest of the system?**
   _264 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App Root & Layout` be split into smaller, more focused modules?**
-  _Cohesion score 0.08597285067873303 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.058823529411764705 - nodes in this community are weakly interconnected._
 - **Should `useAuth` be split into smaller, more focused modules?**
   _Cohesion score 0.09090909090909091 - nodes in this community are weakly interconnected._
 - **Should `Budget Page & Home` be split into smaller, more focused modules?**
-  _Cohesion score 0.05870967741935484 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08074534161490683 - nodes in this community are weakly interconnected._

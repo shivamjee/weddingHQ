@@ -13,6 +13,14 @@ import type { NextConfig } from "next";
 const firebaseAuthDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
 
 const nextConfig: NextConfig = {
+  // Dev-only: lets `next dev`'s HMR websocket accept connections from a
+  // non-localhost origin (e.g. testing on an iPad over Tailscale). Without
+  // this, Next silently blocks the HMR socket and the client keeps retrying,
+  // which reads as the app being stuck loading. No effect on the production
+  // build/Vercel.
+  // `*` matches exactly one label; MagicDNS names have two
+  // ("shivams-macbook-pro.tail41c4b0.ts.net"), so this needs the recursive `**`.
+  allowedDevOrigins: ["**.ts.net"],
   async rewrites() {
     if (!firebaseAuthDomain) return [];
     return [

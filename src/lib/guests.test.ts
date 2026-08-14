@@ -4,9 +4,11 @@ import {
   breakdownBy,
   duplicateMatches,
   filterHouseholds,
+  giftCounts,
   guestTotalsFrom,
   householdCostPaise,
   householdHeads,
+  movedCounts,
   nameTokens,
   platesByEvent,
   relationshipOptions,
@@ -38,6 +40,7 @@ type H = {
   accommodationNeeded: boolean;
   roomsNeeded: number | null;
   nightsNeeded: number | null;
+  gift?: { family: number; male: number; female: number; kids: number };
 };
 
 // Spread-defaults builder, so each test states only the fields it cares about.
@@ -140,7 +143,7 @@ describe("summarise", () => {
     });
   });
 
-  it("sums room-nights only for households that actually need accommodation", () => {
+  it("room-nights is rooms × nights, summed, only for households that actually need accommodation", () => {
     const summary = summarise(
       [
         h({ id: "1", accommodationNeeded: true, roomsNeeded: 2, nightsNeeded: 3 }),
@@ -153,7 +156,55 @@ describe("summarise", () => {
     expect(summary).toMatchObject({
       accommodationHouseholds: 2,
       roomsNeeded: 3,
-      nightsNeeded: 6,
+      nightsNeeded: 9, // (2 × 3) + (1 × 3)
+    });
+  });
+
+  it("an unfilled room count still counts as one room, not zero", () => {
+    const summary = summarise(
+      [h({ id: "1", accommodationNeeded: true, roomsNeeded: null, nightsNeeded: 3 })],
+      PLATES,
+    );
+    expect(summary).toMatchObject({ roomsNeeded: 0, nightsNeeded: 3 });
+  });
+
+  it("sums gift counts across households, and a household with no gift field contributes zeros", () => {
+    const summary = summarise(
+      [
+        h({ id: "1", gift: { family: 2, male: 1, female: 1, kids: 0 } }),
+        h({ id: "2", gift: { family: 1, male: 0, female: 2, kids: 3 } }),
+        h({ id: "3" }), // no `gift` at all — must not produce NaN
+      ],
+      PLATES,
+    );
+    expect(summary.gifts).toEqual({ family: 3, male: 1, female: 3, kids: 3, total: 10 });
+  });
+});
+
+describe("movedCounts", () => {
+  it("splits adults from children, counting infants as children", () => {
+    expect(
+      movedCounts([{ ageGroup: "adult" }, { ageGroup: "adult" }, { ageGroup: "child" }, { ageGroup: "infant" }]),
+    ).toEqual({ adultCount: 2, childCount: 2 });
+  });
+
+  it("is zero/zero for an empty selection", () => {
+    expect(movedCounts([])).toEqual({ adultCount: 0, childCount: 0 });
+  });
+});
+
+describe("giftCounts", () => {
+  it("is all zeros when a household has no gift field", () => {
+    expect(giftCounts({})).toEqual({ family: 0, male: 0, female: 0, kids: 0, total: 0 });
+  });
+
+  it("reads the four buckets and totals them", () => {
+    expect(giftCounts({ gift: { family: 2, male: 1, female: 1, kids: 4 } })).toEqual({
+      family: 2,
+      male: 1,
+      female: 1,
+      kids: 4,
+      total: 8,
     });
   });
 });
@@ -341,7 +392,8 @@ describe("guestTotalsFrom", () => {
   });
 
   it("carries the room block", () => {
-    expect(guestTotalsFrom(list, PLATES)).toMatchObject({ roomsNeeded: 2, nightsNeeded: 3 });
+    // 2 rooms × 3 nights = 6 room-nights, not 3.
+    expect(guestTotalsFrom(list, PLATES)).toMatchObject({ roomsNeeded: 2, nightsNeeded: 6 });
   });
 
   it("recomputing from the same list twice gives the same document — it cannot drift", () => {

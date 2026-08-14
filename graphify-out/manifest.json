@@ -25,9 +25,9 @@
     "semantic_hash": "6c1369bcee45fa3baebaaf77f2dc3ae3"
   },
   "next.config.ts": {
-    "mtime": 1784955339.9439712,
-    "ast_hash": "8a476c38811f34e5c5719c6e7cb5c098",
-    "semantic_hash": "8a476c38811f34e5c5719c6e7cb5c098"
+    "mtime": 1786688600.775664,
+    "ast_hash": "aa4ff1acdcbbf2276e96660d662dfa1b",
+    "semantic_hash": ""
   },
   "package.json": {
     "mtime": 1785800406.175347,
@@ -70,18 +70,18 @@
     "semantic_hash": "7aaebcb5c65b5821c8e7af2bb9cf4c9f"
   },
   "src/app/t/[tenantId]/budget/page.tsx": {
-    "mtime": 1786042755.9030576,
-    "ast_hash": "b574e47f0e1b1bbca81325fbbb01e00c",
+    "mtime": 1786690564.3696613,
+    "ast_hash": "3f0f762bd88ae3fac69e76029b897eb0",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/page.tsx": {
-    "mtime": 1785958479.7694817,
-    "ast_hash": "3eb5e7a4ca0e64f430920733130e9634",
+    "mtime": 1786689909.8745484,
+    "ast_hash": "5e871efa9f27174fd8b07e79ad9eef82",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/home/page.tsx": {
-    "mtime": 1786040838.0485983,
-    "ast_hash": "9d1f6f29ac70c86aee6f43bc49ec31cf",
+    "mtime": 1786687306.1623864,
+    "ast_hash": "d57944411a0fd60df5976d9b6658c9cc",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/layout.tsx": {
@@ -110,8 +110,8 @@
     "semantic_hash": "9d9db6f289b1a7a9871701dde462b9cc"
   },
   "src/app/t/[tenantId]/plan/contacts/page.tsx": {
-    "mtime": 1785960427.6793818,
-    "ast_hash": "df1e6bcbb8da0011a7121d1654999970",
+    "mtime": 1786686904.1927762,
+    "ast_hash": "d54a9adc38c4fba5f7401308ed01670e",
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/plan/layout.tsx": {
@@ -125,8 +125,8 @@
     "semantic_hash": "187ad5c9aa5742330c5a9948a8d562b7"
   },
   "src/app/t/[tenantId]/plan/questions/page.tsx": {
-    "mtime": 1785960449.222656,
-    "ast_hash": "cd25947d93bc8b5780b214a77be24c9b",
+    "mtime": 1786686905.2575614,
+    "ast_hash": "814b5e611c112e12b5403621cff57978",
     "semantic_hash": ""
   },
   "src/app/tenants/page.tsx": {
@@ -220,8 +220,8 @@
     "semantic_hash": ""
   },
   "src/components/ui/form.tsx": {
-    "mtime": 1786040816.4229457,
-    "ast_hash": "c995f38c330bff4f84da3e5a0ed3d864",
+    "mtime": 1786690230.7888637,
+    "ast_hash": "515176ed401ccce51d4c386ce7675432",
     "semantic_hash": ""
   },
   "src/lib/ai/compareSchema.ts": {
@@ -340,8 +340,8 @@
     "semantic_hash": "fe483514d4112543d52e8e491353bf8f"
   },
   "src/lib/tenants/TenantProvider.tsx": {
-    "mtime": 1785785964.1234026,
-    "ast_hash": "171e546011d8d7d908de26a521312471",
+    "mtime": 1786687238.657112,
+    "ast_hash": "6b46cc090b1002b26c90eea1997781b8",
     "semantic_hash": ""
   },
   "src/lib/tenants/lastTenant.ts": {
@@ -435,13 +435,13 @@
     "semantic_hash": "9e09241799026ac05be315a2f0b50055"
   },
   "CLAUDE.md": {
-    "mtime": 1786042921.4567003,
-    "ast_hash": "e3f2503931744f038c5f53c2faa24d94",
+    "mtime": 1786690528.8814256,
+    "ast_hash": "bb4e5c7a990d43104f5366e99db765b3",
     "semantic_hash": ""
   },
   "FEATURES.md": {
-    "mtime": 1786042939.8357196,
-    "ast_hash": "6cee50ee1ddb080666d1a32b30af0dea",
+    "mtime": 1786690489.6468174,
+    "ast_hash": "31c19099f68bc20b0d27a47ff4de76ef",
     "semantic_hash": ""
   },
   "PHASE1.5.md": {
@@ -525,8 +525,8 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/guests/import/page.tsx": {
-    "mtime": 1785800796.3253987,
-    "ast_hash": "fa370363c3dcad074d57cf37baa5a701",
+    "mtime": 1786687397.104836,
+    "ast_hash": "8a3a1a41e1ba2f34fa72b9bf8b3e99d1",
     "semantic_hash": ""
   },
   "src/components/guests/GuestBars.tsx": {
@@ -535,8 +535,8 @@
     "semantic_hash": ""
   },
   "src/components/guests/GuestNames.tsx": {
-    "mtime": 1785808072.7637155,
-    "ast_hash": "1701cd46d335cc781283ff41c4074535",
+    "mtime": 1786690239.788478,
+    "ast_hash": "70ed8e8dd978f8a309f645eb36a8bcaf",
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdCard.tsx": {
@@ -545,8 +545,8 @@
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdForm.tsx": {
-    "mtime": 1785806408.888357,
-    "ast_hash": "d0e2a7949bed9165e3b6ebdf4df9e90c",
+    "mtime": 1786687374.8751407,
+    "ast_hash": "1ceafb0129ac97540a6565f424740c07",
     "semantic_hash": ""
   },
   "src/components/guests/TierLadder.tsx": {
@@ -565,13 +565,13 @@
     "semantic_hash": ""
   },
   "src/lib/guests.test.ts": {
-    "mtime": 1785806642.8438601,
-    "ast_hash": "42d510d994f1fae34c63b036dc54aca6",
+    "mtime": 1786687092.4580486,
+    "ast_hash": "2b3328aecd02d4dac7a7daca7e93ac00",
     "semantic_hash": ""
   },
   "src/lib/guests.ts": {
-    "mtime": 1785806609.9069014,
-    "ast_hash": "9001ffb7822bbbce13f48ec583140aeb",
+    "mtime": 1786687086.5842023,
+    "ast_hash": "35e62ce3e813b94edde63b603975d536",
     "semantic_hash": ""
   },
   "src/types/guest.ts": {
@@ -585,8 +585,8 @@
     "semantic_hash": ""
   },
   "src/types/household.ts": {
-    "mtime": 1785806358.2739382,
-    "ast_hash": "d4a9d5660bdfce2210b9f3ae5230505f",
+    "mtime": 1786686953.5687096,
+    "ast_hash": "e3e9baecd77dc502a9b26f998cce43df",
     "semantic_hash": ""
   },
   "src/components/guests/NamedGuestsBrowser.tsx": {
@@ -600,8 +600,8 @@
     "semantic_hash": ""
   },
   "src/components/guests/HouseholdView.tsx": {
-    "mtime": 1785807945.7231174,
-    "ast_hash": "8897432060a6c7cd507d86131e6e8bb6",
+    "mtime": 1786687006.699293,
+    "ast_hash": "f8d641edad5be33b8afee9986eaf6c00",
     "semantic_hash": ""
   },
   "PHASE4.md": {
@@ -625,8 +625,8 @@
     "semantic_hash": ""
   },
   "src/app/t/[tenantId]/budget/expenses/page.tsx": {
-    "mtime": 1786040957.6629772,
-    "ast_hash": "698e9504eef4c9a066bf5c9c676919ef",
+    "mtime": 1786686907.0537581,
+    "ast_hash": "df44971547c4daac1713c823f4cba0ac",
     "semantic_hash": ""
   },
   "src/components/expenses/ExpenseForm.tsx": {
@@ -682,6 +682,11 @@
   "src/components/budget/SpendDonut.tsx": {
     "mtime": 1786042323.7045817,
     "ast_hash": "3904654c6e2973aac504d7f3cb53db55",
+    "semantic_hash": ""
+  },
+  "src/components/ui/SplitPane.tsx": {
+    "mtime": 1786686864.376855,
+    "ast_hash": "5f5b78719bcabfe6e9cba41e97a898c5",
     "semantic_hash": ""
   }
 }

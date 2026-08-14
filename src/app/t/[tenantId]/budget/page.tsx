@@ -96,9 +96,10 @@ type View = Side | "both";
 type GroupBy = "category" | "event";
 
 export default function BudgetPage() {
-  const { tenantId, canWrite, sideLabel } = useTenant();
+  const { tenantId, canWrite, canSeeBothSides, sideLabel, side: mySide } = useTenant();
   const { categories, loading: configLoading } = useConfig();
-  const [view, setView] = useState<View>("both");
+  // Family sees only their own side; the couple/admin default to "both".
+  const [view, setView] = useState<View>(canSeeBothSides ? "both" : (mySide ?? "both"));
 
   const load = useCallback(async (): Promise<BudgetData> => {
     const [snap, expenseTotalsSnap] = await Promise.all([
@@ -233,15 +234,20 @@ export default function BudgetPage() {
 
       <FormMessage error={error} />
 
-      <ChipRow<View>
-        options={[
-          { value: "both", label: "Both sides" },
-          { value: "a", label: sideLabel("a") },
-          { value: "b", label: sideLabel("b") },
-        ]}
-        value={view}
-        onChange={(v) => v && setView(v)}
-      />
+      {/* Family sees only their own side (a view filter, not a rules
+          boundary — CLAUDE.md § Multi-tenancy / useTenant().canSeeBothSides).
+          Nothing to switch between with one option, so skip the chip row. */}
+      {canSeeBothSides ? (
+        <ChipRow<View>
+          options={[
+            { value: "both", label: "Both sides" },
+            { value: "a", label: sideLabel("a") },
+            { value: "b", label: sideLabel("b") },
+          ]}
+          value={view}
+          onChange={(v) => v && setView(v)}
+        />
+      ) : null}
 
       <section className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -295,7 +301,7 @@ export default function BudgetPage() {
             <div>
               <h2 className="text-base font-semibold text-stone-800">Side by side</h2>
               <p className="mt-0.5 text-sm text-stone-500">
-                The same categories, both sides' plans against each other.
+                The same categories, both sides&rsquo; plans against each other.
               </p>
             </div>
             <SidesLegend labelA={sideLabel("a")} labelB={sideLabel("b")} />

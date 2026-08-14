@@ -32,6 +32,14 @@ interface TenantContextValue {
    *  Never use `canWrite` for an invite control: family would see a form whose
    *  writes firestore.rules rejects. */
   canInvite: boolean;
+  /** May view both sides' budget/guest data at once. Couple and global admin
+   *  only — family (parents, in-laws) see their own side. THIS IS A VIEW
+   *  FILTER, NOT A SECURITY BOUNDARY: firestore.rules still lets any member
+   *  read both sides, and the guestTotals/expenseTotals aggregate documents
+   *  each carry both sides' numbers in one doc, so there is no rules-level
+   *  version of this without splitting those documents. It only keeps the
+   *  other side's numbers off a family member's screen. */
+  canSeeBothSides: boolean;
   /** Display label for a side — "Shivam", "Swara". Never render the raw id. */
   sideLabel: (side: Side) => string;
   loading: boolean;
@@ -98,6 +106,7 @@ export function TenantProvider({ tenantId, children }: { tenantId: string; child
       // A global admin has full write access to every wedding, matching the rules.
       canWrite: Boolean(membership) || isAdmin,
       canInvite: membership?.role === "couple" || isAdmin,
+      canSeeBothSides: membership?.role === "couple" || isAdmin,
       // Fully optional-chained: a hand-typed bootstrap document (the couple's
       // first wedding is created by hand in the Firestore console, not through
       // the app's own form) can plausibly have sideA/sideB missing entirely

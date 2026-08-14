@@ -200,15 +200,29 @@ there, not in either component, or the two navs will drift.
   this way, even if that ancestor itself never ends up scrolling.** Same
   `Mode` state and handlers as the full-screen-swap path — `isDesktop`
   (`useMediaQuery`, same hook the Comparisons cards/table split already
-  uses) only changes *where* `detail` is placed, never the state.
+  uses) only changes *where* `detail` is placed, never the state. A fourth
+  bug of the same shape shipped anyway (Phase 4.3): `sticky` pins the
+  column's *top*, but a `detail` taller than the viewport (editing an
+  existing household, whose "More details" opens by default) then has its
+  own footer — Save/Cancel — below the fold, reachable only after scrolling
+  the *entire* left list past it first. Fixed by giving the sticky column
+  its own capped-height scrollport: `lg:max-h-[calc(100dvh-3rem)]
+  lg:overflow-y-auto` alongside the `lg:sticky lg:top-6`, now factored into
+  one shared `SplitPane` component (`src/components/ui/SplitPane.tsx`) used
+  by all four `lg:+` list/detail screens instead of each repeating the split
+  markup. This flips the previous gotcha on its head deliberately: an
+  ancestor of a `sticky` element declaring `overflow` normally *hijacks* its
+  scrollport (the third bug, above) — here that is the intended effect,
+  scoped to a div that has no `sticky` descendants of its own. `dvh` not
+  `vh`: iPad Safari's toolbar makes `vh` overshoot the real viewport.
 - **Plan → Contacts / Questions** — their card lists go
   `sm:grid-cols-2 lg:grid-cols-3`. Cheap: the cards were already
   self-contained, this is just the wrapping `<ul>`'s className. Edit/Add
   itself reuses the Guests split-pane wholesale: below `lg:` it still fully
   replaces the list (`if (!isDesktop) return detail ?? list`), but at `lg:+`
-  the form opens in the same `lg:sticky lg:top-6` right column beside the
-  list instead of swapping the whole screen away — same `isDesktop` +
-  `list`/`detail` shape as `guests/page.tsx`, no new mechanism.
+  the form opens via the same `SplitPane` beside the list instead of
+  swapping the whole screen away — same `isDesktop` + `list`/`detail` shape
+  as `guests/page.tsx`, no new mechanism.
 
 **Deliberately left single-column** (wider shell only, no grid/split): More,
 More → Setup, the `/tenants` picker, Landing, NotInvited. Short settings or
@@ -332,6 +346,13 @@ Alternatively, just test against the deployed Vercel URL.
   and Vitest does not.
 - **Service worker** (`public/sw.js`) is **hand-written** (not Serwist) — Next 16 is bleeding-edge
   and the offline-shell requirement is minimal. Bump `CACHE` in it when shell assets change.
+- **Testing on a phone/tablet over Tailscale** (not just `localhost`): `next.config.ts` sets
+  `allowedDevOrigins: ["**.ts.net"]` so `next dev`'s HMR websocket accepts a MagicDNS origin —
+  without it the dev client retries the blocked socket forever, which just looks like the app
+  being stuck loading. Dev-only (`allowedDevOrigins` has no effect on `next build`/Vercel — grep
+  `node_modules/next/dist/build` finds nothing). Still needs the same one-time console steps as
+  any new host (§ Changing the hostname above): the Tailscale MagicDNS name added to Firebase's
+  Authorised domains and to the OAuth client's Authorised redirect URIs, or sign-in won't show.
 
 ## Current phase
 
@@ -561,6 +582,77 @@ round, focused on the Budget screen's design rather than navigation:
   misshapen blob on a narrow phone. Expenses' "Recalculate totals" — a couple-only admin action,
   not a primary CTA — was downsized from a full `SecondaryButton` to a small bordered pill
   (`text-xs`, tighter padding) so it reads as secondary rather than competing with real actions.
+
+**Phase 4.3 — Guest-list QA, gifts and side-scoped views, layered on top of Phase 4.2, is
+COMPLETE.** Bugs and gaps from real usage on iPad/laptop with a growing household list:
+- **The `lg:+` list/detail sticky pane got its own scrollport.** `SplitPane`
+  (`src/components/ui/SplitPane.tsx`) now owns the split markup for Guests, Contacts, Questions
+  and Expenses — previously each page repeated the same two classNames. The right column is
+  still `lg:sticky lg:top-6`, but now also `lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto`: a
+  detail taller than the viewport (editing an existing household, which opens `HouseholdForm`'s
+  "More details" by default) used to pin its *top* and hide its own Save/Cancel footer below the
+  fold until the entire left list had been scrolled past — unusable at 30–40 households. Capping
+  the column's height and letting it scroll itself fixes that. `dvh` not `vh` — iPad Safari's
+  toolbar makes `vh` overshoot. This is the fourth bug of the exact shape documented in
+  § Responsive layout below; `SplitPane`'s own doc comment carries the warning forward: declaring
+  `overflow` here makes it the scrollport for any `sticky` descendant inside `detail`, so nothing
+  in a detail pane may itself be `sticky`.
+- **Room-nights fixed.** `summarise()` in `src/lib/guests.ts` was summing each household's
+  `nightsNeeded` without ever multiplying by `roomsNeeded`, so 30 households at 3 nights each
+  read "90 room-nights" regardless of room counts. It is now `rooms × nights`, summed across
+  households, with a household that needs accommodation but hasn't filled in rooms counting as
+  one room rather than zero (so a blank field doesn't erase real demand).
+- **Gift planning.** `Household.gift?: { family, male, female, kids }` — optional, same rule as
+  `email`, for documents written before the field existed. Entered in `HouseholdForm`'s "More
+  details" alongside rooms/nights, shown on `HouseholdView` and totalled in the Guests summary
+  box via a new `giftCounts()` helper and `GuestSummary.gifts`. Deliberately NOT wired into
+  `aggregates/guestTotals`/Home (rooms set the precedent for how far a per-household number
+  travels — not that far) or CSV import/export (three places per column × four columns). Add
+  either when actually wanted.
+- **Names can be split across households.** `GuestNames` gained row checkboxes and a
+  select/Move/Clear bar; "Move" opens a search-then-pick screen (an existing household, or a new
+  one by name). The move handler — `moveGuests()` in `guests/page.tsx`, same single-writer-path
+  rule as `saveHousehold`/`removeHousehold` — auto-adjusts both households' hand-entered head
+  counts using a new pure `movedCounts()` helper (adult/child split off the moved guest
+  documents, infants counted as children, matching `GuestNames`' own reconcile rule). A household
+  created via "new" during a move deliberately does NOT copy accommodation fields from the
+  source — the whole point of the split is that room needs differ. `Checkbox` was promoted from
+  a `HouseholdForm`-private component into `src/components/ui/form.tsx` so both files share it.
+- **Side-scoped views for family.** `useTenant()` gained `canSeeBothSides` (couple/admin only) —
+  **a view filter, not a rules boundary**: `firestore.rules` still lets any member read both
+  sides, and `aggregates/guestTotals`/`aggregates/expenseTotals` are each one document carrying
+  both sides' numbers, so a rules-level version would be partial without splitting those docs.
+  When `!canSeeBothSides`: Budget's "Both sides" chip and the other side's allocation health bar
+  are hidden, defaulting to the member's own side; Home's Budget card shows one side's donut/bars
+  and the Guests card reads `guestTotals.bySide[mySide]` instead of `overall` (and drops the
+  against-target line — `settings/guestTarget` is whole-wedding, meaningless against one side);
+  Guests' Side filter and "By side" grouping are hidden, with `filters.side` seeded to and pinned
+  at the member's side (surviving "Clear"); `HouseholdForm`'s Side chip and the CSV import's
+  default-side chip are both hidden/locked, so family can't create a household they then can't
+  see. **Expenses and Balances are deliberately unchanged** — one side's parent routinely pays
+  for the other side's event, so expenses stay cross-side by design.
+
+A same-session QA round, testing the move flow live on an iPad, found three more bugs:
+- **New-household-first.** The Move screen's "start a new household" block used to sit below the
+  search/pick-existing list; reordered above it, since splitting off a new household (the reason
+  differing room needs come up) is the common case, not the fallback.
+- **`moveGuests()` wrote the correct new count to Firestore for an *existing* target household but
+  never updated the in-memory `targetHousehold` object used to rebuild `aggregates/guestTotals` —
+  so the household document was right but Home's numbers undercounted the target side of every
+  move until the next unrelated household write self-healed it. Fixed by rebuilding
+  `targetHousehold` with the new counts right after the write, the same way `updatedSource` already
+  was.
+- **Auto-delete an emptied household.** Moving every named guest out of a household used to leave
+  it behind as a zero-head card. `moveGuests()` now deletes it (logged as `"removed"`, same as
+  `removeHousehold`) when the move brings both counts to 0, and lands back on the household list
+  instead of trying to show a Names screen for a household that no longer exists.
+- **Checkbox tap target.** `Checkbox` (`src/components/ui/form.tsx`) is a `<label>` wrapping an
+  input; called with an empty `label` (a checkbox alone, not beside its own text — the new
+  `GuestNames` selection rows) it had nothing to give the label real width, so the whole clickable
+  area shrank to the 20px input itself — well under this app's usual 44px tap target, and the
+  *only* thing to tap on a household with one name. `Checkbox` gained an optional `className` prop
+  so a caller can reserve real width (`"w-11 justify-center"` here) without changing every other
+  call site, which still passes real label text and needs none of this.
 
 **Phase 5 — Tasks, timeline and run sheets is NEXT and NOT STARTED.** The brief is `PHASE5.md`,
 **marked TO BE REVIEWED** — drafted at the end of the Phase 4 session from `FEATURES.md` §6, §7,

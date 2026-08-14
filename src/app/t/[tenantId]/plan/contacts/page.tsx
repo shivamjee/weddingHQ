@@ -26,6 +26,7 @@ import {
   updateDoc,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
+import { SplitPane } from "@/components/ui/SplitPane";
 import { contactDoc, contactsCol } from "@/lib/paths";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useTenant } from "@/lib/tenants/TenantProvider";
@@ -252,12 +253,7 @@ export default function ContactsPage() {
 
   if (!isDesktop) return detail ?? list;
   if (!detail) return list;
-  return (
-    <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
-      {list}
-      <div className="lg:sticky lg:top-6">{detail}</div>
-    </div>
-  );
+  return <SplitPane list={list} detail={detail} />;
 }
 
 // ---------------------------------------------------------------------------

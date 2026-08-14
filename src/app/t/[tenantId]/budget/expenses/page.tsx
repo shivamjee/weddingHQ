@@ -26,6 +26,7 @@ import {
 } from "firebase/firestore";
 import { ChipRow, FormMessage, OptionMark, PrimaryButton, SecondaryButton } from "@/components/ui/form";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SplitPane } from "@/components/ui/SplitPane";
 import { ExpenseForm, type ExpenseDraft } from "@/components/expenses/ExpenseForm";
 import { ExpenseView } from "@/components/expenses/ExpenseView";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -333,12 +334,7 @@ export default function ExpensesPage() {
 
   if (!isDesktop) return mode.kind === "list" ? list : detail;
   if (mode.kind === "list") return list;
-  return (
-    <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
-      {list}
-      <div className="lg:sticky lg:top-6">{detail}</div>
-    </div>
-  );
+  return <SplitPane list={list} detail={detail} />;
 }
 
 const STATUS_DOT: Record<ExpenseStatus, string> = {
