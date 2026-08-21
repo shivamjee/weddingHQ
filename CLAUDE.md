@@ -654,18 +654,30 @@ A same-session QA round, testing the move flow live on an iPad, found three more
   so a caller can reserve real width (`"w-11 justify-center"` here) without changing every other
   call site, which still passes real label text and needs none of this.
 
-**Phase 5 — Tasks, timeline and run sheets is NEXT and NOT STARTED.** The brief is `PHASE5.md`,
-**marked TO BE REVIEWED** — drafted at the end of the Phase 4 session from `FEATURES.md` §6, §7,
-§8 and §9.2, not yet read back or agreed. Settle its open questions before writing code against it,
-the same way Phase 4's were settled (answers recorded in the build plan, not by rewriting the
-brief). Nothing in this repo implements tasks or run sheets yet.
+**Phase 5 — Tasks and the planning timeline is NEXT and NOT STARTED.** The brief is `PHASE5.md`,
+now **reviewed and agreed**: its seven open questions were settled in one session and the answers
+live in the block at the top of that file, with the body left as the drafted record (same process
+Phase 4 followed). Nothing in this repo implements tasks yet.
 
-Its first open question is a real conflict between the two spec files, flagged rather than silently
-resolved: this file has always said "tasks and run sheets (Phase 5+)", while `FEATURES.md` §10
-defined Phase 5 as *"Day-of"* alone — leaving tasks and the planning timeline (§6, §7.1) assigned
-to no phase at all. The two halves have opposite readiness (tasks are useful now, run sheets are
-useless until dates and vendors lock, roughly a month out), so whether they ship together is the
-decision that sets the phase's scope.
+The scope decision that opened it: **run sheets are NOT in this phase.** This file had always said
+"tasks and run sheets (Phase 5+)" while `FEATURES.md` §10 defined Phase 5 as *"Day-of"* alone,
+leaving §6/§7.1 assigned to no phase — a real conflict between the two spec files. Settled by
+splitting on readiness: **Phase 5 = tasks + §7.1 timeline + Home's overdue line** (`PHASE5.md`
+Steps 1–4), useful today at 484 days out; **Phase 5.5 = run sheets, today view and offline**
+(Steps 5–6), built roughly a month out when dates and vendors lock. `FEATURES.md` §10 now carries
+both. The four decisions worth knowing before touching the code:
+
+- **Tasks live at `/plan/tasks`**, a fourth entry in `SECTIONS` in `plan/layout.tsx`. `TABS` in
+  `navItems.tsx` is untouched — no sixth bottom tab. Frequent access is Home's overdue line linking
+  straight into the Overdue view, not the Plan switcher.
+- **`assigneeUid: string | null`, single, not a list** — deviates from `FEATURES.md` §6 as drafted,
+  which is updated to match. Changing it later would rewrite every query.
+- **Home reads overdue via a bounded 4-document query**, never an aggregate: overdue changes at
+  midnight with no write happening, which recompute-on-write cannot heal. Needs this project's
+  first composite index (`assigneeUid`, `status`, `dueDate`).
+- **Offline, when Phase 5.5 comes, is `persistentLocalCache`**, not service-worker caching —
+  `public/sw.js` passes cross-origin requests through by design and caching Firestore responses
+  there would mean reimplementing its wire protocol.
 
 Still out of scope until their own phase: receipts, Firebase Storage, RSVP, seating and AI expense
 categorisation (Phase 6); email/push task reminders (Phase 6, `FEATURES.md` §9.2 — Vercel Cron plus

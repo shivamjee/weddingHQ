@@ -789,7 +789,7 @@ contacts/{contactId}
 tasks/{taskId}
   title           string
   description     string
-  assigneeUids    [ uid ]
+  assigneeUid     uid | null     // single owner, not a list — see PHASE5.md's decision #5
   dueDate         timestamp | null
   status          "todo" | "in_progress" | "done" | "blocked"
   priority        "low" | "normal" | "high"
@@ -928,13 +928,16 @@ Expense entry with the three states, splits, aggregates, balances, settle-up, th
 set in §2.6. The brief is `PHASE4.md`, now reviewed and built; the decisions settled on top of it
 are recorded in CLAUDE.md's Phase 4 section.
 
-**Phase 5 — Tasks, timeline and run sheets**
-Tasks (§6) and the planning timeline (§7.1) — useful now. Run sheets, offline caching and the today
-view (§7.2) — useless until dates and vendors are locked, realistically the final month. The brief
-is `PHASE5.md` — **drafted, not yet reviewed**; settle its open questions before building. Its
-first open question is whether those two halves, which have opposite readiness, belong in one
-phase: §6 and §7.1 are unassigned to any phase in this list, which was an oversight here rather
-than a decision.
+**Phase 5 — Tasks and the planning timeline**
+Tasks (§6), the planning timeline (§7.1) and Home's overdue/due-soon line (§8) — the half that is
+useful now. The brief is `PHASE5.md`, reviewed, with its open questions settled in the block at the
+top of that file.
+
+**Phase 5.5 — Day-of** *(deferred until dates and vendors lock, realistically the final month)*
+Run sheets, the today view and offline caching (§7.2). Split out of Phase 5 deliberately: the two
+halves have opposite readiness, so shipping them together would mean building run sheets ~15 months
+before any real event time exists. `PHASE5.md` Steps 5–6 are the brief; its decision #3 pre-answers
+the offline question (`persistentLocalCache`, not service-worker caching).
 
 **Phase 6 — Deferred**
 AI expense categorisation (§9.1 — reuses the provider module §3.3 introduced in Phase 2), email
