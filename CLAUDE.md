@@ -654,36 +654,66 @@ A same-session QA round, testing the move flow live on an iPad, found three more
   so a caller can reserve real width (`"w-11 justify-center"` here) without changing every other
   call site, which still passes real label text and needs none of this.
 
-**Phase 5 — Tasks and the planning timeline is NEXT and NOT STARTED.** The brief is `PHASE5.md`,
-now **reviewed and agreed**: its seven open questions were settled in one session and the answers
-live in the block at the top of that file, with the body left as the drafted record (same process
-Phase 4 followed). Nothing in this repo implements tasks yet.
+**Phase 5 — Tasks and the planning timeline is COMPLETE**, code-wise. The brief is `PHASE5.md`,
+**reviewed and agreed**: its seven open questions were settled in one session and the answers live
+in the block at the top of that file, with the body left as the drafted record (same process
+Phase 4 followed).
 
 The scope decision that opened it: **run sheets are NOT in this phase.** This file had always said
 "tasks and run sheets (Phase 5+)" while `FEATURES.md` §10 defined Phase 5 as *"Day-of"* alone,
 leaving §6/§7.1 assigned to no phase — a real conflict between the two spec files. Settled by
 splitting on readiness: **Phase 5 = tasks + §7.1 timeline + Home's overdue line** (`PHASE5.md`
-Steps 1–4), useful today at 484 days out; **Phase 5.5 = run sheets, today view and offline**
-(Steps 5–6), built roughly a month out when dates and vendors lock. `FEATURES.md` §10 now carries
-both. The four decisions worth knowing before touching the code:
+Steps 1–4), useful today at 469 days out; **Phase 5.5 = run sheets, today view and offline**
+(Steps 5–6), built roughly a month out when dates and vendors lock. `FEATURES.md` §10 carries both.
 
-- **Tasks live at `/plan/tasks`**, a fourth entry in `SECTIONS` in `plan/layout.tsx`. `TABS` in
-  `navItems.tsx` is untouched — no sixth bottom tab. Frequent access is Home's overdue line linking
-  straight into the Overdue view, not the Plan switcher.
+Shipped: `src/lib/tasks.ts` (pure — `filterTasks`, `groupTasks`, `sortTasks`, `overdueOf`,
+`milestoneTimeline`) with a named regression test for "a task with no `dueDate` is never overdue"
+plus a boundary test for "due today is not yet overdue"; the `tasks` collection with rules
+shape-validation (title/status/priority) and emulator tests (member/non-member/cross-tenant,
+mirroring the `contacts`/`questions` block); `/plan/tasks` — a fifth entry in `SECTIONS` in
+`plan/layout.tsx`, one bounded `limit(300)` read, filtered and grouped entirely in memory so every
+on-screen count respects the active filters (the Phase 3 §4.4 argument, unchanged) — with five
+views (My tasks, Everyone's, By event, Overdue, Timeline) over `groupTasks()`/`milestoneTimeline()`
+rather than five routes; the `lg:+` sticky-column split via the existing `SplitPane`; and Home's
+overdue/due-soon strip. The four decisions from `PHASE5.md`'s own block, plus three made during the
+build itself:
+
+- **Tasks live at `/plan/tasks`**, a fifth entry in `SECTIONS`. `TABS` in `navItems.tsx` is
+  untouched — no sixth bottom tab. Frequent access is Home's overdue strip linking straight into
+  the Overdue view (`/plan/tasks?view=overdue`), not the Plan switcher.
 - **`assigneeUid: string | null`, single, not a list** — deviates from `FEATURES.md` §6 as drafted,
-  which is updated to match. Changing it later would rewrite every query.
+  which is updated to match. Changing it later would rewrite every query. A new task defaults its
+  assignee to whoever is creating it (`TaskForm`), so a title-only save lands in **My tasks**
+  without an extra tap — Definition of done #1.
 - **Home reads overdue via a bounded 4-document query**, never an aggregate: overdue changes at
-  midnight with no write happening, which recompute-on-write cannot heal. Needs this project's
-  first composite index (`assigneeUid`, `status`, `dueDate`).
+  midnight with no write happening, which recompute-on-write cannot heal. The range filter
+  (`dueDate <= cutoff`) also enforces "a someday task is never overdue" AT the query level, since a
+  null `dueDate` is a different Firestore-ordering type and never matches a Timestamp `<=`. Needed
+  this project's first composite index — `tasks` on (`assigneeUid`, `status`, `dueDate`),
+  `firestore.indexes.json`.
 - **Offline, when Phase 5.5 comes, is `persistentLocalCache`**, not service-worker caching —
   `public/sw.js` passes cross-origin requests through by design and caching Firestore responses
   there would mean reimplementing its wire protocol.
+- **The timeline is a view chip on `/plan/tasks`, not a separate route** — it's a view of the same
+  in-memory list (`milestoneTimeline()`), so adding it costs zero extra reads.
+- **Undated milestones land in an "Unscheduled" group at the end of the timeline**, never hidden —
+  `PHASE5.md` Step 3 warned that silently dropping them is how a milestone disappears.
+- **Home's due-soon window is 14 days** (`DUE_SOON_DAYS`, matched on both `home/page.tsx` and
+  `plan/tasks/page.tsx`) — at 469 days out most tasks are month-scale, so a 7-day window would
+  usually show nothing.
+
+**[MANUAL] — done:** rules and the new composite index (`tasks` on `assigneeUid`, `status`,
+`dueDate`) are deployed to `weddinghq-d125b`. No new Firebase console setup, no new environment
+variables, no new host wiring — this phase never touched hosting or auth.
 
 Still out of scope until their own phase: receipts, Firebase Storage, RSVP, seating and AI expense
 categorisation (Phase 6); email/push task reminders (Phase 6, `FEATURES.md` §9.2 — Vercel Cron plus
 a free email provider, deliberately **not** web push). The categoriser will reuse
 `src/lib/ai/provider.ts` and the route-handler pattern Phase 2 established rather than building a
 second AI integration.
+
+**Phase 5.5 — Day-of (run sheets, today view, offline) is NEXT and NOT STARTED.** `PHASE5.md` Steps
+5–6 are the brief; its decision #3 pre-answers the offline question (`persistentLocalCache`).
 
 ## graphify
 

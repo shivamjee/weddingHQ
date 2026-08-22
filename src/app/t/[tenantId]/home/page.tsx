@@ -12,11 +12,23 @@
 // READ COST: one bounded read of `budgets`, one COUNT aggregation for open
 // questions, and — added in Phase 3 — TWO single-document reads for the guest
 // headcount. `aggregates/guestTotals` exists precisely so this screen never
-// loads three hundred households to print one number.
+// loads three hundred households to print one number. Phase 5 adds a seventh
+// read: a small bounded `tasks` query (at most 4 documents) for the caller's
+// overdue/due-soon line — not an aggregate, because "overdue" changes at
+// midnight with no write happening, which recompute-on-write cannot heal.
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { getCountFromServer, getDoc, getDocs, limit, query, where } from "firebase/firestore";
+import {
+  Timestamp,
+  getCountFromServer,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 import {
   BUDGET_TOTALS_PREFIX,
   balancesDoc,
@@ -25,6 +37,7 @@ import {
   guestTargetDoc,
   guestTotalsDoc,
   questionsCol,
+  tasksCol,
 } from "@/lib/paths";
 import { tenantHref, useTenant } from "@/lib/tenants/TenantProvider";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -36,17 +49,26 @@ import { formatDate } from "@/lib/dates";
 import { formatINR, toPaise } from "@/lib/money";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
 import { SpendDonut } from "@/components/budget/SpendDonut";
-import type { BudgetAllocationWithId, ExpenseTotals, Side } from "@/types";
+import { OPEN_TASK_STATUSES, type BudgetAllocationWithId, type ExpenseTotals, type Side, type TaskWithId } from "@/types";
 
 const MAX_BUDGET_DOCS = MAX_CATEGORIES * 2 + 2;
+/** Home's overdue/due-soon window — matches the const of the same name and
+ *  value on /plan/tasks. */
+const DUE_SOON_DAYS = 14;
 
 export default function HomePage() {
   const { tenantId, tenant, sideLabel, canSeeBothSides, side: mySide } = useTenant();
   const { user } = useAuth();
   const { categories, loading: configLoading } = useConfig();
 
+  // "Now", captured ONCE per mount via a lazy initialiser rather than read
+  // during render (impure — a different answer on every re-render). Hoisted
+  // above `load` in Phase 5 so the overdue query's cutoff can see it; it was
+  // previously declared just for the countdown, further down this file.
+  const [now] = useState(() => Date.now());
+
   const load = useCallback(async () => {
-    const [budgetSnap, openCount, guestSnap, targetSnap, expenseTotalsSnap, balancesSnap] =
+    const [budgetSnap, openCount, guestSnap, targetSnap, expenseTotalsSnap, balancesSnap, taskSnap] =
       await Promise.all([
         getDocs(query(budgetsCol(tenantId), limit(MAX_BUDGET_DOCS))),
         getCountFromServer(query(questionsCol(tenantId), where("status", "==", "open"))),
@@ -57,6 +79,25 @@ export default function HomePage() {
         // (PHASE4.md).
         getDoc(expenseTotalsDoc(tenantId)),
         getDoc(balancesDoc(tenantId)),
+        // READ COST: at most 4 documents, never an aggregate — "overdue"
+        // changes at midnight with no write happening, which recompute-on-
+        // write cannot heal (PHASE5.md decision #4). The 4th document is
+        // only ever counted, never shown — that's what lets the strip below
+        // render "+ 1 more" without a second COUNT query. The range filter
+        // ALSO enforces "a someday task is never overdue" at the query
+        // level: a null `dueDate` is a different type in Firestore's
+        // ordering and never matches a Timestamp `<=`, so it can't come back
+        // here at all.
+        getDocs(
+          query(
+            tasksCol(tenantId),
+            where("assigneeUid", "==", user?.uid ?? "__none__"),
+            where("status", "in", OPEN_TASK_STATUSES),
+            where("dueDate", "<=", Timestamp.fromMillis(now + DUE_SOON_DAYS * 86_400_000)),
+            orderBy("dueDate"),
+            limit(4),
+          ),
+        ),
       ]);
 
     const allocations: BudgetAllocationWithId[] = [];
@@ -97,8 +138,10 @@ export default function HomePage() {
       myNetPaise: balancesSnap.exists()
         ? toPaise(Math.trunc(Number(balancesSnap.data().byUid?.[user?.uid ?? ""] ?? 0)))
         : toPaise(0),
+      overdueTasks: taskSnap.docs.slice(0, 3).map((d) => ({ id: d.id, ...d.data() }) as TaskWithId),
+      overdueTasksCount: taskSnap.docs.length,
     };
-  }, [tenantId, user?.uid]);
+  }, [tenantId, user?.uid, now]);
 
   const { data, loading } = useLoader(load, "Could not load your summary.");
 
@@ -130,12 +173,6 @@ export default function HomePage() {
     ? data?.guestOverall
     : (data?.guestBySide?.[budgetSide] ?? data?.guestOverall);
 
-  // "Now", captured ONCE per mount via a lazy initialiser rather than read
-  // during render. Date.now() in a render body is impure — it would give a
-  // different answer on every re-render — and a countdown that quietly changes
-  // as you tap around is worse than one that is stable for the visit.
-  const [now] = useState(() => Date.now());
-
   // The wedding is more than a year out and the date may genuinely not be set —
   // formatDate never invents one, and no date means no countdown rather than a
   // countdown to nothing.
@@ -155,6 +192,38 @@ export default function HomePage() {
             : "No date set yet."}
         </p>
       </div>
+
+      {/* Overdue/due-soon strip — placed above the grid deliberately: this is
+          what needs attention first. Full-width, not a fourth grid card, the
+          same call the net-balance strip below makes (CLAUDE.md § Responsive
+          layout: the 3-card grid is a deliberate layout). Rose only when at
+          least one of the top tasks is actually PAST due, not merely
+          due-soon — the query itself already can't return a "someday" task
+          (PHASE5.md decision #4). */}
+      {!loading && data && data.overdueTasksCount > 0 ? (
+        <Link
+          href={tenantHref(tenantId, "/plan/tasks?view=overdue")}
+          className={`flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
+            data.overdueTasks.some((t) => t.dueDate && t.dueDate.toMillis() < now)
+              ? "border-rose-200 bg-rose-50"
+              : "border-stone-200 bg-white"
+          }`}
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-stone-800">
+              {data.overdueTasksCount > 3 ? "4+" : data.overdueTasksCount} task
+              {data.overdueTasksCount === 1 ? "" : "s"} overdue or due soon
+            </p>
+            <p className="mt-0.5 truncate text-xs text-stone-500">
+              {data.overdueTasks.map((t) => t.title).join(" · ")}
+              {data.overdueTasksCount > 3 ? " · and more" : ""}
+            </p>
+          </div>
+          <span className="shrink-0 text-stone-300" aria-hidden>
+            &rsaquo;
+          </span>
+        </Link>
+      ) : null}
 
       {loading || configLoading ? (
         <p className="text-sm text-stone-400">Loading…</p>

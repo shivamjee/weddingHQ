@@ -17,6 +17,7 @@ const SECTIONS = [
   { path: "/plan/comparisons", label: "Compare" },
   { path: "/plan/questions", label: "Questions" },
   { path: "/plan/contacts", label: "Contacts" },
+  { path: "/plan/tasks", label: "Tasks" },
 ];
 
 export default function PlanLayout({ children }: { children: React.ReactNode }) {

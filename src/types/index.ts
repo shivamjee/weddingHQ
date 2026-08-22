@@ -50,3 +50,11 @@ export type { Expense, ExpenseWithId, ExpenseStatus, SplitMode, Share } from "./
 export { EXPENSE_STATUSES, EXPENSE_STATUS_LABELS, SPLIT_MODES, SPLIT_MODE_LABELS } from "./expense";
 export type { Settlement, SettlementWithId } from "./settlement";
 export type { ExpenseTotals, ExpenseTotalsSlice, Balances } from "./expenseTotals";
+export type { Task, TaskWithId, TaskStatus, TaskPriority } from "./task";
+export {
+  TASK_STATUSES,
+  TASK_STATUS_LABELS,
+  OPEN_TASK_STATUSES,
+  TASK_PRIORITIES,
+  TASK_PRIORITY_LABELS,
+} from "./task";

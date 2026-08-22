@@ -176,3 +176,13 @@ export const GUEST_TARGET_SETTINGS_ID = "guestTarget";
 
 export const guestTargetDoc = (tenantId: string): DocumentReference =>
   settingsDoc(tenantId, GUEST_TARGET_SETTINGS_ID);
+
+// ---- tasks (Phase 5) -------------------------------------------------------
+// Auto-ids, like contacts/questions: nothing keys off a task's id, and two
+// tasks can legitimately be called "Call the florist".
+
+export const tasksCol = (tenantId: string): CollectionReference =>
+  collection(db, "tenants", tenantId, "tasks");
+
+export const taskDoc = (tenantId: string, taskId: string): DocumentReference =>
+  doc(db, "tenants", tenantId, "tasks", taskId);

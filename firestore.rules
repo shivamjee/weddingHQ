@@ -389,6 +389,25 @@ service cloud.firestore {
           && request.resource.data.get("by", "") == request.auth.uid;
         allow update, delete: if false;
       }
+
+      // ---- tasks (Phase 5) --------------------------------------------------
+      // Member-writable, like every other planning collection: a task
+      // somebody else has to do is still a task anybody may write down.
+      // Shape validation is worth less here than for `budgets`/`expenses` —
+      // no money, no id/field agreement to protect — but the two enums are
+      // cheap to check and a bad `status`/`priority` would otherwise silently
+      // sort into no view at all.
+      match /tasks/{taskId} {
+        function validTask() {
+          let d = request.resource.data;
+          return d.get("title", "") is string
+            && d.get("status", "") in ["todo", "in_progress", "done", "blocked"]
+            && d.get("priority", "") in ["low", "normal", "high"];
+        }
+        allow read: if isTenantMember(tenantId) || isAdmin();
+        allow create, update: if (isTenantMember(tenantId) || isAdmin()) && validTask();
+        allow delete: if isTenantMember(tenantId) || isAdmin();
+      }
     }
 
     // ---- everything else --------------------------------------------------

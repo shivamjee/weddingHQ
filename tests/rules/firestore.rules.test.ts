@@ -707,6 +707,48 @@ describe("contacts & questions — collaborative, so every member writes", () =>
   });
 });
 
+describe("tasks (Phase 5) — collaborative, with status/priority shape checks", () => {
+  const task = { title: "Book the venue", status: "todo", priority: "normal" };
+
+  it("a family member — not just the couple — can create, edit and delete", async () => {
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(setDoc(doc(db, "tenants", T1, "tasks", "k1"), task));
+    await assertSucceeds(updateDoc(doc(db, "tenants", T1, "tasks", "k1"), { status: "done" }));
+    await assertSucceeds(deleteDoc(doc(db, "tenants", T1, "tasks", "k1")));
+  });
+
+  it("members read each other's tasks", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "tenants", T1, "tasks", "k1"), task);
+    });
+    const db = authed(T1_FAMILY);
+    await assertSucceeds(getDocs(collection(db, "tenants", T1, "tasks")));
+  });
+
+  it("a member of the OTHER wedding is denied read and write", async () => {
+    const db = authed(T2_COUPLE);
+    await assertFails(getDocs(collection(db, "tenants", T1, "tasks")));
+    await assertFails(setDoc(doc(db, "tenants", T1, "tasks", "k2"), task));
+  });
+
+  it("a stranger and an unauthenticated caller are denied", async () => {
+    for (const db of [authed(STRANGER), testEnv.unauthenticatedContext().firestore()]) {
+      await assertFails(getDocs(collection(db, "tenants", T1, "tasks")));
+      await assertFails(setDoc(doc(db, "tenants", T1, "tasks", "k3"), task));
+    }
+  });
+
+  it("an invalid status or priority is rejected", async () => {
+    const db = authed(T1_FAMILY);
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "tasks", "k4"), { ...task, status: "banana" }),
+    );
+    await assertFails(
+      setDoc(doc(db, "tenants", T1, "tasks", "k5"), { ...task, priority: "urgent" }),
+    );
+  });
+});
+
 describe("comparisons — including the options subcollection", () => {
   const comparison = { name: "Wedding venues", criteria: [], categoryId: null };
   const option = { name: "Taj Palace", values: {}, status: "considering" };
