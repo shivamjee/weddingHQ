@@ -1,7 +1,7 @@
 # Graph Report - wedding_app  (2026-08-13)
 
 ## Corpus Check
-- 129 files · ~113,220 words
+- 129 files · ~114,098 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
