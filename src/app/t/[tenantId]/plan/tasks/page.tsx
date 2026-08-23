@@ -139,6 +139,8 @@ export default function TasksPage() {
   );
 
   const visible = useMemo(() => filterTasks(tasks, filters), [tasks, filters]);
+  const doneCount = useMemo(() => tasks.filter((t) => t.status === "done").length, [tasks]);
+  const showingDone = filters.status.includes("done");
 
   async function toggleDone(task: TaskWithId) {
     if (!user) return;
@@ -224,6 +226,28 @@ export default function TasksPage() {
         value={view}
         onChange={(v) => v && setView(v)}
       />
+
+      {/* Done tasks are hidden by default (PHASE5.md decision #7) but that
+          shouldn't mean invisible — a one-tap toggle right under the view
+          chips, not buried inside the Filters drawer, since "where did my
+          finished task go" is the actual question being asked. */}
+      {doneCount > 0 ? (
+        <button
+          type="button"
+          aria-pressed={showingDone}
+          onClick={() =>
+            setFilters((f) => ({
+              ...f,
+              status: showingDone ? f.status.filter((s) => s !== "done") : [...f.status, "done"],
+            }))
+          }
+          className={`self-start rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            showingDone ? "border-rose-400 bg-rose-50 text-rose-700" : "border-stone-300 text-stone-600"
+          }`}
+        >
+          {showingDone ? "Hide done" : `Show done (${doneCount})`}
+        </button>
+      ) : null}
 
       {tasks.length > 0 ? (
         <FilterPanel activeCount={activeTaskFilterCount(filters)} onClear={() => setFilters(NO_TASK_FILTERS)}>
