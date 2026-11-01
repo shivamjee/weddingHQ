@@ -98,6 +98,14 @@
   "96": "tenantHref",
   "97": "navItems.tsx",
   "98": "Step 2: per-side budget allocations + allocation health",
-  "99": "PWA (installable web app)",
-  "100": "Vercel (frontend hosting)"
+  "99": "paths.ts",
+  "100": "Vercel (frontend hosting)",
+  "101": "tenantHref",
+  "102": "tenantIds.ts",
+  "103": "[comparisonId]/page.tsx",
+  "104": "useLoader",
+  "105": "AuthProvider.tsx",
+  "106": "app/layout.tsx",
+  "107": "more/page.tsx",
+  "108": "PWA (installable web app)"
 }
