@@ -1,33 +1,73 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ICS_PATH, WEDDING, countdown, googleCalendarUrl, type Countdown } from "@/lib/saveTheDate";
+import { MONTAGE, PHOTOS } from "./photos";
 import s from "./saveTheDate.module.css";
 
 // Emerald jharokha: emerald + antique gold + ivory, a Mughal arch frame, and a
-// ruby heart to scratch. Story: an envelope waits in front of closed palace
-// doors; it opens, drops away, the doors swing open onto the arch.
+// ruby heart to scratch. Story, one continuous take: the envelope opens and
+// flies into the camera, confetti falls while your photos fly past (a
+// cinema-intro fly-through), the palace doors arrive as the last frame, swing
+// open, and the arch draws itself in. A gallery of every photo sits below.
 
-type Stage = "envelope" | "opening" | "open";
+type Stage = "envelope" | "intro" | "open";
 
-// When the envelope is unmounted after it has dropped away. The rest of the
-// choreography lives in the CSS module (delays keyed off `.opened`).
-const ENVELOPE_GONE_MS = 3400;
+// The whole timeline, in seconds after the seal is tapped. Single source:
+// these are handed to the CSS as custom properties (see timelineVars).
+const T = {
+  envelopeZoom: 2.0, // card is out; envelope flies into the camera
+  montage: 2.3, // first photo starts its flight
+  stagger: 0.42, // gap between photos
+  flight: 2.4, // one photo's flight, far → past the camera
+  doorsIn: 8.9, // doors fly in as the final frame
+  doorsOpen: 10.4, // …then swing open
+  arch: 10.9, // arch lines draw in
+  content: 11.3, // names, heart fade up
+  done: 11.4, // montage unmounts, page scroll unlocks
+};
+
+const timelineVars = {
+  "--t-env-zoom": `${T.envelopeZoom}s`,
+  "--t-doors-in": `${T.doorsIn}s`,
+  "--t-doors-open": `${T.doorsOpen}s`,
+  "--t-arch": `${T.arch}s`,
+  "--t-content": `${T.content}s`,
+} as CSSProperties;
 
 export function SaveTheDate({ classic = false }: { classic?: boolean }) {
   const [stage, setStage] = useState<Stage>("envelope");
+  const [skipped, setSkipped] = useState(false);
   const [muted, setMuted] = useState(false);
   const music = useRef<Music | null>(null);
+  const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => music.current?.stop(), []);
+
+  // No scrolling down into the gallery until the intro has played.
+  useEffect(() => {
+    if (stage === "open") return;
+    const html = document.documentElement;
+    html.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = "";
+    };
+  }, [stage]);
 
   function open() {
     if (stage !== "envelope") return;
     // Audio must start inside the tap itself or iOS keeps it silent.
-    music.current ??= startMusic();
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setStage("open");
-    setStage("opening");
-    setTimeout(() => setStage("open"), ENVELOPE_GONE_MS);
+    music.current ??= startMusic(MUSIC_PEAK_AT - T.doorsOpen);
+    window.scrollTo(0, 0);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return skip();
+    setStage("intro");
+    doneTimer.current = setTimeout(() => setStage("open"), T.done * 1000);
+  }
+
+  function skip() {
+    if (doneTimer.current) clearTimeout(doneTimer.current);
+    setSkipped(true);
+    setStage("open");
   }
 
   function toggleMute() {
@@ -36,11 +76,25 @@ export function SaveTheDate({ classic = false }: { classic?: boolean }) {
     music.current?.setMuted(next);
   }
 
+  const cls = [
+    s.root,
+    classic && s.classic,
+    stage !== "envelope" && s.opened,
+    skipped && s.skipped,
+  ];
   return (
-    <div className={`${s.root} ${classic ? s.classic : ""} ${stage !== "envelope" ? s.opened : ""}`}>
+    <div className={cls.filter(Boolean).join(" ")} style={timelineVars}>
       <Main />
+      {/* Covers the card until the doors have arrived over it. */}
+      <div className={s.curtain} aria-hidden />
+      {stage !== "open" && <Montage />}
       <Doors />
-      {stage !== "open" && <Envelope opening={stage === "opening"} onOpen={open} />}
+      {stage !== "open" && <Envelope opening={stage === "intro"} onOpen={open} />}
+      {stage === "intro" && (
+        <button type="button" className={s.skip} onClick={skip}>
+          Skip
+        </button>
+      )}
       {stage !== "envelope" && (
         <button
           type="button"
@@ -78,8 +132,16 @@ function Envelope({ opening, onOpen }: { opening: boolean; onOpen: () => void })
           <p className={s.flapNames}>{WEDDING.shortNames}</p>
           <Divider />
           <svg className={s.lace} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-            <path d="M0 47 L50 82 L100 47" className={s.laceLine} vectorEffect="non-scaling-stroke" />
-            <path d="M0 44 L50 78.5 L100 44" className={s.laceDots} vectorEffect="non-scaling-stroke" />
+            <path
+              d="M0 47 L50 82 L100 47"
+              className={s.laceLine}
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d="M0 44 L50 78.5 L100 44"
+              className={s.laceDots}
+              vectorEffect="non-scaling-stroke"
+            />
           </svg>
         </div>
         <button type="button" className={s.seal} onClick={onOpen} aria-label="Open the envelope">
@@ -126,7 +188,12 @@ function Beadwork() {
     };
   });
   return (
-    <svg className={s.beadwork} viewBox="0 0 100 40" preserveAspectRatio="xMidYMin slice" aria-hidden>
+    <svg
+      className={s.beadwork}
+      viewBox="0 0 100 40"
+      preserveAspectRatio="xMidYMin slice"
+      aria-hidden
+    >
       {dots.map((d, i) => (
         <g key={i}>
           <circle cx={d.x + 3} cy={d.y + 2} r={d.size} />
@@ -153,13 +220,84 @@ function Divider() {
 
 function Doors() {
   return (
-    <div className={s.doors} aria-hidden>
-      <div className={`${s.door} ${s.doorL}`}>
-        <i className={s.knob} />
+    <div className={s.doorsScene} aria-hidden>
+      <div className={s.doors}>
+        <div className={`${s.door} ${s.doorL}`}>
+          <i className={s.knob} />
+        </div>
+        <div className={`${s.door} ${s.doorR}`}>
+          <i className={s.knob} />
+        </div>
       </div>
-      <div className={`${s.door} ${s.doorR}`}>
-        <i className={s.knob} />
-      </div>
+    </div>
+  );
+}
+
+// ─── Montage: confetti + photos flying past the camera ────────────────────
+
+// Hand-placed flight lanes (vw, vh, deg) so photos fan out around the centre
+// rather than stacking. The last one — the ring — flies dead centre.
+const LANES: [number, number, number][] = [
+  [-22, -14, -6],
+  [18, 10, 5],
+  [-12, 16, -4],
+  [24, -12, 7],
+  [-26, 6, -8],
+  [10, -18, 4],
+  [-6, 14, -3],
+  [20, -6, 6],
+  [-18, 12, -5],
+  [14, -16, 8],
+  [-24, 4, -7],
+  [8, 18, 3],
+  [-14, -10, -4],
+  [22, 8, 6],
+  [-8, -4, -2],
+  [0, 0, 0],
+];
+const CONFETTI_COLOURS = ["#c9a45c", "#e8cf8f", "#f4ead6", "#9b2240", "#2fa37c"];
+
+function Montage() {
+  return (
+    <div className={s.montage} aria-hidden>
+      {MONTAGE.map((p, i) => {
+        const [x, y, r] = LANES[i % LANES.length];
+        return (
+          <figure
+            key={p.src}
+            className={`${s.flyer} ${p.h > p.w ? s.flyerTall : ""}`}
+            style={
+              {
+                "--x": `${x}vw`,
+                "--y": `${y}vh`,
+                "--r": `${r}deg`,
+                "--delay": `${T.montage + i * T.stagger}s`,
+                "--flight": `${T.flight}s`,
+                aspectRatio: `${p.w} / ${p.h}`,
+              } as CSSProperties
+            }
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- plain static files; preloaded while the envelope waits */}
+            <img src={p.src} alt="" />
+          </figure>
+        );
+      })}
+      {Array.from({ length: 70 }, (_, i) => (
+        <i
+          key={i}
+          className={s.confetti}
+          style={
+            {
+              left: `${(i * 37) % 100}%`,
+              background: CONFETTI_COLOURS[i % CONFETTI_COLOURS.length],
+              "--delay": `${T.envelopeZoom + (i % 14) * 0.28}s`,
+              "--fall": `${3.2 + (i % 5) * 0.45}s`,
+              "--sway": `${((i * 13) % 9) - 4}vw`,
+              "--spin": `${(i % 2 ? 1 : -1) * (360 + (i % 4) * 180)}deg`,
+            } as CSSProperties
+          }
+        />
+      ))}
     </div>
   );
 }
@@ -184,33 +322,53 @@ function Main() {
         ))}
       </div>
 
-      <div className={s.arch}>
-        <Arch />
-        <div className={s.archContent}>
-          <p className={s.eyebrow}>Save the Date</p>
-          <h1 className={s.names}>
-            <span>{WEDDING.partnerA}</span>
-            <span className={s.amp}>&amp;</span>
-            <span>{WEDDING.partnerB}</span>
-          </h1>
-          <p className={s.subline}>are getting married</p>
-          <Divider />
-          <ScratchHeart revealed={revealed} onReveal={() => setRevealed(true)} />
-          {/* Fixed height so swapping the link for the countdown doesn't shift the heart. */}
-          <div className={s.panelSlot}>
-            {revealed ? (
-              <div className={s.panel}>
-                <Timer />
-                <CalendarButton />
-              </div>
-            ) : (
-              <button type="button" className={s.revealLink} onClick={() => setRevealed(true)}>
-                or tap to reveal
-              </button>
-            )}
+      <section className={s.hero}>
+        <div className={s.arch}>
+          <Arch />
+          <div className={s.archContent}>
+            <p className={s.eyebrow}>Save the Date</p>
+            <h1 className={s.names}>
+              <span>{WEDDING.partnerA}</span>
+              <span className={s.amp}>&amp;</span>
+              <span>{WEDDING.partnerB}</span>
+            </h1>
+            <p className={s.subline}>are getting married</p>
+            <Divider />
+            <ScratchHeart revealed={revealed} onReveal={() => setRevealed(true)} />
+            {/* Fixed height so swapping the link for the countdown doesn't shift the heart. */}
+            <div className={s.panelSlot}>
+              {revealed ? (
+                <div className={s.panel}>
+                  <Timer />
+                </div>
+              ) : (
+                <button type="button" className={s.revealLink} onClick={() => setRevealed(true)}>
+                  or tap to reveal
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+        {/* Just below the arch, not inside it — inside, it sat on the plinth line.
+            The slot is always there so revealing doesn't shift the arch. */}
+        <div className={s.calSlot}>{revealed && <CalendarButton />}</div>
+        <a href="#moments" className={s.moreHint}>
+          Our moments
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </a>
+      </section>
+
+      <Gallery />
     </main>
   );
 }
@@ -248,7 +406,8 @@ function Arch() {
 
 // Heart outline (viewBox 0 0 100 90). Used for the CSS mask (scratch layer
 // and ivory card beneath) and the visible hairline on top — one shape, three uses.
-const HEART = "M50 88C20 66 0 48 0 26 0 11 11 0 25 0c11 0 20 6 25 15C55 6 64 0 75 0c14 0 25 11 25 26 0 22-20 40-50 62Z";
+const HEART =
+  "M50 88C20 66 0 48 0 26 0 11 11 0 25 0c11 0 20 6 25 15C55 6 64 0 75 0c14 0 25 11 25 26 0 22-20 40-50 62Z";
 const HEART_MASK = `url("data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'><path d='${HEART}'/></svg>`,
 )}")`;
@@ -272,7 +431,14 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
     ctx.scale(dpr, dpr);
 
     // Ruby velvet — emerald and ruby, the Mughal jewel pairing.
-    const g = ctx.createRadialGradient(width * 0.35, height * 0.3, 4, width / 2, height / 2, width * 0.75);
+    const g = ctx.createRadialGradient(
+      width * 0.35,
+      height * 0.3,
+      4,
+      width / 2,
+      height / 2,
+      width * 0.75,
+    );
     g.addColorStop(0, "#9b2240");
     g.addColorStop(0.6, "#701430");
     g.addColorStop(1, "#45081c");
@@ -371,6 +537,49 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
   );
 }
 
+// ─── Gallery ───────────────────────────────────────────────────────────────
+
+function Gallery() {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState<string | null>(null);
+
+  function show(src: string) {
+    setOpen(src);
+    dialog.current?.showModal();
+  }
+
+  return (
+    <section id="moments" className={s.gallery}>
+      <p className={s.eyebrow}>Our moments</p>
+      <Divider />
+      <div className={s.grid}>
+        {PHOTOS.map((p) => (
+          <button
+            key={p.src}
+            type="button"
+            className={s.tile}
+            onClick={() => show(p.src)}
+            aria-label="View photo"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- plain static files, lazily loaded */}
+            <img src={p.src} alt="" width={p.w} height={p.h} loading="lazy" decoding="async" />
+          </button>
+        ))}
+      </div>
+      {/* Native <dialog>: focus trap, Esc to close and a backdrop for free. */}
+      <dialog
+        ref={dialog}
+        className={s.lightbox}
+        onClick={() => dialog.current?.close()}
+        onClose={() => setOpen(null)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
+        {open && <img src={open} alt="" />}
+      </dialog>
+    </section>
+  );
+}
+
 function Timer() {
   const [left, setLeft] = useState<Countdown>(() => countdown(new Date()));
   useEffect(() => {
@@ -386,7 +595,7 @@ function Timer() {
   return (
     <div className={s.timer} role="timer" aria-label="Countdown to the wedding">
       {cells.map(([n, label]) => (
-        <div key={label} className={s.tile}>
+        <div key={label} className={s.timerCell}>
           <span className={s.tileNum}>{label === "Days" ? n : String(n).padStart(2, "0")}</span>
           <span className={s.tileLabel}>{label}</span>
         </div>
@@ -430,9 +639,23 @@ function CalendarButton() {
 
 function SpeakerIcon({ muted }: { muted: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
-      {muted ? <path d="M16 9.5l5 5M21 9.5l-5 5" /> : <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />}
+      {muted ? (
+        <path d="M16 9.5l5 5M21 9.5l-5 5" />
+      ) : (
+        <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+      )}
     </svg>
   );
 }
@@ -447,14 +670,29 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
 // AAC at 96 kbps (~850 KB) — re-encoded from the 256 kbps MP3 download.
 const MUSIC_SRC = "/save-the-date/music.m4a";
 const MUSIC_VOLUME = 0.8;
+// Seconds into the track where it swells. Playback starts this far minus
+// T.doorsOpen into the file, so the doors swing open on the swell.
+const MUSIC_PEAK_AT = 16;
 
 type Music = { setMuted: (m: boolean) => void; stop: () => void };
 
-function startMusic(): Music {
+function startMusic(offsetSeconds: number): Music {
   const el = new Audio(MUSIC_SRC);
   el.loop = true;
+  // Seek once the file's length is known, adding however long loading took,
+  // so the music stays in step with the animation clock started by the tap.
+  const tappedAt = performance.now();
+  el.addEventListener(
+    "loadedmetadata",
+    () => {
+      el.currentTime = Math.max(0, offsetSeconds + (performance.now() - tappedAt) / 1000);
+    },
+    { once: true },
+  );
 
-  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  const AC =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   const ctx = AC ? new AC() : null;
   if (ctx) {
     const gain = ctx.createGain();
