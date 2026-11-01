@@ -8,9 +8,10 @@
 export const WEDDING = {
   // The one tenant this card belongs to — Home links to it only there.
   tenantId: "shivam-swara",
-  partnerA: "Shivam Jee",
-  partnerB: "Swara Singh",
-  shortNames: "Shivam & Swara",
+  // Display order on the card (bride first) — not tenant sides a/b.
+  partnerA: "Swara Singh",
+  partnerB: "Shivam Jee",
+  shortNames: "Swara & Shivam",
   // Midnight IST on the wedding day — the countdown target. Time of day isn't
   // fixed yet, so the calendar entry is an all-day event.
   startsAt: new Date("2027-12-08T00:00:00+05:30"),

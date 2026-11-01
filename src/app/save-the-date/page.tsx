@@ -20,7 +20,8 @@ export const metadata: Metadata = {
   // Absolute base so WhatsApp/iMessage link previews can fetch the image.
   metadataBase: new URL("https://wedding-hq-ten.vercel.app"),
   title: `${WEDDING.shortNames} — Save the Date`,
-  description: `${WEDDING.partnerA} & ${WEDDING.partnerB} · ${WEDDING.dateLabel}`,
+  // No date here — link previews would give away the scratch reveal.
+  description: `${WEDDING.partnerA} & ${WEDDING.partnerB} · Save the Date`,
   openGraph: {
     title: `${WEDDING.shortNames} — Save the Date`,
     description: "Tap to open your invitation.",

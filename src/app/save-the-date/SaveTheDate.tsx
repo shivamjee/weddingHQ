@@ -65,7 +65,6 @@ function Envelope({ opening, onOpen }: { opening: boolean; onOpen: () => void })
         <div className={s.card}>
           <p className={s.cardEyebrow}>Save the Date</p>
           <p className={s.cardNames}>{WEDDING.shortNames}</p>
-          <p className={s.cardDate}>08 · 12 · 2027</p>
         </div>
         <div className={s.pocket} />
         <div className={s.flap}>
@@ -101,7 +100,7 @@ function Seal() {
       <circle cx="50" cy="50" r="40" className={s.sealInner} />
       <text className={s.sealRingText}>
         <textPath href="#sealRing" startOffset="0" textLength="203" lengthAdjust="spacing">
-          SAVE THE DATE · 08 · 12 · 2027 ·
+          SAVE THE DATE · SWARA & SHIVAM ·
         </textPath>
       </text>
       <text x="50" y="59" textAnchor="middle" className={s.sealMono}>
