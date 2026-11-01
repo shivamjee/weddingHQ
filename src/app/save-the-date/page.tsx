@@ -34,15 +34,16 @@ export const viewport: Viewport = {
 };
 
 // `?palette=classic` keeps the earlier, darker green as a backup to compare.
+// `?from=app` is added by the links inside weddingHQ and shows a back button.
 export default async function SaveTheDatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ palette?: string }>;
+  searchParams: Promise<{ palette?: string; from?: string }>;
 }) {
-  const { palette } = await searchParams;
+  const { palette, from } = await searchParams;
   return (
     <div className={serif.variable}>
-      <SaveTheDate classic={palette === "classic"} />
+      <SaveTheDate classic={palette === "classic"} fromApp={from === "app"} />
     </div>
   );
 }

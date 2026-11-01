@@ -50,3 +50,6 @@ export function googleCalendarUrl(): string {
 export const ICS_PATH = "/save-the-date/shivam-swara.ics";
 
 export const SAVE_THE_DATE_PATH = "/save-the-date";
+// Links from inside the app add this, so the page shows a small way back —
+// an installed iPhone PWA has no browser back button. The shareable link stays clean.
+export const SAVE_THE_DATE_FROM_APP = `${SAVE_THE_DATE_PATH}?from=app`;

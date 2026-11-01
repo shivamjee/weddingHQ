@@ -678,9 +678,16 @@
   flex: 1;
 }
 
+.revealGroup {
+  width: 100%;
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 .heart {
   position: relative;
-  width: clamp(128px, 35vw, 190px);
+  width: clamp(128px, 40vw, 200px);
   aspect-ratio: 100 / 90;
   flex-shrink: 0;
   filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.45));
@@ -758,7 +765,7 @@
 .panelSlot {
   width: 100%;
   margin-top: 0.6rem;
-  min-height: 56px;
+  min-height: 46px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -875,6 +882,45 @@
   border: 1px solid var(--gold-soft);
   background: rgba(6, 32, 26, 0.5);
   color: var(--gold);
+  cursor: pointer;
+}
+
+/* Small corner controls, same size and style as .mute. */
+.replay,
+.back {
+  position: fixed;
+  z-index: 20;
+  top: max(1rem, env(safe-area-inset-top));
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--gold-soft);
+  background: rgba(6, 32, 26, 0.5);
+  color: var(--gold);
+  cursor: pointer;
+}
+.replay {
+  right: calc(max(1rem, env(safe-area-inset-right)) + 48px);
+  /* Only mounted once the intro has finished, so no timeline delay. */
+  animation: fadeIn 0.8s both;
+}
+.back {
+  left: max(1rem, env(safe-area-inset-left));
+}
+.replayLink {
+  margin-top: 2rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 0;
+  background: none;
+  color: var(--gold);
+  font: inherit;
+  font-style: italic;
+  font-size: 1rem;
+  text-decoration: underline;
+  text-underline-offset: 4px;
   cursor: pointer;
 }
 

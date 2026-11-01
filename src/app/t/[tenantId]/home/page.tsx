@@ -47,7 +47,7 @@ import { allocationHealth, comparisonRows } from "@/lib/budget";
 import { projectedTotalPaise } from "@/lib/expenses";
 import { formatDate } from "@/lib/dates";
 import { formatINR, toPaise } from "@/lib/money";
-import { SAVE_THE_DATE_PATH, WEDDING } from "@/lib/saveTheDate";
+import { SAVE_THE_DATE_FROM_APP, WEDDING } from "@/lib/saveTheDate";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
 import { SpendDonut } from "@/components/budget/SpendDonut";
 import { OPEN_TASK_STATUSES, type BudgetAllocationWithId, type ExpenseTotals, type Side, type TaskWithId } from "@/types";
@@ -229,7 +229,7 @@ export default function HomePage() {
       {/* Link to the public Save the Date — only on the wedding it belongs to. */}
       {tenantId === WEDDING.tenantId ? (
         <Link
-          href={SAVE_THE_DATE_PATH}
+          href={SAVE_THE_DATE_FROM_APP}
           className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-emerald-900/15 bg-emerald-50 px-4 py-3"
         >
           <div className="min-w-0">

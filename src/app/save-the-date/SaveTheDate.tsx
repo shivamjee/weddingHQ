@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ICS_PATH, WEDDING, countdown, googleCalendarUrl, type Countdown } from "@/lib/saveTheDate";
 import { MONTAGE, PHOTOS } from "./photos";
@@ -35,8 +36,19 @@ const timelineVars = {
   "--t-content": `${T.content}s`,
 } as CSSProperties;
 
-export function SaveTheDate({ classic = false }: { classic?: boolean }) {
+export function SaveTheDate({
+  classic = false,
+  fromApp = false,
+}: {
+  classic?: boolean;
+  /** Opened from inside weddingHQ (`?from=app`): show a small way back.
+   *  Guests arriving from a shared link never see it. */
+  fromApp?: boolean;
+}) {
   const [stage, setStage] = useState<Stage>("envelope");
+  // Bumped by Replay: remounts the whole card so every CSS animation and the
+  // scratch cover start fresh.
+  const [run, setRun] = useState(0);
   const [skipped, setSkipped] = useState(false);
   const [muted, setMuted] = useState(false);
   const music = useRef<Music | null>(null);
@@ -70,6 +82,19 @@ export function SaveTheDate({ classic = false }: { classic?: boolean }) {
     setStage("open");
   }
 
+  // Back to the sealed envelope; the guest taps the seal again, and the music
+  // restarts from the same point as the first time (doors on the swell).
+  function replay() {
+    if (doneTimer.current) clearTimeout(doneTimer.current);
+    music.current?.stop();
+    music.current = null;
+    setMuted(false);
+    setSkipped(false);
+    setStage("envelope");
+    setRun((r) => r + 1);
+    window.scrollTo(0, 0);
+  }
+
   function toggleMute() {
     const next = !muted;
     setMuted(next);
@@ -83,8 +108,8 @@ export function SaveTheDate({ classic = false }: { classic?: boolean }) {
     skipped && s.skipped,
   ];
   return (
-    <div className={cls.filter(Boolean).join(" ")} style={timelineVars}>
-      <Main />
+    <div key={run} className={cls.filter(Boolean).join(" ")} style={timelineVars}>
+      <Main onReplay={replay} />
       {/* Covers the card until the doors have arrived over it. */}
       <div className={s.curtain} aria-hidden />
       {stage !== "open" && <Montage />}
@@ -105,7 +130,53 @@ export function SaveTheDate({ classic = false }: { classic?: boolean }) {
           <SpeakerIcon muted={muted} />
         </button>
       )}
+      {stage === "open" && (
+        <button
+          type="button"
+          className={s.replay}
+          onClick={replay}
+          aria-label="Watch the opening again"
+        >
+          <ReplayIcon />
+        </button>
+      )}
+      {fromApp && (
+        <Link href="/" className={s.back} aria-label="Back to weddingHQ">
+          <svg
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </Link>
+      )}
     </div>
+  );
+}
+
+function ReplayIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 12a8 8 0 1 0 2.3-5.6" />
+      <path d="M4 4v4.5h4.5" />
+    </svg>
   );
 }
 
@@ -304,7 +375,7 @@ function Montage() {
 
 // ─── Main card ─────────────────────────────────────────────────────────────
 
-function Main() {
+function Main({ onReplay }: { onReplay: () => void }) {
   const [revealed, setRevealed] = useState(false);
 
   return (
@@ -334,18 +405,22 @@ function Main() {
             </h1>
             <p className={s.subline}>are getting married</p>
             <Divider />
-            <ScratchHeart revealed={revealed} onReveal={() => setRevealed(true)} />
-            {/* Fixed height so swapping the link for the countdown doesn't shift the heart. */}
-            <div className={s.panelSlot}>
-              {revealed ? (
-                <div className={s.panel}>
-                  <Timer />
-                </div>
-              ) : (
-                <button type="button" className={s.revealLink} onClick={() => setRevealed(true)}>
-                  or tap to reveal
-                </button>
-              )}
+            {/* Centred in whatever height the arch leaves, so a tall phone gets
+                even space above and below rather than a gap at the bottom. */}
+            <div className={s.revealGroup}>
+              <ScratchHeart revealed={revealed} onReveal={() => setRevealed(true)} />
+              {/* Fixed height so swapping the link for the countdown doesn't shift the heart. */}
+              <div className={s.panelSlot}>
+                {revealed ? (
+                  <div className={s.panel}>
+                    <Timer />
+                  </div>
+                ) : (
+                  <button type="button" className={s.revealLink} onClick={() => setRevealed(true)}>
+                    or tap to reveal
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -368,7 +443,7 @@ function Main() {
         </a>
       </section>
 
-      <Gallery />
+      <Gallery onReplay={onReplay} />
     </main>
   );
 }
@@ -539,7 +614,7 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
 
 // ─── Gallery ───────────────────────────────────────────────────────────────
 
-function Gallery() {
+function Gallery({ onReplay }: { onReplay: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -576,6 +651,9 @@ function Gallery() {
         {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
         {open && <img src={open} alt="" />}
       </dialog>
+      <button type="button" className={s.replayLink} onClick={onReplay}>
+        Watch the opening again
+      </button>
     </section>
   );
 }
