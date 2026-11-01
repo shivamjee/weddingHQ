@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { SignInButton } from "./SignInButton";
 import { readLastTenantName } from "@/lib/tenants/lastTenant";
+import { SAVE_THE_DATE_PATH, WEDDING } from "@/lib/saveTheDate";
 
 // The signed-out landing screen. Not a marketing page — one job: make it
 // unmistakable you're in the right place, then get you signed in in one tap.
@@ -43,6 +45,18 @@ export function Landing() {
           invited on.
         </p>
       </div>
+
+      {/* The Save the Date is public (no sign-in), so it's safe to link from
+          the signed-out screen. */}
+      <Link
+        href={SAVE_THE_DATE_PATH}
+        className="flex min-h-[44px] items-center gap-2 rounded-full border border-emerald-800/20 px-5 text-sm text-emerald-900"
+      >
+        <span className="font-serif italic">Save the Date</span>
+        <span className="text-stone-400">·</span>
+        <span>{WEDDING.shortNames}</span>
+        <span aria-hidden>&rsaquo;</span>
+      </Link>
     </main>
   );
 }

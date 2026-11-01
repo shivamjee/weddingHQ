@@ -47,6 +47,7 @@ import { allocationHealth, comparisonRows } from "@/lib/budget";
 import { projectedTotalPaise } from "@/lib/expenses";
 import { formatDate } from "@/lib/dates";
 import { formatINR, toPaise } from "@/lib/money";
+import { SAVE_THE_DATE_PATH, WEDDING } from "@/lib/saveTheDate";
 import { AllocationHealthBar } from "@/components/budget/AllocationHealthBar";
 import { SpendDonut } from "@/components/budget/SpendDonut";
 import { OPEN_TASK_STATUSES, type BudgetAllocationWithId, type ExpenseTotals, type Side, type TaskWithId } from "@/types";
@@ -224,6 +225,22 @@ export default function HomePage() {
             : "No date set yet."}
         </p>
       </div>
+
+      {/* Link to the public Save the Date — only on the wedding it belongs to. */}
+      {tenantId === WEDDING.tenantId ? (
+        <Link
+          href={SAVE_THE_DATE_PATH}
+          className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-emerald-900/15 bg-emerald-50 px-4 py-3"
+        >
+          <div className="min-w-0">
+            <p className="font-serif text-base text-emerald-900 italic">Save the Date</p>
+            <p className="text-sm text-emerald-800/70">The card to share with guests</p>
+          </div>
+          <span className="shrink-0 text-emerald-800/40" aria-hidden>
+            &rsaquo;
+          </span>
+        </Link>
+      ) : null}
 
       {/* Overdue/due-soon strip — placed above the grid deliberately: this is
           what needs attention first. Full-width, not a fourth grid card, the
