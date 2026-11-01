@@ -30,10 +30,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#075039",
+  themeColor: "#4d0f20",
 };
 
-// `?palette=classic` keeps the earlier, darker green as a backup to compare.
+// Maroon by default. Rollbacks: `?palette=emerald` (the jewel green that was
+// live before maroon) and `?palette=classic` (the first, darker green).
 // `?from=app` is added by the links inside weddingHQ and shows a back button.
 export default async function SaveTheDatePage({
   searchParams,
@@ -43,7 +44,7 @@ export default async function SaveTheDatePage({
   const { palette, from } = await searchParams;
   return (
     <div className={serif.variable}>
-      <SaveTheDate classic={palette === "classic"} fromApp={from === "app"} />
+      <SaveTheDate palette={palette} fromApp={from === "app"} />
     </div>
   );
 }

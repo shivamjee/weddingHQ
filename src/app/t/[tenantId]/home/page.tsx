@@ -230,13 +230,13 @@ export default function HomePage() {
       {tenantId === WEDDING.tenantId ? (
         <Link
           href={SAVE_THE_DATE_FROM_APP}
-          className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-emerald-900/15 bg-emerald-50 px-4 py-3"
+          className="flex min-h-[52px] items-center justify-between gap-3 rounded-2xl border border-rose-900/15 bg-rose-50 px-4 py-3"
         >
           <div className="min-w-0">
-            <p className="font-serif text-base text-emerald-900 italic">Save the Date</p>
-            <p className="text-sm text-emerald-800/70">The card to share with guests</p>
+            <p className="font-serif text-base text-rose-950 italic">Save the Date</p>
+            <p className="text-sm text-rose-900/70">The card to share with guests</p>
           </div>
-          <span className="shrink-0 text-emerald-800/40" aria-hidden>
+          <span className="shrink-0 text-rose-900/40" aria-hidden>
             &rsaquo;
           </span>
         </Link>

@@ -37,10 +37,11 @@ const timelineVars = {
 } as CSSProperties;
 
 export function SaveTheDate({
-  classic = false,
+  palette,
   fromApp = false,
 }: {
-  classic?: boolean;
+  /** Rollback palettes: "emerald" (live until maroon) or "classic" (darker green). */
+  palette?: string;
   /** Opened from inside weddingHQ (`?from=app`): show a small way back.
    *  Guests arriving from a shared link never see it. */
   fromApp?: boolean;
@@ -103,7 +104,8 @@ export function SaveTheDate({
 
   const cls = [
     s.root,
-    classic && s.classic,
+    palette === "emerald" && s.emerald,
+    palette === "classic" && s.classic,
     stage !== "envelope" && s.opened,
     skipped && s.skipped,
   ];
@@ -505,7 +507,9 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
     const ctx = c.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    // Ruby velvet — emerald and ruby, the Mughal jewel pairing.
+    // Velvet cover in the palette's --cover-* colours (deep rose on maroon,
+    // ruby on the green rollback palettes).
+    const css = getComputedStyle(c);
     const g = ctx.createRadialGradient(
       width * 0.35,
       height * 0.3,
@@ -514,9 +518,9 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
       height / 2,
       width * 0.75,
     );
-    g.addColorStop(0, "#9b2240");
-    g.addColorStop(0.6, "#701430");
-    g.addColorStop(1, "#45081c");
+    g.addColorStop(0, css.getPropertyValue("--cover-1").trim());
+    g.addColorStop(0.6, css.getPropertyValue("--cover-2").trim());
+    g.addColorStop(1, css.getPropertyValue("--cover-3").trim());
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = "rgba(244, 234, 214, 0.12)";
@@ -527,14 +531,11 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
         ctx.fill();
       }
     }
-    ctx.fillStyle = "rgba(244, 234, 214, 0.92)";
+    ctx.fillStyle = css.getPropertyValue("--cover-ink").trim();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const family = getComputedStyle(c).fontFamily;
-    ctx.font = `italic 500 ${Math.round(height * 0.11)}px ${family}`;
-    ctx.fillText("scratch to reveal", width / 2, height * 0.37);
-    ctx.font = `italic ${Math.round(height * 0.09)}px ${family}`;
-    ctx.fillText("the date", width / 2, height * 0.5);
+    ctx.font = `italic 500 ${Math.round(height * 0.12)}px ${css.fontFamily}`;
+    ctx.fillText("Scratch to Reveal", width / 2, height * 0.42);
 
     // Brush.
     ctx.globalCompositeOperation = "destination-out";

@@ -50,7 +50,7 @@ export function Landing() {
           the signed-out screen. */}
       <Link
         href={SAVE_THE_DATE_FROM_APP}
-        className="flex min-h-[44px] items-center gap-2 rounded-full border border-emerald-800/20 px-5 text-sm text-emerald-900"
+        className="flex min-h-[44px] items-center gap-2 rounded-full border border-rose-900/20 px-5 text-sm text-rose-950"
       >
         <span className="font-serif italic">Save the Date</span>
         <span className="text-stone-400">·</span>
