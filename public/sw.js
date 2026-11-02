@@ -3,7 +3,10 @@
 // Bump CACHE when the shell assets change to force an update.
 // v2: multi-tenancy — app routes moved to /t/{tenantId}/… and the shell was
 // rebranded, so every cached chunk from v1 is stale.
-const CACHE = "weddinghq-shell-v2";
+// v3: v2 cached every same-origin file forever, so a file replaced under the same
+// name (the Save the Date photos) kept showing its old version. Bumping this
+// deletes those copies; only hashed, immutable files are cached from now on.
+const CACHE = "weddinghq-shell-v3";
 
 // A tiny shell so the app opens (not a blank error) when offline. Hashed Next
 // static assets are cached lazily on first use by the fetch handler below.
@@ -47,7 +50,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets (Next chunks, icons, fonts): cache-first, fill on first fetch.
+  // Cache-first ONLY for files that can never change under the same URL: Next's
+  // content-hashed chunks and fonts, plus the precached icons. Anything else in
+  // public/ (photos, music, calendar file) can be replaced, so it stays on the
+  // network and the browser's normal revalidation.
+  if (!url.pathname.startsWith("/_next/static/") && !PRECACHE.includes(url.pathname)) return;
+
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
