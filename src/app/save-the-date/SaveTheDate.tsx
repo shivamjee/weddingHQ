@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { ICS_PATH, WEDDING, countdown, googleCalendarUrl, type Countdown } from "@/lib/saveTheDate";
-import { MONTAGE, PHOTOS } from "./photos";
+import { GALLERY, MONTAGE } from "./photos";
 import s from "./saveTheDate.module.css";
 
-// Emerald jharokha: emerald + antique gold + ivory, a Mughal arch frame, and a
-// ruby heart to scratch. Story, one continuous take: the envelope opens and
+// The jharokha card: maroon + antique gold + ivory, a Mughal arch frame, and a
+// deep-rose heart to scratch. Story, one continuous take: the envelope opens and
 // flies into the camera, confetti falls while your photos fly past (a
 // cinema-intro fly-through), the palace doors arrive as the last frame, swing
 // open, and the arch draws itself in. A gallery of every photo sits below.
@@ -37,11 +37,8 @@ const timelineVars = {
 } as CSSProperties;
 
 export function SaveTheDate({
-  palette,
   fromApp = false,
 }: {
-  /** Rollback palettes: "emerald" (live until maroon) or "classic" (darker green). */
-  palette?: string;
   /** Opened from inside weddingHQ (`?from=app`): show a small way back.
    *  Guests arriving from a shared link never see it. */
   fromApp?: boolean;
@@ -102,13 +99,7 @@ export function SaveTheDate({
     music.current?.setMuted(next);
   }
 
-  const cls = [
-    s.root,
-    palette === "emerald" && s.emerald,
-    palette === "classic" && s.classic,
-    stage !== "envelope" && s.opened,
-    skipped && s.skipped,
-  ];
+  const cls = [s.root, stage !== "envelope" && s.opened, skipped && s.skipped];
   return (
     <div key={run} className={cls.filter(Boolean).join(" ")} style={timelineVars}>
       <Main onReplay={replay} />
@@ -507,8 +498,7 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
     const ctx = c.getContext("2d")!;
     ctx.scale(dpr, dpr);
 
-    // Velvet cover in the palette's --cover-* colours (deep rose on maroon,
-    // ruby on the green rollback palettes).
+    // Deep-rose velvet, from the --cover-* colours in the CSS.
     const css = getComputedStyle(c);
     const g = ctx.createRadialGradient(
       width * 0.35,
@@ -615,13 +605,36 @@ function ScratchHeart({ revealed, onReveal }: { revealed: boolean; onReveal: () 
 
 // ─── Gallery ───────────────────────────────────────────────────────────────
 
+// A grid of every photo. Tapping one opens it full screen in a strip you can
+// swipe (native scroll + CSS snap, so the feel is the phone's own) or step
+// through with the buttons or arrow keys.
 function Gallery({ onReplay }: { onReplay: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [open, setOpen] = useState<string | null>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState(0);
+  const [viewing, setViewing] = useState(false);
 
-  function show(src: string) {
-    setOpen(src);
+  // A <dialog> doesn't stop the page behind it scrolling on iOS.
+  useEffect(() => {
+    if (!viewing) return;
+    const html = document.documentElement;
+    html.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = "";
+    };
+  }, [viewing]);
+
+  function show(i: number) {
     dialog.current?.showModal();
+    setViewing(true);
+    if (strip.current) strip.current.scrollLeft = i * strip.current.clientWidth;
+    setAt(i);
+  }
+
+  function go(i: number) {
+    const el = strip.current;
+    if (el && i >= 0 && i < GALLERY.length)
+      el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
   }
 
   return (
@@ -629,32 +642,82 @@ function Gallery({ onReplay }: { onReplay: () => void }) {
       <p className={s.eyebrow}>Our moments</p>
       <Divider />
       <div className={s.grid}>
-        {PHOTOS.map((p) => (
+        {GALLERY.map((p, i) => (
           <button
             key={p.src}
             type="button"
-            className={s.tile}
-            onClick={() => show(p.src)}
-            aria-label="View photo"
+            className={s.thumb}
+            onClick={() => show(i)}
+            aria-label={`Open photo ${i + 1} of ${GALLERY.length}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- plain static files, lazily loaded */}
             <img src={p.src} alt="" width={p.w} height={p.h} loading="lazy" decoding="async" />
           </button>
         ))}
       </div>
-      {/* Native <dialog>: focus trap, Esc to close and a backdrop for free. */}
-      <dialog
-        ref={dialog}
-        className={s.lightbox}
-        onClick={() => dialog.current?.close()}
-        onClose={() => setOpen(null)}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
-        {open && <img src={open} alt="" />}
-      </dialog>
       <button type="button" className={s.replayLink} onClick={onReplay}>
         Watch the opening again
       </button>
+
+      {/* Native <dialog>: focus trap and Esc to close for free. */}
+      <dialog
+        ref={dialog}
+        className={s.lightbox}
+        aria-label="Photo viewer"
+        onClose={() => setViewing(false)}
+        onClick={(e) => {
+          // Tapping the dark space around a photo closes it, like most viewers.
+          if ((e.target as HTMLElement).dataset.backdrop) dialog.current?.close();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight") go(at + 1);
+          if (e.key === "ArrowLeft") go(at - 1);
+        }}
+      >
+        <button
+          type="button"
+          className={s.lightboxClose}
+          onClick={() => dialog.current?.close()}
+          aria-label="Close photo"
+        >
+          &times;
+        </button>
+        <div
+          ref={strip}
+          className={s.lightboxStrip}
+          onScroll={(e) =>
+            setAt(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))
+          }
+        >
+          {GALLERY.map((p) => (
+            <div key={p.src} className={s.lightboxSlide} data-backdrop="1">
+              {/* eslint-disable-next-line @next/next/no-img-element -- see above */}
+              <img src={p.src} alt="" loading="lazy" decoding="async" />
+            </div>
+          ))}
+        </div>
+        <div className={s.lightboxBar}>
+          <button
+            type="button"
+            onClick={() => go(at - 1)}
+            disabled={at === 0}
+            aria-label="Previous photo"
+          >
+            &lsaquo;
+          </button>
+          <span aria-live="polite">
+            {at + 1} / {GALLERY.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => go(at + 1)}
+            disabled={at === GALLERY.length - 1}
+            aria-label="Next photo"
+          >
+            &rsaquo;
+          </button>
+        </div>
+      </dialog>
     </section>
   );
 }

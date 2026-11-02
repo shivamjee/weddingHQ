@@ -1,10 +1,10 @@
-/* Save the Date — the jharokha card. Maroon + antique gold + ivory, with an
-   emerald scratch heart (green palettes swap to a ruby heart). One typeface:
+/* Save the Date — the jharokha card. Maroon + antique gold + ivory, with a
+   deep-rose scratch heart. One typeface:
    Cormorant Garamond — italic for names, spaced capitals for labels. */
 
 .root {
-  /* Maroon — the current palette. Backgrounds, doors and envelope all read
-     the --base-* ramp; the scratch heart's cover reads --cover-*. */
+  /* Backgrounds, doors and envelope all read the --base-* ramp; the scratch
+     heart's cover reads --cover-*. */
   --base-950: #24060e;
   --base-900: #360a16;
   --base-800: #4d0f20;
@@ -33,33 +33,6 @@
   
   color: var(--ivory);
   font-family: var(--font-serif), Georgia, serif;
-}
-
-/* ROLLBACK — jewel emerald, the palette live until the switch to maroon
-   (commit 496a0ad and before). /save-the-date?palette=emerald */
-.emerald {
-  --base-950: #022a1f;
-  --base-900: #043a2b;
-  --base-800: #075039;
-  --base-700: #0b6649;
-  --base-600: #128060;
-  --cover-1: #9b2240;
-  --cover-2: #701430;
-  --cover-3: #45081c;
-  --cover-ink: rgba(244, 234, 214, 0.92);
-}
-
-/* Backup: the first, darker bottle-green palette. /save-the-date?palette=classic */
-.classic {
-  --cover-1: #9b2240;
-  --cover-2: #701430;
-  --cover-3: #45081c;
-  --cover-ink: rgba(244, 234, 214, 0.92);
-  --base-950: #06201a;
-  --base-900: #0a2c22;
-  --base-800: #0f3b2e;
-  --base-700: #164d3d;
-  --base-600: #1d5c49;
 }
 
 /* Timeline custom properties (--t-*) are set inline from T in
@@ -615,7 +588,7 @@
 .gallery .divider span {
   flex: 1;
 }
-/* Masonry via columns — keeps every photo's own shape. */
+/* Masonry via columns: every photo keeps its own shape and the columns balance. */
 .grid {
   width: 100%;
   max-width: 60rem;
@@ -628,41 +601,115 @@
     column-gap: 14px;
   }
 }
-.tile {
+.thumb {
   display: block;
   width: 100%;
   margin: 0 0 10px;
   padding: 4px;
   border: 0;
   background: var(--ivory);
-  outline: 1px solid var(--gold-faint);
-  outline-offset: 2px;
   break-inside: avoid;
   cursor: zoom-in;
 }
-.tile img {
+@media (min-width: 768px) {
+  .thumb {
+    margin-bottom: 14px;
+  }
+}
+.thumb img {
   display: block;
   width: 100%;
   height: auto;
 }
+
+/* Full-screen viewer. */
 .lightbox {
-  /* Tailwind's preflight zeroes <dialog> margins; auto re-centres it. */
-  margin: auto;
-  max-width: 94vw;
-  max-height: 90dvh;
-  padding: 6px;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
   border: 0;
-  background: var(--ivory);
-  cursor: zoom-out;
+  background: color-mix(in srgb, var(--base-950) 96%, black);
+  color: var(--ivory);
 }
-.lightbox::backdrop {
-  background: color-mix(in srgb, var(--base-950) 90%, transparent);
+.lightbox[open] {
+  display: flex;
+  flex-direction: column;
 }
-.lightbox img {
-  display: block;
-  max-width: calc(94vw - 12px);
-  max-height: calc(90dvh - 12px);
+.lightboxStrip {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x pinch-zoom;
+}
+.lightboxStrip::-webkit-scrollbar {
+  display: none;
+}
+.lightboxSlide {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(3.5rem, calc(env(safe-area-inset-top) + 3rem)) 0.75rem 0.5rem;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+}
+.lightboxSlide img {
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
+}
+.lightboxClose {
+  position: absolute;
+  z-index: 1;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-soft);
+  background: transparent;
+  color: var(--gold);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightboxBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 0.5rem 0 max(0.75rem, env(safe-area-inset-bottom));
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--gold);
+}
+.lightboxBar span {
+  min-width: 4.5em;
+  text-align: center;
+}
+.lightboxBar button {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-soft);
+  background: transparent;
+  color: var(--gold);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightboxBar button:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .eyebrow {
